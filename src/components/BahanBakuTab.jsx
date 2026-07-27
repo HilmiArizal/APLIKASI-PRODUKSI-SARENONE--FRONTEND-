@@ -1,0 +1,181 @@
+import React, { useState } from 'react';
+import { Search, Plus, ArrowDownLeft, Edit3, Trash2, FileText, FileSpreadsheet, Tag } from 'lucide-react';
+import { formatNumber } from '../data/initialData';
+import { exportToExcel, exportToPDF } from '../utils/exportUtils';
+
+export default function BahanBakuTab({
+  bahanBaku,
+  kategoriList = [],
+  activeRoleView,
+  onOpenTambahBahan,
+  onOpenEditBahan,
+  onOpenStokMasuk,
+  onDeleteBahan,
+  onOpenKelolaKategoriBahan
+}) {
+  const [search, setSearch] = useState('');
+  const [kategoriFilter, setKategoriFilter] = useState('');
+
+  const canEdit = (activeRoleView === 'ADMIN' || activeRoleView === 'BAHAN_BAKU' || activeRoleView === 'PRODUK');
+
+  const filtered = bahanBaku.filter(b => {
+    const matchQuery = b.nama.toLowerCase().includes(search.toLowerCase()) || b.sku.toLowerCase().includes(search.toLowerCase());
+    const matchKat = !kategoriFilter || b.kategori === kategoriFilter;
+    return matchQuery && matchKat;
+  });
+
+  const getStatusBadge = (stok, minStok) => {
+    if (stok === 0) {
+      return <span className="badge badge-rose">Habis (Restock!)</span>;
+    }
+    if (stok <= minStok) {
+      return <span className="badge badge-amber">Menipis (Restock!)</span>;
+    }
+    return <span className="badge badge-emerald">Stok Safe</span>;
+  };
+
+  const handleExportExcel = () => {
+    const headers = ['Kode SKU', 'Nama Bahan Baku', 'Kategori', 'Stok Saat Ini', 'Batas Minimum', 'Satuan', 'Harga Satuan (Rp)', 'Status Persediaan'];
+    const rows = filtered.map(b => [
+      b.sku,
+      b.nama,
+      b.kategori,
+      b.stok,
+      b.minStok,
+      b.satuan,
+      b.harga,
+      b.stok <= b.minStok ? 'Menipis / Restock' : 'Stok Safe'
+    ]);
+    exportToExcel('Stok_Bahan_Baku_Dapur', headers, rows);
+  };
+
+  const handleExportPDF = () => {
+    const headers = ['SKU', 'Nama Bahan Baku', 'Kategori', 'Stok Saat Ini', 'Batas Min.', 'Harga Satuan', 'Status'];
+    const rows = filtered.map(b => [
+      b.sku,
+      b.nama,
+      b.kategori,
+      `${b.stok} ${b.satuan}`,
+      `${b.minStok} ${b.satuan}`,
+      `Rp ${formatNumber(b.harga)} / ${b.satuan}`,
+      b.stok <= b.minStok ? 'Menipis / Restock' : 'Aman'
+    ]);
+    exportToPDF(
+      'Laporan Inventaris Stok Bahan Baku Dapur',
+      `Menampilkan ${filtered.length} bahan mentah pergerakan stok Saren One.`,
+      headers,
+      rows,
+      `Total Bahan Mentah: ${filtered.length} Item | Status Menipis: ${filtered.filter(x => x.stok <= x.minStok).length} Item`
+    );
+  };
+
+  return (
+    <div className="tab-pane active">
+      <div className="toolbar">
+        <div className="search-box">
+          <Search size={16} />
+          <input
+            type="text"
+            placeholder="Cari bahan baku (misal: Tepung, Keju)..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+
+        <select
+          value={kategoriFilter}
+          onChange={(e) => setKategoriFilter(e.target.value)}
+          className="select-input"
+          style={{ maxWidth: '190px' }}
+        >
+          <option value="">Semua Kategori</option>
+          {kategoriList.map(k => (
+            <option key={k.id} value={k.nama}>{k.nama}</option>
+          ))}
+        </select>
+
+        <div className="toolbar-actions">
+          {activeRoleView === 'ADMIN' && (
+            <button className="btn btn-outline" onClick={onOpenKelolaKategoriBahan} title="Kelola Kategori Bahan Baku">
+              <Tag size={16} style={{ color: 'var(--amber)' }} /> Kategori
+            </button>
+          )}
+
+          <button className="btn btn-outline" onClick={handleExportExcel} title="Export Data ke Excel (.csv)">
+            <FileSpreadsheet size={16} style={{ color: 'var(--emerald)' }} /> Excel
+          </button>
+
+          <button className="btn btn-outline" onClick={handleExportPDF} title="Cetak / Simpan Laporan PDF">
+            <FileText size={16} style={{ color: 'var(--amber)' }} /> Cetak PDF
+          </button>
+
+          {canEdit && (
+            <>
+              <button className="btn btn-cyan" onClick={onOpenStokMasuk}>
+                <ArrowDownLeft size={16} /> Stok Masuk (Restock)
+              </button>
+              <button className="btn btn-primary" onClick={onOpenTambahBahan}>
+                <Plus size={16} /> Tambah Bahan
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className="table-container mt-4">
+        <table className="custom-table">
+          <thead>
+            <tr>
+              <th>SKU / KODE</th>
+              <th>NAMA BAHAN BAKU</th>
+              <th>KATEGORI</th>
+              <th>STOK SAAT INI</th>
+              <th>BATAS MIN.</th>
+              <th>HARGA SATUAN</th>
+              <th>STATUS STOK</th>
+              {canEdit && <th style={{ textAlign: 'right' }}>AKSI</th>}
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.length === 0 ? (
+              <tr>
+                <td colSpan={canEdit ? 8 : 7} style={{ textAlign: 'center', padding: '2rem' }} className="text-muted">
+                  Tidak ada bahan baku yang cocok dengan kata kunci pencarian.
+                </td>
+              </tr>
+            ) : (
+              filtered.map(b => (
+                <tr key={b.id}>
+                  <td style={{ fontWeight: 700, color: 'var(--primary)', fontSize: '0.8rem' }}>{b.sku}</td>
+                  <td style={{ fontWeight: 600 }}>{b.nama}</td>
+                  <td><span className="text-muted">{b.kategori}</span></td>
+                  <td>
+                    <strong style={{ fontSize: '0.95rem', color: b.stok <= b.minStok ? 'var(--rose)' : 'var(--text-main)' }}>
+                      {b.stok}
+                    </strong>{' '}
+                    <span className="text-muted" style={{ fontSize: '0.78rem' }}>{b.satuan}</span>
+                  </td>
+                  <td className="text-muted">{b.minStok} {b.satuan}</td>
+                  <td>Rp {formatNumber(b.harga)} <span className="text-muted">/ {b.satuan}</span></td>
+                  <td>{getStatusBadge(b.stok, b.minStok)}</td>
+                  {canEdit && (
+                    <td style={{ textAlign: 'right' }}>
+                      <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'flex-end' }}>
+                        <button className="btn btn-sm btn-outline" title="Edit Bahan Baku" onClick={() => onOpenEditBahan(b)}>
+                          <Edit3 size={14} />
+                        </button>
+                        <button className="btn btn-sm btn-outline btn-danger" title="Hapus Bahan Baku" onClick={() => onDeleteBahan(b.id)}>
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  )}
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
