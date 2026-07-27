@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, BookOpen } from 'lucide-react';
+import { Plus, Trash2, BookOpen, Edit3 } from 'lucide-react';
 import { formatNumber } from '../data/initialData';
 
 export default function ResepTab({
@@ -8,13 +8,20 @@ export default function ResepTab({
   resep,
   activeRoleView,
   onOpenTambahResepItem,
+  onOpenEditResepItem,
   onDeleteResepItem
 }) {
-  const [selectedProdukId, setSelectedProdukId] = useState(produk[0]?.id || '');
+  const sortedProduk = [...produk].sort((a, b) => (a.sku || '').localeCompare(b.sku || '', undefined, { numeric: true, sensitivity: 'base' }));
+  const [selectedProdukId, setSelectedProdukId] = useState(sortedProduk[0]?.id || '');
   const canEdit = (activeRoleView === 'ADMIN' || activeRoleView === 'PRODUK' || activeRoleView === 'BAHAN_BAKU');
 
-  const selectedProduk = produk.find(p => p.id === selectedProdukId) || produk[0];
+  const selectedProduk = sortedProduk.find(p => p.id === selectedProdukId) || sortedProduk[0];
   const currentFormula = selectedProduk ? (resep[selectedProduk.id] || []) : [];
+  const sortedFormula = [...currentFormula].sort((a, b) => {
+    const bA = bahanBaku.find(x => x.id === a.bahanId);
+    const bB = bahanBaku.find(x => x.id === b.bahanId);
+    return (bA?.sku || '').localeCompare(bB?.sku || '', undefined, { numeric: true, sensitivity: 'base' });
+  });
 
   // Estimate Production Cost
   const estimasiModalPerPcs = currentFormula.reduce((acc, item) => {
@@ -33,7 +40,7 @@ export default function ResepTab({
           </h4>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            {produk.map(p => {
+            {sortedProduk.map(p => {
               const isSelected = p.id === (selectedProduk?.id);
               const itemsCount = (resep[p.id] || []).length;
 
@@ -74,7 +81,7 @@ export default function ResepTab({
                 <div>
                   <span className="badge badge-cyan">{selectedProduk.sku}</span>
                   <h3 style={{ fontSize: '1.3rem', fontWeight: 800, marginTop: '0.25rem' }}>Formulasi Resep (BOM): {selectedProduk.nama}</h3>
-                  <p className="text-muted" style={{ fontSize: '0.8rem' }}>Kebutuhan takaran bahan baku presisi per 1 pcs produksi roti.</p>
+                  <p className="text-muted" style={{ fontSize: '0.8rem' }}>Kebutuhan takaran bahan baku presisi per 1 batch.</p>
                 </div>
 
                 {canEdit && (
@@ -84,47 +91,26 @@ export default function ResepTab({
                 )}
               </div>
 
-              {/* Cost Summary */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1.5rem', background: 'rgba(255, 255, 255, 0.02)', padding: '1rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}>
-                <div>
-                  <span className="text-muted" style={{ fontSize: '0.75rem' }}>Harga Jual Produk</span>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--emerald)' }}>Rp {formatNumber(selectedProduk.harga)}</div>
-                </div>
-                <div>
-                  <span className="text-muted" style={{ fontSize: '0.75rem' }}>Est. Modal Bahan (HPP)</span>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--amber)' }}>Rp {formatNumber(Math.round(estimasiModalPerPcs))}</div>
-                </div>
-                <div>
-                  <span className="text-muted" style={{ fontSize: '0.75rem' }}>Est. Margin Kotor</span>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--cyan)' }}>
-                    Rp {formatNumber(Math.max(0, selectedProduk.harga - Math.round(estimasiModalPerPcs)))}
-                  </div>
-                </div>
-              </div>
-
               {/* Table Ingredients */}
               <table className="custom-table">
                 <thead>
                   <tr>
                     <th>NO</th>
                     <th>NAMA BAHAN BAKU</th>
-                    <th>TAKARAN PER 1 PCS</th>
-                    <th>HARGA SATUAN BAHAN</th>
-                    <th>EST. HPP (RP)</th>
+                    <th>TAKARAN PER 1 BATCH</th>
                     {canEdit && <th style={{ textAlign: 'right' }}>AKSI</th>}
                   </tr>
                 </thead>
                 <tbody>
-                  {currentFormula.length === 0 ? (
+                  {sortedFormula.length === 0 ? (
                     <tr>
-                      <td colSpan={canEdit ? 6 : 5} style={{ textAlign: 'center', padding: '2rem' }} className="text-muted">
+                      <td colSpan={canEdit ? 4 : 3} style={{ textAlign: 'center', padding: '2rem' }} className="text-muted">
                         Belum ada formula resep bahan baku untuk produk ini.
                       </td>
                     </tr>
                   ) : (
-                    currentFormula.map((item, idx) => {
+                    sortedFormula.map((item, idx) => {
                       const b = bahanBaku.find(x => x.id === item.bahanId);
-                      const cost = b ? (b.harga * item.takaran) : 0;
 
                       return (
                         <tr key={idx}>
@@ -133,13 +119,16 @@ export default function ResepTab({
                           <td>
                             <strong style={{ color: 'var(--primary)' }}>{item.takaran}</strong> {b?.satuan || 'satuan'}
                           </td>
-                          <td className="text-muted">Rp {b ? formatNumber(b.harga) : 0} / {b?.satuan}</td>
-                          <td style={{ fontWeight: 700, color: 'var(--amber)' }}>Rp {formatNumber(Math.round(cost))}</td>
                           {canEdit && (
                             <td style={{ textAlign: 'right' }}>
-                              <button className="btn btn-sm btn-outline btn-danger" onClick={() => onDeleteResepItem(selectedProduk.id, idx)}>
-                                <Trash2 size={14} />
-                              </button>
+                              <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'flex-end' }}>
+                                <button className="btn btn-sm btn-outline" onClick={() => onOpenEditResepItem(selectedProduk.id, item)} title="Edit Takaran Resep">
+                                  <Edit3 size={14} />
+                                </button>
+                                <button className="btn btn-sm btn-outline btn-danger" onClick={() => onDeleteResepItem(selectedProduk.id, idx)} title="Hapus Takaran Resep">
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
                             </td>
                           )}
                         </tr>

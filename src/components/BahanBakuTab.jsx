@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Search, Plus, ArrowDownLeft, Edit3, Trash2, FileText, FileSpreadsheet, Tag } from 'lucide-react';
 import { formatNumber } from '../data/initialData';
-import { exportToExcel, exportToPDF } from '../utils/exportUtils';
+import { exportToExcel } from '../utils/exportUtils';
+import ModalPreviewPdf from './ModalPreviewPdf';
 
 export default function BahanBakuTab({
   bahanBaku,
@@ -11,18 +12,23 @@ export default function BahanBakuTab({
   onOpenEditBahan,
   onOpenStokMasuk,
   onDeleteBahan,
-  onOpenKelolaKategoriBahan
+  onOpenKelolaKategoriBahan,
+  onOpenPdfPreview
 }) {
   const [search, setSearch] = useState('');
   const [kategoriFilter, setKategoriFilter] = useState('');
+  const [isPreviewPdfOpen, setIsPreviewPdfOpen] = useState(false);
 
-  const canEdit = (activeRoleView === 'ADMIN' || activeRoleView === 'BAHAN_BAKU' || activeRoleView === 'PRODUK');
+  const isSuperAdmin = (activeRoleView === 'ADMIN');
+  const canAddOrRestock = (activeRoleView === 'ADMIN' || activeRoleView === 'BAHAN_BAKU' || activeRoleView === 'PRODUK');
 
-  const filtered = bahanBaku.filter(b => {
-    const matchQuery = b.nama.toLowerCase().includes(search.toLowerCase()) || b.sku.toLowerCase().includes(search.toLowerCase());
-    const matchKat = !kategoriFilter || b.kategori === kategoriFilter;
-    return matchQuery && matchKat;
-  });
+  const filtered = bahanBaku
+    .filter(b => {
+      const matchQuery = b.nama.toLowerCase().includes(search.toLowerCase()) || b.sku.toLowerCase().includes(search.toLowerCase());
+      const matchKat = !kategoriFilter || b.kategori === kategoriFilter;
+      return matchQuery && matchKat;
+    })
+    .sort((a, b) => (a.sku || '').localeCompare(b.sku || '', undefined, { numeric: true, sensitivity: 'base' }));
 
   const getStatusBadge = (stok, minStok) => {
     if (stok === 0) {
@@ -35,7 +41,7 @@ export default function BahanBakuTab({
   };
 
   const handleExportExcel = () => {
-    const headers = ['Kode SKU', 'Nama Bahan Baku', 'Kategori', 'Stok Saat Ini', 'Batas Minimum', 'Satuan', 'Harga Satuan (Rp)', 'Status Persediaan'];
+    const headers = ['Kode SKU', 'Nama Bahan Baku', 'Kategori', 'Stok Saat Ini', 'Batas Minimum', 'Satuan', 'Status Persediaan'];
     const rows = filtered.map(b => [
       b.sku,
       b.nama,
@@ -43,40 +49,45 @@ export default function BahanBakuTab({
       b.stok,
       b.minStok,
       b.satuan,
-      b.harga,
       b.stok <= b.minStok ? 'Menipis / Restock' : 'Stok Safe'
     ]);
     exportToExcel('Stok_Bahan_Baku_Dapur', headers, rows);
   };
 
   const handleExportPDF = () => {
-    const headers = ['SKU', 'Nama Bahan Baku', 'Kategori', 'Stok Saat Ini', 'Batas Min.', 'Harga Satuan', 'Status'];
+    const headers = ['SKU', 'Nama Bahan Baku', 'Kategori', 'Stok Saat Ini', 'Batas Min.', 'Status'];
     const rows = filtered.map(b => [
       b.sku,
       b.nama,
       b.kategori,
       `${b.stok} ${b.satuan}`,
       `${b.minStok} ${b.satuan}`,
-      `Rp ${formatNumber(b.harga)} / ${b.satuan}`,
-      b.stok <= b.minStok ? 'Menipis / Restock' : 'Aman'
+      b.stok <= b.minStok ? 'Menipis / Restock' : 'Stok Safe'
     ]);
-    exportToPDF(
-      'Laporan Inventaris Stok Bahan Baku Dapur',
-      `Menampilkan ${filtered.length} bahan mentah pergerakan stok Saren One.`,
+    const config = {
+      title: 'Laporan Inventaris Stok Bahan Baku Dapur',
+      subtitle: `Menampilkan ${filtered.length} bahan mentah pergerakan stok Saren One.`,
       headers,
       rows,
-      `Total Bahan Mentah: ${filtered.length} Item | Status Menipis: ${filtered.filter(x => x.stok <= x.minStok).length} Item`
-    );
+      summaryText: `Total Bahan Mentah: ${filtered.length} Item | Status Menipis: ${filtered.filter(x => x.stok <= x.minStok).length} Item`,
+      filename: 'Stok_Bahan_Baku'
+    };
+    if (onOpenPdfPreview) {
+      onOpenPdfPreview(config);
+    } else {
+      setIsPreviewPdfOpen(true);
+    }
   };
 
   return (
     <div className="tab-pane active">
       <div className="toolbar">
-        <div className="search-box">
-          <Search size={16} />
+        <div className="search-box" style={{ maxWidth: '300px' }}>
+          <Search size={16} className="search-icon" />
           <input
             type="text"
-            placeholder="Cari bahan baku (misal: Tepung, Keju)..."
+            className="form-control search-input"
+            placeholder="Cari SKU atau Nama Bahan..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -95,7 +106,7 @@ export default function BahanBakuTab({
         </select>
 
         <div className="toolbar-actions">
-          {activeRoleView === 'ADMIN' && (
+          {isSuperAdmin && (
             <button className="btn btn-outline" onClick={onOpenKelolaKategoriBahan} title="Kelola Kategori Bahan Baku">
               <Tag size={16} style={{ color: 'var(--amber)' }} /> Kategori
             </button>
@@ -105,11 +116,11 @@ export default function BahanBakuTab({
             <FileSpreadsheet size={16} style={{ color: 'var(--emerald)' }} /> Excel
           </button>
 
-          <button className="btn btn-outline" onClick={handleExportPDF} title="Cetak / Simpan Laporan PDF">
+          <button className="btn btn-outline" onClick={() => setIsPreviewPdfOpen(true)} title="Preview & Cetak Laporan PDF">
             <FileText size={16} style={{ color: 'var(--amber)' }} /> Cetak PDF
           </button>
 
-          {canEdit && (
+          {canAddOrRestock && (
             <>
               <button className="btn btn-cyan" onClick={onOpenStokMasuk}>
                 <ArrowDownLeft size={16} /> Stok Masuk (Restock)
@@ -131,15 +142,14 @@ export default function BahanBakuTab({
               <th>KATEGORI</th>
               <th>STOK SAAT INI</th>
               <th>BATAS MIN.</th>
-              <th>HARGA SATUAN</th>
               <th>STATUS STOK</th>
-              {canEdit && <th style={{ textAlign: 'right' }}>AKSI</th>}
+              {isSuperAdmin && <th style={{ textAlign: 'right' }}>AKSI (SUPER ADMIN)</th>}
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={canEdit ? 8 : 7} style={{ textAlign: 'center', padding: '2rem' }} className="text-muted">
+                <td colSpan={isSuperAdmin ? 7 : 6} style={{ textAlign: 'center', padding: '2rem' }} className="text-muted">
                   Tidak ada bahan baku yang cocok dengan kata kunci pencarian.
                 </td>
               </tr>
@@ -156,9 +166,8 @@ export default function BahanBakuTab({
                     <span className="text-muted" style={{ fontSize: '0.78rem' }}>{b.satuan}</span>
                   </td>
                   <td className="text-muted">{b.minStok} {b.satuan}</td>
-                  <td>Rp {formatNumber(b.harga)} <span className="text-muted">/ {b.satuan}</span></td>
                   <td>{getStatusBadge(b.stok, b.minStok)}</td>
-                  {canEdit && (
+                  {isSuperAdmin && (
                     <td style={{ textAlign: 'right' }}>
                       <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'flex-end' }}>
                         <button className="btn btn-sm btn-outline" title="Edit Bahan Baku" onClick={() => onOpenEditBahan(b)}>
@@ -176,6 +185,13 @@ export default function BahanBakuTab({
           </tbody>
         </table>
       </div>
+
+      <ModalPreviewPdf
+        isOpen={isPreviewPdfOpen}
+        onClose={() => setIsPreviewPdfOpen(false)}
+        bahanBaku={filtered}
+        activeUser={{ name: activeRoleView === 'ADMIN' ? 'Super Admin SAREN ONE' : 'Tim Bahan Baku' }}
+      />
     </div>
   );
 }

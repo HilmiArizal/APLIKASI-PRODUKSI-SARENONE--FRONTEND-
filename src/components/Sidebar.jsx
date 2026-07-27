@@ -107,16 +107,18 @@ export default function Sidebar({
             </>
           )}
 
+          {activeRoleView === 'ADMIN' && (
+            <a
+              href="#kategori"
+              className={`menu-item ${activeTab === 'kategori' ? 'active' : ''}`}
+              onClick={(e) => { e.preventDefault(); handleNavClick('kategori'); }}
+            >
+              <Layers size={18} /> <span>Kelola Kategori</span>
+            </a>
+          )}
+
           {showAudit && (
             <>
-              <a
-                href="#kategori"
-                className={`menu-item ${activeTab === 'kategori' ? 'active' : ''}`}
-                onClick={(e) => { e.preventDefault(); handleNavClick('kategori'); }}
-              >
-                <Layers size={18} /> <span>Kelola Kategori</span>
-              </a>
-
               <a
                 href="#user-approval"
                 className={`menu-item ${activeTab === 'user-approval' ? 'active' : ''}`}

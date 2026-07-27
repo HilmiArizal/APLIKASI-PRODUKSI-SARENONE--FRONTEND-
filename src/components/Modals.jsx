@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, ArrowDownLeft, Play, Plus } from 'lucide-react';
+import { X, Save, ArrowDownLeft, Play, Plus, Edit3 } from 'lucide-react';
 import { formatNumber } from '../data/initialData';
 
 export function ModalBahan({ isOpen, onClose, onSave, editingItem, kategoriList = [] }) {
@@ -91,18 +91,14 @@ export function ModalBahan({ isOpen, onClose, onSave, editingItem, kategoriList 
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
               <div className="form-group">
                 <label>Stok Awal</label>
                 <input type="number" step="any" className="form-control" value={stok} onChange={e => setStok(e.target.value)} required />
               </div>
               <div className="form-group">
-                <label>Batas Min.</label>
+                <label>Batas Min. Perlu Restock</label>
                 <input type="number" step="any" className="form-control" value={minStok} onChange={e => setMinStok(e.target.value)} required />
-              </div>
-              <div className="form-group">
-                <label>Harga (Rp)</label>
-                <input type="number" className="form-control" value={harga} onChange={e => setHarga(e.target.value)} required />
               </div>
             </div>
           </div>
@@ -243,7 +239,7 @@ export function ModalProduk({ isOpen, onClose, onSave, editingItem, kategoriList
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
               <div className="form-group">
                 <label>Kategori *</label>
                 <select className="select-input" value={kategori} onChange={e => setKategori(e.target.value)}>
@@ -251,10 +247,6 @@ export function ModalProduk({ isOpen, onClose, onSave, editingItem, kategoriList
                     <option key={k.id} value={k.nama}>{k.nama}</option>
                   ))}
                 </select>
-              </div>
-              <div className="form-group">
-                <label>Harga Jual (Rp) *</label>
-                <input type="number" className="form-control" value={harga} onChange={e => setHarga(e.target.value)} required />
               </div>
               <div className="form-group">
                 <label>Stok Awal (Pcs)</label>
@@ -313,13 +305,13 @@ export function ModalProduksi({ isOpen, onClose, onExecute, produkList, bahanLis
                 <label>Pilih Varian Produk Jadi *</label>
                 <select className="select-input" value={selectedProdukId} onChange={e => setSelectedProdukId(e.target.value)}>
                   {produkList.map(p => (
-                    <option key={p.id} value={p.id}>{p.sku} - {p.nama} (Stok Saat Ini: {p.stok} Pcs)</option>
+                    <option key={p.id} value={p.id}>{p.sku} - {p.nama} (Stok Saat Ini: {p.stok} Batch)</option>
                   ))}
                 </select>
               </div>
 
               <div className="form-group" style={{ marginBottom: 0 }}>
-                <label>Jumlah Batch (Pcs) *</label>
+                <label>Jumlah Batch *</label>
                 <input type="number" className="form-control" value={targetQty} onChange={e => setTargetQty(e.target.value)} min="1" required />
               </div>
             </div>
@@ -371,13 +363,19 @@ export function ModalProduksi({ isOpen, onClose, onExecute, produkList, bahanLis
   );
 }
 
-export function ModalResepItem({ isOpen, onClose, onSave, bahanList }) {
+export function ModalResepItem({ isOpen, onClose, onSave, bahanList, editingItem }) {
   const [bahanId, setBahanId] = useState(bahanList[0]?.id || '');
   const [takaran, setTakaran] = useState(0.05);
 
   useEffect(() => {
-    if (bahanList.length > 0) setBahanId(bahanList[0].id);
-  }, [bahanList, isOpen]);
+    if (editingItem) {
+      setBahanId(editingItem.bahanId || (bahanList[0]?.id || ''));
+      setTakaran(editingItem.takaran || 0.05);
+    } else {
+      if (bahanList.length > 0) setBahanId(bahanList[0].id);
+      setTakaran(0.05);
+    }
+  }, [editingItem, bahanList, isOpen]);
 
   if (!isOpen) return null;
 
@@ -396,16 +394,22 @@ export function ModalResepItem({ isOpen, onClose, onSave, bahanList }) {
     <div className="modal-overlay">
       <div className="modal-card">
         <div className="modal-header">
-          <h3><Plus size={18} style={{ color: 'var(--primary)' }} /> Tambah Takaran Formulasi Resep (BOM)</h3>
+          <h3>
+            {editingItem ? (
+              <><Edit3 size={18} style={{ color: 'var(--amber)' }} /> Edit Takaran Formulasi Resep (BOM)</>
+            ) : (
+              <><Plus size={18} style={{ color: 'var(--primary)' }} /> Tambah Takaran Formulasi Resep (BOM)</>
+            )}
+          </h3>
           <button className="btn btn-outline btn-sm" onClick={onClose}><X size={16} /></button>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
             <div className="form-group">
               <label>Pilih Bahan Baku Dapur *</label>
-              <select className="select-input" value={bahanId} onChange={e => setBahanId(e.target.value)}>
+              <select className="select-input" value={bahanId} onChange={e => setBahanId(e.target.value)} disabled={!!editingItem}>
                 {bahanList.map(b => (
-                  <option key={b.id} value={b.id}>{b.nama} (Satuan: {b.satuan} - Rp {formatNumber(b.harga)})</option>
+                  <option key={b.id} value={b.id}>{b.nama} (Satuan: {b.satuan})</option>
                 ))}
               </select>
             </div>

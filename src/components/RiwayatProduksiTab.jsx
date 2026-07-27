@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Search, ChefHat, FileSpreadsheet, FileText } from 'lucide-react';
 import { exportToExcel, exportToPDF } from '../utils/exportUtils';
 
-export default function RiwayatProduksiTab({ riwayatProduksi }) {
+export default function RiwayatProduksiTab({ riwayatProduksi, onOpenPdfPreview }) {
   const [search, setSearch] = useState('');
 
   const filtered = riwayatProduksi.filter(h =>
@@ -12,7 +12,7 @@ export default function RiwayatProduksiTab({ riwayatProduksi }) {
   );
 
   const handleExportExcel = () => {
-    const headers = ['ID Batch', 'Waktu Olah Dapur', 'Nama Produk Jadi', 'Jumlah Batch (Pcs)', 'Staf Operator', 'Rincian Pemotongan Bahan Baku'];
+    const headers = ['ID Batch', 'Waktu Olah Dapur', 'Nama Produk Jadi', 'Jumlah Batch', 'Staf Operator', 'Rincian Pemotongan Bahan Baku'];
     const rows = filtered.map(h => [
       h.id,
       h.timestamp,
@@ -25,22 +25,28 @@ export default function RiwayatProduksiTab({ riwayatProduksi }) {
   };
 
   const handleExportPDF = () => {
-    const headers = ['ID Batch', 'Waktu Olah', 'Produk Olahan', 'Jumlah Pcs', 'Staf Operator', 'Konsumsi Pemotongan Bahan'];
+    const headers = ['ID Batch', 'Waktu Olah', 'Produk Olahan', 'Jumlah Batch', 'Staf Operator', 'Konsumsi Pemotongan Bahan'];
     const rows = filtered.map(h => [
       h.id,
       h.timestamp,
       h.produkNama,
-      `${h.jumlahPcs} Pcs`,
+      `${h.jumlahPcs} Batch`,
       h.operator,
       (h.pemotonganBahan || []).map(b => `${b.bahanNama} (-${b.jumlah} ${b.satuan})`).join(', ')
     ]);
-    exportToPDF(
-      'Jurnal Rekam Jejak Batch Produksi Dapur',
-      `Menampilkan ${filtered.length} riwayat hasil pemrosesan roti & konsumsi stok bahan baku.`,
+    const config = {
+      title: 'Jurnal Rekam Jejak Batch Produksi Dapur',
+      subtitle: `Menampilkan ${filtered.length} riwayat hasil pemrosesan roti & konsumsi stok bahan baku.`,
       headers,
       rows,
-      `Total Batch Diproses: ${filtered.length} | Total Produk Dihasilkan: ${filtered.reduce((acc, curr) => acc + curr.jumlahPcs, 0)} Pcs`
-    );
+      summaryText: `Total Batch Diproses: ${filtered.length} | Total Hasil Batch: ${filtered.reduce((acc, curr) => acc + curr.jumlahPcs, 0)} Batch`,
+      filename: 'Jurnal_Batch_Produksi'
+    };
+    if (onOpenPdfPreview) {
+      onOpenPdfPreview(config);
+    } else {
+      exportToPDF(config.title, config.subtitle, config.headers, config.rows, config.summaryText, config.filename);
+    }
   };
 
   return (
@@ -92,7 +98,7 @@ export default function RiwayatProduksiTab({ riwayatProduksi }) {
                   <td className="text-muted" style={{ fontSize: '0.8rem' }}>{h.timestamp}</td>
                   <td style={{ fontWeight: 700 }}>{h.produkNama}</td>
                   <td>
-                    <strong style={{ fontSize: '1rem', color: 'var(--emerald)' }}>+{h.jumlahPcs} Pcs</strong>
+                    <strong style={{ fontSize: '1rem', color: 'var(--emerald)' }}>{h.jumlahPcs} Batch</strong>
                   </td>
                   <td><span className="badge badge-amber"><ChefHat size={12} /> {h.operator}</span></td>
                   <td>

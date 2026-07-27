@@ -11,6 +11,7 @@ import RiwayatProduksiTab from './components/RiwayatProduksiTab';
 import UserApprovalTab from './components/UserApprovalTab';
 import AuditLogTab from './components/AuditLogTab';
 import KategoriTab from './components/KategoriTab';
+import PendingApprovalView from './components/PendingApprovalView';
 
 import {
   ModalBahan,
@@ -23,6 +24,8 @@ import {
 import ModalKelolaKategori from './components/ModalKelolaKategori';
 import ModalKelolaKategoriBahan from './components/ModalKelolaKategoriBahan';
 import ModalChangePassword from './components/ModalChangePassword';
+import ModalPreviewPdf from './components/ModalPreviewPdf';
+import CustomAlertModal from './components/CustomAlertModal';
 
 import {
   DEFAULT_USERS,
@@ -146,10 +149,47 @@ export default function App() {
 
   const [isModalResepItemOpen, setIsModalResepItemOpen] = useState(false);
   const [resepProdukId, setResepProdukId] = useState(null);
+  const [editingResepItem, setEditingResepItem] = useState(null);
 
   const [isModalKelolaKategoriOpen, setIsModalKelolaKategoriOpen] = useState(false);
   const [isModalKelolaKategoriBahanOpen, setIsModalKelolaKategoriBahanOpen] = useState(false);
   const [isModalChangePasswordOpen, setIsModalChangePasswordOpen] = useState(false);
+  const [isModalPdfPreviewOpen, setIsModalPdfPreviewOpen] = useState(false);
+  const [pdfPreviewConfig, setPdfPreviewConfig] = useState(null);
+
+  const handleOpenPdfPreview = (config) => {
+    setPdfPreviewConfig(config);
+    setIsModalPdfPreviewOpen(true);
+  };
+
+  // Custom Alert State
+  const [alertState, setAlertState] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info',
+    onConfirm: null,
+    isConfirm: false,
+    confirmText: 'OK',
+    cancelText: 'Batal'
+  });
+
+  const showAlert = (message, type = 'info', title = '', onConfirm = null, isConfirm = false, confirmText = 'OK', cancelText = 'Batal') => {
+    setAlertState({
+      isOpen: true,
+      title,
+      message,
+      type,
+      onConfirm,
+      isConfirm,
+      confirmText,
+      cancelText
+    });
+  };
+
+  const closeAlert = () => {
+    setAlertState(prev => ({ ...prev, isOpen: false }));
+  };
 
   // Sync Data from Backend API on Initial Mount
   const fetchAllDataFromBackend = async () => {
@@ -230,10 +270,16 @@ export default function App() {
   // Auth Handlers
   const handleLogin = async (usernameOrEmail, password) => {
     const res = await loginApi(usernameOrEmail, password);
-    if (res?.success) {
-      setActiveUser(res.user);
-      setActiveRoleView(res.user.role);
-      alert(`Selamat datang kembali, ${res.user.name}! (Role: ${res.user.role})`);
+    const targetUser = res?.user || res?.data;
+    if (res?.success && targetUser) {
+      if (targetUser.status === 'PENDING') {
+        showAlert('Akun Anda masih dalam antrean persetujuan (PENDING). Mohon hubungi Super Admin.', 'warning', 'Persetujuan Pending');
+        setActiveUser(targetUser);
+        return;
+      }
+      setActiveUser(targetUser);
+      setActiveRoleView(targetUser.role);
+      showAlert(`Selamat datang kembali, ${targetUser.name}! (Role: ${targetUser.role})`, 'success', 'Login Berhasil!');
       return;
     }
 
@@ -241,43 +287,55 @@ export default function App() {
       const localUser = users.find(u => (u.username === usernameOrEmail || u.email === usernameOrEmail) && u.pass === password);
       if (localUser) {
         if (localUser.status === 'PENDING') {
-          alert('Akun Anda masih dalam antrean persetujuan (PENDING). Mohon hubungi Super Admin.');
+          showAlert('Akun Anda masih dalam antrean persetujuan (PENDING). Mohon hubungi Super Admin.', 'warning', 'Persetujuan Pending');
+          setActiveUser(localUser);
           return;
         }
         setActiveUser(localUser);
         setActiveRoleView(localUser.role);
-        alert(`Selamat datang kembali, ${localUser.name}! (Mode Offline)`);
+        showAlert(`Selamat datang kembali, ${localUser.name}! (Mode Offline)`, 'success', 'Login Berhasil!');
         return;
       }
     }
 
-    alert(res?.message || 'Login gagal! Periksa username/password Anda.');
+    showAlert(res?.message || 'Login gagal! Periksa username/password Anda.', 'error', 'Login Gagal!');
   };
 
   const handleRegister = async (userData) => {
     const res = await registerApi(userData);
+
     if (res?.success) {
-      alert(res.message);
+      showAlert(
+        `Pengajuan akun atas nama "${userData.name}" (@${userData.username}) berhasil dikirim!\n\n⏳ Status Akun: MENUNGGU VERIFIKASI (PENDING)\nMohon tunggu persetujuan (ACC) & verifikasi role oleh Super Admin sebelum dapat login.`,
+        'success',
+        'Pendaftaran Berhasil! 🎉'
+      );
       fetchAllDataFromBackend();
-      return;
+      return { success: true };
     }
 
+    if (res && res.success === false && !res.isOffline) {
+      showAlert(res.message || 'Pendaftaran gagal! Silakan periksa kembali data Anda.', 'error', 'Pendaftaran Gagal!');
+      return { success: false };
+    }
+
+    // Offline mode fallback registration
     const newUser = {
-      id: 'u_' + Date.now(),
-      username: userData.username,
-      email: userData.email,
-      pass: userData.pass,
-      name: userData.name,
-      role: 'PENDING',
-      requestedRole: userData.requestedRole || 'PRODUK',
+      id: `u_${Date.now()}`,
+      ...userData,
+      role: userData.requestedRole || 'PRODUK',
       status: 'PENDING',
       provider: 'local',
-      catatan: userData.catatan || '',
       createdAt: new Date().toISOString().replace('T', ' ').substring(0, 16)
     };
 
-    setUsers(prev => [newUser, ...prev]);
-    alert('Pendaftaran berhasil dikirim! Menunggu ACC Verifikasi Super Admin.');
+    setUsers(prev => [...prev, newUser]);
+    showAlert(
+      `Pengajuan akun atas nama "${userData.name}" (@${userData.username}) berhasil disimpan (Mode Offline)!\n\n⏳ Status Akun: MENUNGGU VERIFIKASI (PENDING)\nMohon tunggu persetujuan (ACC) & verifikasi role oleh Super Admin sebelum dapat login.`,
+      'success',
+      'Pendaftaran Berhasil! 🎉'
+    );
+    return { success: true };
   };
 
   const handleLogout = () => {
@@ -289,64 +347,123 @@ export default function App() {
   const handleApproveUser = async (userId, assignedRole) => {
     const res = await approveUserApi(userId, assignedRole);
     if (res?.success) {
-      alert(res.message);
+      showAlert(res.message, 'success', 'Pengguna Disetujui! 🎉');
       fetchAllDataFromBackend();
       return;
     }
 
     setUsers(prev => prev.map(u => u.id === userId ? { ...u, status: 'VERIFIED', role: assignedRole } : u));
-    alert('Pengguna telah disetujui!');
+    showAlert('Pengguna telah berhasil disetujui!', 'success', 'Verifikasi Berhasil! 🎉');
   };
 
   const handleRejectUser = async (userId) => {
-    if (!window.confirm('Apakah Anda yakin ingin menolak & menghapus pendaftaran pengguna ini?')) return;
-    const res = await rejectUserApi(userId);
-    if (res?.success) {
-      alert(res.message);
-      fetchAllDataFromBackend();
-      return;
-    }
-
-    setUsers(prev => prev.filter(u => u.id !== userId));
-    alert('Pengguna berhasil ditolak.');
+    showAlert(
+      'Apakah Anda yakin ingin menolak & menghapus pendaftaran pengguna ini?',
+      'warning',
+      'Konfirmasi Penolakan',
+      async () => {
+        const res = await rejectUserApi(userId);
+        if (res?.success) {
+          showAlert(res.message, 'success', 'Berhasil Ditolak');
+          fetchAllDataFromBackend();
+          return;
+        }
+        setUsers(prev => prev.filter(u => u.id !== userId));
+        showAlert('Pengguna berhasil ditolak.', 'info', 'Penolakan Berhasil');
+      },
+      true,
+      'Ya, Tolak',
+      'Batal'
+    );
   };
 
   const handleDeleteUser = async (userId) => {
-    if (!window.confirm('Apakah Anda yakin ingin menghapus akun pengguna ini?')) return;
-    const res = await deleteUserApi(userId);
+    showAlert(
+      'Apakah Anda yakin ingin menghapus akun pengguna ini secara permanen?',
+      'danger',
+      'Hapus Akun Pengguna',
+      async () => {
+        const res = await deleteUserApi(userId);
+        if (res?.success) {
+          showAlert(res.message, 'success', 'Hapus Akun');
+          fetchAllDataFromBackend();
+          return;
+        }
+        setUsers(prev => prev.filter(u => u.id !== userId));
+        showAlert('Akun pengguna berhasil dihapus.', 'info', 'Hapus Akun');
+      },
+      true,
+      'Ya, Hapus',
+      'Batal'
+    );
+  };
+
+  const handleResetUserPassword = async (userId, newPassword) => {
+    const res = await resetUserPasswordApi(userId, newPassword);
     if (res?.success) {
-      alert(res.message);
+      showAlert(res.message, 'success', 'Reset Password Berhasil! 🔑');
       fetchAllDataFromBackend();
       return;
     }
 
-    setUsers(prev => prev.filter(u => u.id !== userId));
-    alert('Akun pengguna berhasil dihapus.');
+    setUsers(prev => prev.map(u => u.id === userId ? { ...u, pass: newPassword } : u));
+    showAlert('Kata sandi pengguna berhasil direset!', 'success', 'Reset Password Berhasil!');
+  };
+
+  const handleSaveUser = async (userData) => {
+    if (userData.id) {
+      const res = await updateUserApi(userData.id, userData);
+      if (res?.success) {
+        showAlert(res.message, 'success', 'Update Staf Berhasil! ✨');
+        fetchAllDataFromBackend();
+        return;
+      }
+      setUsers(prev => prev.map(u => u.id === userData.id ? { ...u, ...userData } : u));
+      showAlert('Data pengguna berhasil diperbarui!', 'success', 'Update Staf');
+    } else {
+      const res = await registerApi(userData);
+      if (res?.success && res?.data?.id) {
+        if (userData.status === 'VERIFIED') {
+          await approveUserApi(res.data.id, userData.role);
+        }
+        showAlert(`Akun staf baru (${userData.name}) berhasil dibuat!`, 'success', 'Tambah Staf Berhasil! 🎉');
+        fetchAllDataFromBackend();
+        return;
+      }
+
+      const newUser = {
+        id: `u_${Date.now()}`,
+        ...userData,
+        createdAt: new Date().toISOString().replace('T', ' ').substring(0, 16)
+      };
+      setUsers(prev => [...prev, newUser]);
+      showAlert(`Akun staf baru (${userData.name}) berhasil dibuat (Mode Offline)!`, 'success', 'Tambah Staf Berhasil!');
+    }
   };
 
   const handleChangePassword = async (oldPassword, newPassword) => {
     if (!activeUser) return;
     const res = await changePasswordApi(activeUser.id, oldPassword, newPassword);
     if (res?.success) {
-      alert(res.message);
+      showAlert(res.message, 'success', 'Ubah Kata Sandi Berhasil! 🔑');
       setIsModalChangePasswordOpen(false);
       return;
     }
 
     if (res?.isOffline) {
       if (activeUser.pass !== oldPassword) {
-        alert('Kata sandi lama salah!');
+        showAlert('Kata sandi lama yang Anda masukkan tidak cocok/salah!', 'error', 'Gagal Ubah Password');
         return;
       }
       const updatedUser = { ...activeUser, pass: newPassword };
       setActiveUser(updatedUser);
       setUsers(prev => prev.map(u => u.id === activeUser.id ? updatedUser : u));
-      alert('Kata sandi berhasil diperbarui (Offline)!');
+      showAlert('Kata sandi berhasil diperbarui (Mode Offline)! 🔑', 'success', 'Ubah Kata Sandi Berhasil!');
       setIsModalChangePasswordOpen(false);
       return;
     }
 
-    alert(res?.message || 'Gagal memperbarui kata sandi.');
+    showAlert(res?.message || 'Gagal memperbarui kata sandi.', 'error', 'Ubah Password Gagal!');
   };
 
   // Kategori Produk Handlers
@@ -354,32 +471,44 @@ export default function App() {
     if (kategoriData.id) {
       const res = await updateKategoriProdukApi(kategoriData.id, kategoriData, activeUser?.name);
       if (res?.success) {
-        alert(res.message);
+        showAlert(res.message, 'success', 'Kategori Diperbarui! ✨');
         fetchAllDataFromBackend();
         return;
       }
       setKategoriProduk(prev => prev.map(k => k.id === kategoriData.id ? { ...k, ...kategoriData } : k));
+      showAlert('Kategori produk berhasil diperbarui!', 'success', 'Berhasil!');
     } else {
       const res = await createKategoriProdukApi(kategoriData, activeUser?.name);
       if (res?.success) {
-        alert(res.message);
+        showAlert(res.message, 'success', 'Kategori Ditambahkan! ✨');
         fetchAllDataFromBackend();
         return;
       }
       const newK = { id: 'kat_' + Date.now(), ...kategoriData, createdAt: new Date().toISOString().replace('T', ' ').substring(0, 16) };
       setKategoriProduk(prev => [...prev, newK]);
+      showAlert('Kategori produk berhasil ditambahkan!', 'success', 'Berhasil!');
     }
   };
 
   const handleDeleteKategori = async (id) => {
-    if (!window.confirm('Apakah Anda yakin ingin menghapus kategori produk ini?')) return;
-    const res = await deleteKategoriProdukApi(id, activeUser?.name);
-    if (res?.success) {
-      alert(res.message);
-      fetchAllDataFromBackend();
-      return;
-    }
-    setKategoriProduk(prev => prev.filter(k => k.id !== id));
+    showAlert(
+      'Apakah Anda yakin ingin menghapus kategori produk ini?',
+      'danger',
+      'Hapus Kategori Produk',
+      async () => {
+        const res = await deleteKategoriProdukApi(id, activeUser?.name);
+        if (res?.success) {
+          showAlert(res.message, 'success', 'Hapus Kategori');
+          fetchAllDataFromBackend();
+          return;
+        }
+        setKategoriProduk(prev => prev.filter(k => k.id !== id));
+        showAlert('Kategori produk berhasil dihapus.', 'info', 'Hapus Kategori');
+      },
+      true,
+      'Ya, Hapus',
+      'Batal'
+    );
   };
 
   // Kategori Bahan Baku Handlers
@@ -387,32 +516,44 @@ export default function App() {
     if (kategoriData.id) {
       const res = await updateKategoriBahanBakuApi(kategoriData.id, kategoriData, activeUser?.name);
       if (res?.success) {
-        alert(res.message);
+        showAlert(res.message, 'success', 'Kategori Diperbarui! ✨');
         fetchAllDataFromBackend();
         return;
       }
       setKategoriBahanBaku(prev => prev.map(k => k.id === kategoriData.id ? { ...k, ...kategoriData } : k));
+      showAlert('Kategori bahan baku berhasil diperbarui!', 'success', 'Berhasil!');
     } else {
       const res = await createKategoriBahanBakuApi(kategoriData, activeUser?.name);
       if (res?.success) {
-        alert(res.message);
+        showAlert(res.message, 'success', 'Kategori Ditambahkan! ✨');
         fetchAllDataFromBackend();
         return;
       }
       const newK = { id: 'kat_bhn_' + Date.now(), ...kategoriData, createdAt: new Date().toISOString().replace('T', ' ').substring(0, 16) };
       setKategoriBahanBaku(prev => [...prev, newK]);
+      showAlert('Kategori bahan baku berhasil ditambahkan!', 'success', 'Berhasil!');
     }
   };
 
   const handleDeleteKategoriBahan = async (id) => {
-    if (!window.confirm('Apakah Anda yakin ingin menghapus kategori bahan baku ini?')) return;
-    const res = await deleteKategoriBahanBakuApi(id, activeUser?.name);
-    if (res?.success) {
-      alert(res.message);
-      fetchAllDataFromBackend();
-      return;
-    }
-    setKategoriBahanBaku(prev => prev.filter(k => k.id !== id));
+    showAlert(
+      'Apakah Anda yakin ingin menghapus kategori bahan baku ini?',
+      'danger',
+      'Hapus Kategori Bahan',
+      async () => {
+        const res = await deleteKategoriBahanBakuApi(id, activeUser?.name);
+        if (res?.success) {
+          showAlert(res.message, 'success', 'Hapus Kategori');
+          fetchAllDataFromBackend();
+          return;
+        }
+        setKategoriBahanBaku(prev => prev.filter(k => k.id !== id));
+        showAlert('Kategori bahan baku berhasil dihapus.', 'info', 'Hapus Kategori');
+      },
+      true,
+      'Ya, Hapus',
+      'Batal'
+    );
   };
 
   // Bahan Baku Handlers
@@ -420,41 +561,53 @@ export default function App() {
     if (bahanData.id) {
       const res = await updateBahanBakuApi(bahanData.id, bahanData, activeUser?.name);
       if (res?.success) {
-        alert(res.message);
+        showAlert(res.message, 'success', 'Bahan Baku Diperbarui!');
         fetchAllDataFromBackend();
         setIsModalBahanOpen(false);
         return;
       }
       setBahanBaku(prev => prev.map(b => b.id === bahanData.id ? { ...b, ...bahanData } : b));
+      showAlert('Bahan baku berhasil diperbarui!', 'success', 'Berhasil!');
     } else {
       const res = await createBahanBakuApi(bahanData, activeUser?.name);
       if (res?.success) {
-        alert(res.message);
+        showAlert(res.message, 'success', 'Bahan Baku Ditambahkan!');
         fetchAllDataFromBackend();
         setIsModalBahanOpen(false);
         return;
       }
       const newB = { id: 'b_' + Date.now(), ...bahanData };
       setBahanBaku(prev => [...prev, newB]);
+      showAlert('Bahan baku baru berhasil ditambahkan!', 'success', 'Berhasil!');
     }
     setIsModalBahanOpen(false);
   };
 
   const handleDeleteBahan = async (id) => {
-    if (!window.confirm('Apakah Anda yakin ingin menghapus item bahan baku ini?')) return;
-    const res = await deleteBahanBakuApi(id, activeUser?.name);
-    if (res?.success) {
-      alert(res.message);
-      fetchAllDataFromBackend();
-      return;
-    }
-    setBahanBaku(prev => prev.filter(b => b.id !== id));
+    showAlert(
+      'Apakah Anda yakin ingin menghapus item bahan baku ini?',
+      'danger',
+      'Hapus Bahan Baku',
+      async () => {
+        const res = await deleteBahanBakuApi(id, activeUser?.name);
+        if (res?.success) {
+          showAlert(res.message, 'success', 'Hapus Bahan');
+          fetchAllDataFromBackend();
+          return;
+        }
+        setBahanBaku(prev => prev.filter(b => b.id !== id));
+        showAlert('Item bahan baku berhasil dihapus.', 'info', 'Hapus Bahan');
+      },
+      true,
+      'Ya, Hapus',
+      'Batal'
+    );
   };
 
   const handleRestockBahan = async (restockData) => {
     const res = await restockBahanBakuApi(restockData, activeUser?.name);
     if (res?.success) {
-      alert(res.message);
+      showAlert(res.message, 'success', 'Restock Berhasil! 📦');
       fetchAllDataFromBackend();
       setIsModalStokMasukOpen(false);
       return;
@@ -462,7 +615,7 @@ export default function App() {
 
     setBahanBaku(prev => prev.map(b => b.id === restockData.bahanId ? { ...b, stok: b.stok + restockData.jumlah } : b));
     setIsModalStokMasukOpen(false);
-    alert('Stok masuk berhasil dicatat!');
+    showAlert('Stok masuk berhasil dicatat!', 'success', 'Restock Berhasil! 📦');
   };
 
   // Produk Handlers
@@ -470,97 +623,140 @@ export default function App() {
     if (produkData.id) {
       const res = await updateProdukApi(produkData.id, produkData, activeUser?.name);
       if (res?.success) {
-        alert(res.message);
+        showAlert(res.message, 'success', 'Produk Diperbarui!');
         fetchAllDataFromBackend();
         setIsModalProdukOpen(false);
         return;
       }
       setProduk(prev => prev.map(p => p.id === produkData.id ? { ...p, ...produkData } : p));
+      showAlert('Data produk berhasil diperbarui!', 'success', 'Berhasil!');
     } else {
       const res = await createProdukApi(produkData, activeUser?.name);
       if (res?.success) {
-        alert(res.message);
+        showAlert(res.message, 'success', 'Produk Ditambahkan!');
         fetchAllDataFromBackend();
         setIsModalProdukOpen(false);
         return;
       }
       const newP = { id: 'p_' + Date.now(), ...produkData };
       setProduk(prev => [...prev, newP]);
+      showAlert('Produk baru berhasil ditambahkan!', 'success', 'Berhasil!');
     }
     setIsModalProdukOpen(false);
   };
 
   const handleDeleteProduk = async (id) => {
-    if (!window.confirm('Apakah Anda yakin ingin menghapus produk ini beserta data resepnya?')) return;
-    const res = await deleteProdukApi(id, activeUser?.name);
-    if (res?.success) {
-      alert(res.message);
-      fetchAllDataFromBackend();
-      return;
-    }
-    setProduk(prev => prev.filter(p => p.id !== id));
+    showAlert(
+      'Apakah Anda yakin ingin menghapus produk ini beserta data resepnya?',
+      'danger',
+      'Hapus Produk & Resep',
+      async () => {
+        const res = await deleteProdukApi(id, activeUser?.name);
+        if (res?.success) {
+          showAlert(res.message, 'success', 'Hapus Produk');
+          fetchAllDataFromBackend();
+          return;
+        }
+        setProduk(prev => prev.filter(p => p.id !== id));
+        showAlert('Produk berhasil dihapus.', 'info', 'Hapus Produk');
+      },
+      true,
+      'Ya, Hapus',
+      'Batal'
+    );
   };
 
   // Resep Handlers
   const handleSaveResepItem = async (itemData) => {
     if (!resepProdukId) return;
     const payload = { produkId: resepProdukId, ...itemData };
-    const res = await saveResepItemApi(payload, activeUser?.name);
-    if (res?.success) {
-      alert(res.message);
-      fetchAllDataFromBackend();
-      setIsModalResepItemOpen(false);
-      return;
-    }
 
     setResep(prev => {
       const existing = prev[resepProdukId] || [];
-      return { ...prev, [resepProdukId]: [...existing, itemData] };
+      const filtered = existing.filter(i => i.bahanId !== itemData.bahanId);
+      return { ...prev, [resepProdukId]: [...filtered, itemData] };
     });
+
+    const res = await saveResepItemApi(payload, activeUser?.name);
+    if (res?.success) {
+      showAlert(res.message, 'success', 'Takaran Resep Disimpan! 📖');
+      fetchAllDataFromBackend();
+    } else {
+      showAlert(res?.message || 'Takaran resep berhasil ditambahkan!', 'success', 'Resep Disimpan!');
+    }
     setIsModalResepItemOpen(false);
   };
 
   const handleDeleteResepItem = async (pId, idx) => {
-    if (!window.confirm('Hapus takaran bahan dari resep ini?')) return;
-    const targetItem = resep[pId]?.[idx];
-    if (targetItem) {
-      const res = await deleteResepItemApi(pId, targetItem.bahanId, activeUser?.name);
-      if (res?.success) {
-        alert(res.message);
-        fetchAllDataFromBackend();
-        return;
-      }
-    }
+    showAlert(
+      'Hapus takaran bahan dari resep ini?',
+      'danger',
+      'Hapus Takaran Resep',
+      async () => {
+        const targetItem = resep[pId]?.[idx];
+        if (targetItem) {
+          const res = await deleteResepItemApi(pId, targetItem.bahanId, activeUser?.name);
+          if (res?.success) {
+            showAlert(res.message, 'success', 'Hapus Resep');
+            fetchAllDataFromBackend();
+            return;
+          }
+        }
 
-    setResep(prev => {
-      const existing = prev[pId] || [];
-      const updated = existing.filter((_, index) => index !== idx);
-      return { ...prev, [pId]: updated };
-    });
+        setResep(prev => {
+          const existing = prev[pId] || [];
+          const updated = existing.filter((_, index) => index !== idx);
+          return { ...prev, [pId]: updated };
+        });
+        showAlert('Takaran bahan berhasil dihapus dari resep.', 'info', 'Hapus Resep');
+      },
+      true,
+      'Ya, Hapus',
+      'Batal'
+    );
   };
 
   // Produksi Batch Handler
   const handleExecuteProduksi = async (produksiData) => {
     const res = await executeProduksiApi(produksiData, activeUser?.name);
     if (res?.success) {
-      alert(res.message);
+      showAlert(res.message, 'success', 'Produksi Selesai! 👨‍🍳🥖');
       fetchAllDataFromBackend();
       setIsModalProduksiOpen(false);
       return;
     }
 
-    alert('Gagal mengeksekusi produksi.');
+    showAlert(res?.message || 'Gagal mengeksekusi produksi.', 'error', 'Produksi Gagal!');
   };
 
   if (!activeUser) {
-    return <Login onLogin={handleLogin} onRegister={handleRegister} />;
+    return (
+      <>
+        <Login onLogin={handleLogin} onRegister={handleRegister} showAlert={showAlert} />
+        <CustomAlertModal
+          isOpen={alertState.isOpen}
+          title={alertState.title}
+          message={alertState.message}
+          type={alertState.type}
+          onConfirm={alertState.onConfirm}
+          onClose={closeAlert}
+          confirmText={alertState.confirmText}
+          cancelText={alertState.cancelText}
+          isConfirm={alertState.isConfirm}
+        />
+      </>
+    );
+  }
+
+  if (activeUser.status === 'PENDING') {
+    return <PendingApprovalView activeUser={activeUser} onLogout={handleLogout} onRefreshStatus={fetchAllDataFromBackend} />;
   }
 
   const lowStockCount = bahanBaku.filter(b => b.stok <= b.minStok).length;
   const pendingUserCount = users.filter(u => u.status === 'PENDING').length;
 
   return (
-    <div className="app-container">
+    <div className="app-wrapper">
       <Sidebar
         activeUser={activeUser}
         activeRoleView={activeRoleView}
@@ -573,7 +769,7 @@ export default function App() {
         onCloseMobile={() => setIsMobileSidebarOpen(false)}
       />
 
-      <div className="main-wrapper">
+      <div className="main-content">
         <Topbar
           activeUser={activeUser}
           activeRoleView={activeRoleView}
@@ -606,6 +802,7 @@ export default function App() {
               onOpenStokMasuk={() => setIsModalStokMasukOpen(true)}
               onDeleteBahan={handleDeleteBahan}
               onOpenKelolaKategoriBahan={() => setIsModalKelolaKategoriBahanOpen(true)}
+              onOpenPdfPreview={handleOpenPdfPreview}
             />
           )}
 
@@ -619,6 +816,7 @@ export default function App() {
               onOpenEditProduk={(p) => { setEditingProduk(p); setIsModalProdukOpen(true); }}
               onOpenProduksiSpesifik={(pId) => { setSelectedProduksiId(pId); setIsModalProduksiOpen(true); }}
               onOpenKelolaKategori={() => setIsModalKelolaKategoriOpen(true)}
+              onOpenPdfPreview={handleOpenPdfPreview}
               onDeleteProduk={handleDeleteProduk}
             />
           )}
@@ -629,7 +827,8 @@ export default function App() {
               bahanBaku={bahanBaku}
               resep={resep}
               activeRoleView={activeRoleView}
-              onOpenTambahResepItem={(pId) => { setResepProdukId(pId); setIsModalResepItemOpen(true); }}
+              onOpenTambahResepItem={(pId) => { setResepProdukId(pId); setEditingResepItem(null); setIsModalResepItemOpen(true); }}
+              onOpenEditResepItem={(pId, item) => { setResepProdukId(pId); setEditingResepItem(item); setIsModalResepItemOpen(true); }}
               onDeleteResepItem={handleDeleteResepItem}
             />
           )}
@@ -638,10 +837,11 @@ export default function App() {
             <RiwayatProduksiTab
               riwayatProduksi={riwayatProduksi}
               produk={produk}
+              onOpenPdfPreview={handleOpenPdfPreview}
             />
           )}
 
-          {activeTab === 'kategori' && activeRoleView === 'ADMIN' && (
+          {activeTab === 'kategori' && (
             <KategoriTab
               kategoriProduk={kategoriProduk}
               kategoriBahanBaku={kategoriBahanBaku}
@@ -661,11 +861,14 @@ export default function App() {
               onApproveUser={handleApproveUser}
               onRejectUser={handleRejectUser}
               onDeleteUser={handleDeleteUser}
+              onSaveUser={handleSaveUser}
+              onResetUserPassword={handleResetUserPassword}
+              showAlert={showAlert}
             />
           )}
 
           {activeTab === 'audit-log' && (
-            <AuditLogTab auditLog={auditLog} />
+            <AuditLogTab auditLog={auditLog} onOpenPdfPreview={handleOpenPdfPreview} />
           )}
         </main>
       </div>
@@ -709,6 +912,7 @@ export default function App() {
         onClose={() => setIsModalResepItemOpen(false)}
         onSave={handleSaveResepItem}
         bahanList={bahanBaku}
+        editingItem={editingResepItem}
       />
 
       <ModalKelolaKategori
@@ -732,6 +936,26 @@ export default function App() {
         onClose={() => setIsModalChangePasswordOpen(false)}
         onChangePassword={handleChangePassword}
         activeUser={activeUser}
+      />
+
+      <ModalPreviewPdf
+        isOpen={isModalPdfPreviewOpen}
+        onClose={() => setIsModalPdfPreviewOpen(false)}
+        previewConfig={pdfPreviewConfig}
+        bahanBaku={bahanBaku}
+        activeUser={activeUser}
+      />
+
+      <CustomAlertModal
+        isOpen={alertState.isOpen}
+        title={alertState.title}
+        message={alertState.message}
+        type={alertState.type}
+        onConfirm={alertState.onConfirm}
+        onClose={closeAlert}
+        confirmText={alertState.confirmText}
+        cancelText={alertState.cancelText}
+        isConfirm={alertState.isConfirm}
       />
     </div>
   );

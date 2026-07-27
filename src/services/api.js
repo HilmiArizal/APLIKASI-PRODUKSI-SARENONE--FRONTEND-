@@ -1,5 +1,5 @@
 // SAREN ONE REST API INTEGRATION SERVICE
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+const API_BASE_URL = 'http://localhost:5001/api';
 
 async function request(endpoint, options = {}) {
   const config = {
@@ -12,6 +12,15 @@ async function request(endpoint, options = {}) {
 
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+    if (!response.ok) {
+      const errorText = await response.text();
+      try {
+        const parsed = JSON.parse(errorText);
+        return { success: false, message: parsed.message || `Gagal mengeksekusi (Status ${response.status})` };
+      } catch {
+        return { success: false, message: errorText || `Gagal mengeksekusi (Status ${response.status})` };
+      }
+    }
     const result = await response.json();
     return result;
   } catch (error) {
@@ -39,16 +48,16 @@ export async function getUsersApi() {
   return request('/auth/users');
 }
 
-export async function approveUserApi(userId, role) {
+export async function approveUserApi(userId, assignedRole) {
   return request(`/auth/approve/${userId}`, {
     method: 'PUT',
-    body: JSON.stringify({ role })
+    body: JSON.stringify({ role: assignedRole })
   });
 }
 
 export async function rejectUserApi(userId) {
   return request(`/auth/reject/${userId}`, {
-    method: 'PUT'
+    method: 'DELETE'
   });
 }
 
@@ -58,9 +67,23 @@ export async function deleteUserApi(userId) {
   });
 }
 
+export async function updateUserApi(userId, userData) {
+  return request(`/auth/users/${userId}`, {
+    method: 'PUT',
+    body: JSON.stringify(userData)
+  });
+}
+
+export async function resetUserPasswordApi(userId, newPassword) {
+  return request(`/auth/users/${userId}/reset-password`, {
+    method: 'PUT',
+    body: JSON.stringify({ newPassword })
+  });
+}
+
 export async function changePasswordApi(userId, oldPassword, newPassword) {
   return request('/auth/change-password', {
-    method: 'PUT',
+    method: 'POST',
     body: JSON.stringify({ userId, oldPassword, newPassword })
   });
 }
@@ -182,16 +205,16 @@ export async function getResepApi() {
 }
 
 export async function saveResepItemApi(data, activeUser) {
-  return request('/resep/item', {
+  return request('/resep', {
     method: 'POST',
     body: JSON.stringify({ ...data, user: activeUser })
   });
 }
 
-export async function deleteResepItemApi(produkId, itemIndex, activeUser) {
-  return request('/resep/item', {
+export async function deleteResepItemApi(produkId, bahanId, activeUser) {
+  return request(`/resep/${produkId}/${bahanId}`, {
     method: 'DELETE',
-    body: JSON.stringify({ produkId, itemIndex, user: activeUser })
+    body: JSON.stringify({ user: activeUser })
   });
 }
 

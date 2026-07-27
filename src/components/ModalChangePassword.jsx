@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, KeyRound, Save, Eye, EyeOff } from 'lucide-react';
+import PasswordStrengthChecker from './PasswordStrengthChecker';
 
 export default function ModalChangePassword({ isOpen, onClose, onChangePassword, activeUser }) {
   const [oldPassword, setOldPassword] = useState('');
@@ -17,13 +18,29 @@ export default function ModalChangePassword({ isOpen, onClose, onChangePassword,
       return;
     }
 
-    if (newPassword !== confirmPassword) {
-      alert('Ulangi kata sandi baru tidak cocok!');
+    if (newPassword.length < 8) {
+      alert('🔒 Syarat Keamanan: Kata sandi baru minimal harus 8 karakter!');
+      return;
+    }
+    if (!/[A-Z]/.test(newPassword)) {
+      alert('🔒 Syarat Keamanan: Kata sandi baru wajib mengandung minimal 1 Huruf Besar (A-Z)!');
+      return;
+    }
+    if (!/[a-z]/.test(newPassword)) {
+      alert('🔒 Syarat Keamanan: Kata sandi baru wajib mengandung minimal 1 Huruf Kecil (a-z)!');
+      return;
+    }
+    if (!/\d/.test(newPassword)) {
+      alert('🔒 Syarat Keamanan: Kata sandi baru wajib mengandung minimal 1 Angka (0-9)!');
+      return;
+    }
+    if (!/[@$!%*?&#^_-]/.test(newPassword)) {
+      alert('🔒 Syarat Keamanan: Kata sandi baru wajib mengandung minimal 1 Simbol Spesial (contoh: @, #, $, %, !, &)!');
       return;
     }
 
-    if (newPassword.length < 5) {
-      alert('Kata sandi baru minimal 5 karakter!');
+    if (newPassword !== confirmPassword) {
+      alert('Ulangi kata sandi baru tidak cocok dengan kata sandi baru!');
       return;
     }
 
@@ -96,6 +113,8 @@ export default function ModalChangePassword({ isOpen, onClose, onChangePassword,
                 required
               />
             </div>
+
+            <PasswordStrengthChecker password={newPassword} />
           </div>
           <div className="modal-footer">
             <button type="button" className="btn btn-secondary" onClick={onClose}>Batal</button>

@@ -12,25 +12,28 @@ export default function ProdukTab({
   onOpenEditProduk,
   onOpenProduksiSpesifik,
   onOpenKelolaKategori,
+  onOpenPdfPreview,
   onDeleteProduk
 }) {
   const [search, setSearch] = useState('');
   const [kategoriFilter, setKategoriFilter] = useState('');
+  const isSuperAdmin = (activeRoleView === 'ADMIN');
   const canEdit = (activeRoleView === 'ADMIN' || activeRoleView === 'PRODUK' || activeRoleView === 'BAHAN_BAKU');
 
-  const filtered = produk.filter(p => {
-    const matchQuery = p.nama.toLowerCase().includes(search.toLowerCase()) || p.sku.toLowerCase().includes(search.toLowerCase());
-    const matchKat = !kategoriFilter || p.kategori === kategoriFilter;
-    return matchQuery && matchKat;
-  });
+  const filtered = produk
+    .filter(p => {
+      const matchQuery = p.nama.toLowerCase().includes(search.toLowerCase()) || p.sku.toLowerCase().includes(search.toLowerCase());
+      const matchKat = !kategoriFilter || p.kategori === kategoriFilter;
+      return matchQuery && matchKat;
+    })
+    .sort((a, b) => (a.sku || '').localeCompare(b.sku || '', undefined, { numeric: true, sensitivity: 'base' }));
 
   const handleExportExcel = () => {
-    const headers = ['Kode SKU', 'Nama Produk', 'Kategori', 'Harga Jual (Rp)', 'Stok Produk Jadi (Pcs)', 'Jumlah Bahan Resep'];
+    const headers = ['Kode SKU', 'Nama Produk', 'Kategori', 'Stok Produk Jadi (Batch)', 'Jumlah Bahan Resep'];
     const rows = filtered.map(p => [
       p.sku,
       p.nama,
       p.kategori,
-      p.harga,
       p.stok,
       (resep[p.id] || []).length
     ]);
@@ -38,22 +41,27 @@ export default function ProdukTab({
   };
 
   const handleExportPDF = () => {
-    const headers = ['SKU', 'Nama Produk Jadi', 'Kategori', 'Harga Jual', 'Stok Ready', 'Formulasi Resep'];
+    const headers = ['SKU', 'Nama Produk Jadi', 'Kategori', 'Stok Ready', 'Formulasi Resep'];
     const rows = filtered.map(p => [
       p.sku,
       p.nama,
       p.kategori,
-      `Rp ${formatNumber(p.harga)}`,
-      `${p.stok} Pcs`,
+      `${p.stok} Batch`,
       `${(resep[p.id] || []).length} Bahan Baku`
     ]);
-    exportToPDF(
-      'Laporan Katalog & Stok Produk Jadi',
-      `Menampilkan ${filtered.length} varian produk roti & kue Saren One.`,
+    const config = {
+      title: 'Laporan Katalog & Stok Produk Jadi',
+      subtitle: `Menampilkan ${filtered.length} varian produk roti & kue Saren One.`,
       headers,
       rows,
-      `Total Varian Produk: ${filtered.length} | Total Persediaan Siap Jual: ${filtered.reduce((acc, curr) => acc + curr.stok, 0)} Pcs`
-    );
+      summaryText: `Total Varian Produk: ${filtered.length} | Total Persediaan Siap Jual: ${filtered.reduce((acc, curr) => acc + curr.stok, 0)} Batch`,
+      filename: 'Katalog_Stok_Produk_Jadi'
+    };
+    if (onOpenPdfPreview) {
+      onOpenPdfPreview(config);
+    } else {
+      exportToPDF(config.title, config.subtitle, config.headers, config.rows, config.summaryText, config.filename);
+    }
   };
 
   return (
@@ -63,7 +71,7 @@ export default function ProdukTab({
           <Search size={16} />
           <input
             type="text"
-            placeholder="Cari produk (misal: Roti Keju, Croissant)..."
+            placeholder="Cari produk (misal: RCS, SCM, BS)..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -82,7 +90,7 @@ export default function ProdukTab({
         </select>
 
         <div className="toolbar-actions">
-          {activeRoleView === 'ADMIN' && (
+          {isSuperAdmin && (
             <button className="btn btn-outline" onClick={onOpenKelolaKategori} title="Kelola Kategori Produk">
               <Tag size={16} style={{ color: 'var(--amber)' }} /> Kategori
             </button>
@@ -132,12 +140,10 @@ export default function ProdukTab({
                 )}
               </div>
 
-              <div className="produk-price">Rp {formatNumber(p.harga)}</div>
-
               <div className="produk-stok-box">
                 <div>
-                  <span className="text-muted" style={{ fontSize: '0.75rem', display: 'block' }}>Stok Produk Jadi</span>
-                  <strong style={{ fontSize: '1.2rem', color: '#fff' }}>{p.stok} Pcs</strong>
+                  <span className="text-muted" style={{ fontSize: '0.75rem', display: 'block' }}>Ready, now?</span>
+                  {/* <strong style={{ fontSize: '1.2rem', color: '#fff' }}>{p.stok} Batch</strong> */}
                 </div>
                 {canEdit && (
                   <button className="btn btn-sm btn-emerald" onClick={() => onOpenProduksiSpesifik(p.id)}>

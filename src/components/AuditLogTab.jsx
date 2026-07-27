@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Search, History, FileSpreadsheet, FileText } from 'lucide-react';
 import { exportToExcel, exportToPDF } from '../utils/exportUtils';
 
-export default function AuditLogTab({ auditLog }) {
+export default function AuditLogTab({ auditLog, onOpenPdfPreview }) {
   const [search, setSearch] = useState('');
 
   const filtered = auditLog.filter(log =>
@@ -33,13 +33,19 @@ export default function AuditLogTab({ auditLog }) {
       l.aksi,
       l.detail
     ]);
-    exportToPDF(
-      'Laporan Jurnal Transaksi & Audit Log System',
-      `Menampilkan ${filtered.length} rekam jejak aktivitas operasional Saren One.`,
+    const config = {
+      title: 'Laporan Jurnal Transaksi & Audit Log System',
+      subtitle: `Menampilkan ${filtered.length} rekam jejak aktivitas operasional Saren One.`,
       headers,
       rows,
-      `Total Catatan Transaksi: ${filtered.length} Log`
-    );
+      summaryText: `Total Catatan Transaksi: ${filtered.length} Log`,
+      filename: 'Jurnal_Audit_Log'
+    };
+    if (onOpenPdfPreview) {
+      onOpenPdfPreview(config);
+    } else {
+      exportToPDF(config.title, config.subtitle, config.headers, config.rows, config.summaryText, config.filename);
+    }
   };
 
   return (

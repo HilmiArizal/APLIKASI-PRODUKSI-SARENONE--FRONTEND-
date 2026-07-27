@@ -19,7 +19,8 @@ export default function KategoriTab({
   const [namaInput, setNamaInput] = useState('');
   const [deskripsiInput, setDeskripsiInput] = useState('');
 
-  const canEdit = (activeRoleView === 'ADMIN' || activeRoleView === 'PRODUK' || activeRoleView === 'BAHAN_BAKU');
+  const isSuperAdmin = (activeRoleView === 'ADMIN');
+  const canEdit = isSuperAdmin;
 
   const activeList = subTab === 'produk' ? kategoriProduk : kategoriBahanBaku;
   const filteredList = activeList.filter(k =>

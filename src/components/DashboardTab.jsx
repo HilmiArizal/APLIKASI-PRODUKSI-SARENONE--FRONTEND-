@@ -3,9 +3,12 @@ import { Boxes, PackageCheck, AlertCircle, ChefHat, Activity, Sparkles, PlusCirc
 import { formatNumber } from '../data/initialData';
 
 export default function DashboardTab({
-  bahanBaku,
-  produk,
-  auditLog,
+  bahanBaku = [],
+  produk = [],
+  riwayatProduksi = [],
+  auditLog = [],
+  activeRoleView,
+  onNavigate,
   onOpenModalTambahBahan,
   onOpenModalProduksi,
   onOpenModalStokMasuk,
@@ -18,7 +21,12 @@ export default function DashboardTab({
   const nilaiProduk = produk.reduce((acc, p) => acc + (p.stok * p.harga), 0);
 
   const lowStockList = bahanBaku.filter(b => b.stok <= b.minStok);
-  const todayProduksi = auditLog.filter(l => l.aksi === 'Produksi Batch').length;
+
+  // Calculate Today's Production sum accurately from riwayatProduksi for today's date
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const todayBatches = (riwayatProduksi || []).filter(r => r.timestamp && r.timestamp.startsWith(todayStr));
+  const todayProduksiCount = todayBatches.reduce((acc, r) => acc + (Number(r.jumlahPcs) || 0), 0);
 
   const getAksiBadgeStyle = (aksi) => {
     if (aksi.includes('Restock') || aksi.includes('Masuk')) return 'status-safe';
@@ -35,18 +43,18 @@ export default function DashboardTab({
           <div className="stat-details">
             <span className="stat-title">Total Jenis Bahan Baku</span>
             <h3 className="stat-value">{totalBahan} Jenis</h3>
-            <span className="stat-desc text-cyan">Rp {formatNumber(nilaiBahan)} (Nilai Aset)</span>
+            <span className="stat-desc text-cyan">Persediaan Bahan Mentah</span>
           </div>
         </div>
 
-        <div className="stat-card border-emerald">
+        {/* <div className="stat-card border-emerald">
           <div className="stat-icon icon-emerald"><PackageCheck size={24} /></div>
           <div className="stat-details">
             <span className="stat-title">Total Stok Produk Jadi</span>
-            <h3 className="stat-value">{totalProdukStok} Pcs</h3>
-            <span className="stat-desc text-emerald">Rp {formatNumber(nilaiProduk)} (Nilai Jual)</span>
+            <h3 className="stat-value">{totalProdukStok} Batch</h3>
+            <span className="stat-desc text-emerald">Produk Siap Distribusi</span>
           </div>
-        </div>
+        </div> */}
 
         <div className="stat-card border-amber">
           <div className="stat-icon icon-amber"><AlertCircle size={24} /></div>
@@ -60,14 +68,14 @@ export default function DashboardTab({
         <div className="stat-card border-indigo">
           <div className="stat-icon icon-indigo"><ChefHat size={24} /></div>
           <div className="stat-details">
-            <span className="stat-title">Produksi Hari Ini</span>
-            <h3 className="stat-value">{todayProduksi} Batch</h3>
-            <span className="stat-desc text-indigo">Total Batch Hasil Olahan</span>
+            <span className="stat-title">Produksi Hari Ini ({todayStr})</span>
+            <h3 className="stat-value">{todayProduksiCount} Batch</h3>
+            <span className="stat-desc text-indigo">Sesi Produksi Batch Hari Ini</span>
           </div>
         </div>
       </div>
 
-      <div className="dashboard-grid">
+      <div className="dashboard-grid" style={{ gridTemplateColumns: '1fr' }}>
         <div className="card card-table">
           <div className="card-header">
             <h3><Activity size={18} /> Aktivitas Transaksi Terakhir</h3>
@@ -96,37 +104,6 @@ export default function DashboardTab({
                 ))}
               </tbody>
             </table>
-          </div>
-        </div>
-
-        <div className="card card-summary">
-          <div className="card-header">
-            <h3><Sparkles size={18} /> Akses Cepat Aksi Peran</h3>
-          </div>
-          <div className="quick-actions-list">
-            <button className="action-tile tile-cyan" onClick={onOpenModalTambahBahan}>
-              <PlusCircle size={24} />
-              <div>
-                <strong>Tambah Bahan Baku Baru</strong>
-                <span>Daftarkan item bahan mentah baru</span>
-              </div>
-            </button>
-
-            <button className="action-tile tile-emerald" onClick={onOpenModalProduksi}>
-              <Factory size={24} />
-              <div>
-                <strong>Eksekusi Batch Produksi</strong>
-                <span>Otomatis potong stok bahan baku</span>
-              </div>
-            </button>
-
-            <button className="action-tile tile-amber" onClick={onOpenModalStokMasuk}>
-              <ArrowDownLeft size={24} />
-              <div>
-                <strong>Pencatatan Restock Supplier</strong>
-                <span>Input bahan baku dari supplier</span>
-              </div>
-            </button>
           </div>
         </div>
       </div>
