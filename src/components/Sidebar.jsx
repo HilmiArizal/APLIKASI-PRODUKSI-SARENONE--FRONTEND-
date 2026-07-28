@@ -16,13 +16,12 @@ export default function Sidebar({
   const getRoleTitle = (role) => {
     if (role === 'ADMIN') return 'Super Admin';
     if (role === 'BAHAN_BAKU') return 'Tim Bahan Baku';
-    if (role === 'PRODUK') return 'Tim Produk';
     if (role === 'PENDING') return 'Menunggu Approval';
     return role;
   };
 
-  const showBahan = (activeRoleView === 'ADMIN' || activeRoleView === 'BAHAN_BAKU' || activeRoleView === 'PRODUK');
-  const showProduk = (activeRoleView === 'ADMIN' || activeRoleView === 'BAHAN_BAKU' || activeRoleView === 'PRODUK');
+  const showBahan = (activeRoleView === 'ADMIN' || activeRoleView === 'BAHAN_BAKU');
+  const showProduk = (activeRoleView === 'ADMIN' || activeRoleView === 'BAHAN_BAKU');
   const showAudit = (activeRoleView === 'ADMIN');
 
   const handleNavClick = (tabName) => {

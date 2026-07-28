@@ -1,5 +1,5 @@
 // SAREN ONE REST API INTEGRATION SERVICE
-const API_BASE_URL = 'http://localhost:5001/api';
+const API_BASE_URL = 'http://localhost:5005/api';
 
 async function request(endpoint, options = {}) {
   const config = {
@@ -34,6 +34,13 @@ export async function loginApi(usernameOrEmail, password) {
   return request('/auth/login', {
     method: 'POST',
     body: JSON.stringify({ usernameOrEmail, password })
+  });
+}
+
+export async function logoutApi(user) {
+  return request('/auth/logout', {
+    method: 'POST',
+    body: JSON.stringify({ user })
   });
 }
 
@@ -230,7 +237,26 @@ export async function getRiwayatProduksiApi() {
   return request('/produksi/history');
 }
 
+export async function deleteRiwayatProduksiApi(id, activeUser) {
+  return request(`/produksi/history/${id}`, {
+    method: 'DELETE',
+    body: JSON.stringify({ user: activeUser })
+  });
+}
+
 // 8. AUDIT LOG ENDPOINTS
 export async function getAuditLogApi() {
   return request('/audit-log');
+}
+
+export async function deleteAuditLogApi(id) {
+  return request(`/audit-log/${id}`, {
+    method: 'DELETE'
+  });
+}
+
+export async function clearAllAuditLogsApi() {
+  return request('/audit-log/clear/all', {
+    method: 'DELETE'
+  });
 }

@@ -37,7 +37,6 @@ export default function Topbar({ activeUser, activeRoleView, onChangeRoleView, a
             >
               <option value="ADMIN">Super Admin</option>
               <option value="BAHAN_BAKU">Tim Bahan Baku</option>
-              <option value="PRODUK">Tim Produk</option>
             </select>
           </div>
         )}

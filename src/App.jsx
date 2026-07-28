@@ -40,6 +40,7 @@ import {
 
 import {
   loginApi,
+  logoutApi,
   registerApi,
   getUsersApi,
   approveUserApi,
@@ -68,7 +69,10 @@ import {
   deleteResepItemApi,
   executeProduksiApi,
   getRiwayatProduksiApi,
-  getAuditLogApi
+  deleteRiwayatProduksiApi,
+  getAuditLogApi,
+  deleteAuditLogApi,
+  clearAllAuditLogsApi
 } from './services/api';
 
 const STORAGE_KEYS = {
@@ -275,11 +279,13 @@ export default function App() {
       if (targetUser.status === 'PENDING') {
         showAlert('Akun Anda masih dalam antrean persetujuan (PENDING). Mohon hubungi Super Admin.', 'warning', 'Persetujuan Pending');
         setActiveUser(targetUser);
+        fetchAllDataFromBackend();
         return;
       }
       setActiveUser(targetUser);
       setActiveRoleView(targetUser.role);
       showAlert(`Selamat datang kembali, ${targetUser.name}! (Role: ${targetUser.role})`, 'success', 'Login Berhasil!');
+      fetchAllDataFromBackend();
       return;
     }
 
@@ -323,7 +329,7 @@ export default function App() {
     const newUser = {
       id: `u_${Date.now()}`,
       ...userData,
-      role: userData.requestedRole || 'PRODUK',
+      role: userData.requestedRole || 'BAHAN_BAKU',
       status: 'PENDING',
       provider: 'local',
       createdAt: new Date().toISOString().replace('T', ' ').substring(0, 16)
@@ -338,9 +344,17 @@ export default function App() {
     return { success: true };
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    if (activeUser) {
+      try {
+        await logoutApi(activeUser);
+      } catch (e) {
+        console.warn('Logout API note:', e);
+      }
+    }
     setActiveUser(null);
     setActiveTab('dashboard');
+    fetchAllDataFromBackend();
   };
 
   // User Approval Handlers
@@ -729,6 +743,75 @@ export default function App() {
     showAlert(res?.message || 'Gagal mengeksekusi produksi.', 'error', 'Produksi Gagal!');
   };
 
+  const handleDeleteRiwayatProduksi = (id) => {
+    showAlert(
+      `Apakah Anda yakin ingin menghapus catatan batch produksi (${id}) dari riwayat?`,
+      'danger',
+      'Konfirmasi Hapus Riwayat Batch',
+      async () => {
+        const res = await deleteRiwayatProduksiApi(id, activeUser?.name);
+        if (res?.success) {
+          showAlert(res.message, 'success', 'Riwayat Dihapus!');
+          fetchAllDataFromBackend();
+        } else {
+          setRiwayatProduksi(prev => prev.filter(item => item.id !== id));
+          showAlert('Catatan riwayat berhasil dihapus (Lokal)!', 'success', 'Riwayat Dihapus!');
+        }
+      },
+      true,
+      'Hapus Riwayat'
+    );
+  };
+
+  const handleDeleteAuditLog = (targetId) => {
+    showAlert(
+      `Apakah Anda yakin ingin menghapus catatan audit log (${targetId})?`,
+      'danger',
+      'Konfirmasi Hapus Log Transaksi',
+      async () => {
+        setAuditLog(prev => {
+          const updated = prev.filter(item => item.id !== targetId && item._id !== targetId);
+          localStorage.setItem(STORAGE_KEYS.AUDIT_LOG, JSON.stringify(updated));
+          return updated;
+        });
+        try {
+          const res = await deleteAuditLogApi(targetId);
+          if (res?.success) {
+            showAlert(res.message, 'success', 'Log Dihapus!');
+          }
+        } catch (e) {
+          console.warn('Delete audit log note:', e);
+        }
+        fetchAllDataFromBackend();
+      },
+      true,
+      'Hapus Log'
+    );
+  };
+
+  const handleClearAllAuditLogs = () => {
+    showAlert(
+      '⚠️ PERINGATAN: Apakah Anda yakin ingin BERSIHKAN SEMUA CATATAN AUDIT LOG TRANSAKSI?\nTindakan ini tidak dapat dibatalkan!',
+      'danger',
+      'Konfirmasi Bersihkan All Log',
+      async () => {
+        setAuditLog([]);
+        localStorage.setItem(STORAGE_KEYS.AUDIT_LOG, JSON.stringify([]));
+        try {
+          const res = await clearAllAuditLogsApi();
+          if (res?.success) {
+            showAlert(res.message, 'success', 'Audit Log Bersih!');
+          }
+        } catch (e) {
+          console.warn('Clear audit logs note:', e);
+        }
+        fetchAllDataFromBackend();
+      },
+      true,
+      'Ya, Bersihkan All Log'
+    );
+  };
+
   if (!activeUser) {
     return (
       <>
@@ -788,6 +871,8 @@ export default function App() {
               auditLog={auditLog}
               activeRoleView={activeRoleView}
               onNavigate={(tab) => setActiveTab(tab)}
+              onOpenModalProduksi={() => setIsModalProduksiOpen(true)}
+              onOpenPdfPreview={handleOpenPdfPreview}
               backendConnected={backendConnected}
             />
           )}
@@ -836,8 +921,9 @@ export default function App() {
           {activeTab === 'riwayat-produksi' && (
             <RiwayatProduksiTab
               riwayatProduksi={riwayatProduksi}
-              produk={produk}
+              activeRoleView={activeRoleView}
               onOpenPdfPreview={handleOpenPdfPreview}
+              onDeleteHistory={handleDeleteRiwayatProduksi}
             />
           )}
 
@@ -868,7 +954,13 @@ export default function App() {
           )}
 
           {activeTab === 'audit-log' && (
-            <AuditLogTab auditLog={auditLog} onOpenPdfPreview={handleOpenPdfPreview} />
+            <AuditLogTab
+              auditLog={auditLog}
+              activeRoleView={activeRoleView}
+              onOpenPdfPreview={handleOpenPdfPreview}
+              onDeleteLog={handleDeleteAuditLog}
+              onClearAllLogs={handleClearAllAuditLogs}
+            />
           )}
         </main>
       </div>

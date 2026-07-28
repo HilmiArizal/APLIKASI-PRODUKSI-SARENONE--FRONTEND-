@@ -18,7 +18,7 @@ export default function ProdukTab({
   const [search, setSearch] = useState('');
   const [kategoriFilter, setKategoriFilter] = useState('');
   const isSuperAdmin = (activeRoleView === 'ADMIN');
-  const canEdit = (activeRoleView === 'ADMIN' || activeRoleView === 'PRODUK' || activeRoleView === 'BAHAN_BAKU');
+  const canEdit = (activeRoleView === 'ADMIN' || activeRoleView === 'BAHAN_BAKU');
 
   const filtered = produk
     .filter(p => {

@@ -18,7 +18,7 @@ export default function UserApprovalTab({ users, onApproveUser, onRejectUser, on
   const [createUsername, setCreateUsername] = useState('');
   const [createEmail, setCreateEmail] = useState('');
   const [createPass, setCreatePass] = useState('');
-  const [createRole, setCreateRole] = useState('PRODUK');
+  const [createRole, setCreateRole] = useState('BAHAN_BAKU');
   const [createStatus, setCreateStatus] = useState('VERIFIED');
   const [showCreatePass, setShowCreatePass] = useState(false);
 
@@ -26,7 +26,7 @@ export default function UserApprovalTab({ users, onApproveUser, onRejectUser, on
   const [editName, setEditName] = useState('');
   const [editUsername, setEditUsername] = useState('');
   const [editEmail, setEditEmail] = useState('');
-  const [editRole, setEditRole] = useState('PRODUK');
+  const [editRole, setEditRole] = useState('BAHAN_BAKU');
   const [editStatus, setEditStatus] = useState('VERIFIED');
 
   // Form Reset Password State
@@ -39,15 +39,11 @@ export default function UserApprovalTab({ users, onApproveUser, onRejectUser, on
 
   const getRoleLabel = (role) => {
     if (role === 'ADMIN') return 'Super Admin';
-    if (role === 'BAHAN_BAKU') return 'Tim Gudang Bahan';
-    if (role === 'PRODUK') return 'Tim Produksi & Dapur';
-    return role;
+    return 'Tim Bahan Baku';
   };
 
   const getRoleBadgeClass = (role) => {
     if (role === 'ADMIN') return 'badge-amber';
-    if (role === 'BAHAN_BAKU') return 'badge-indigo';
-    if (role === 'PRODUK') return 'badge-emerald';
     return 'badge-cyan';
   };
 
@@ -277,28 +273,12 @@ export default function UserApprovalTab({ users, onApproveUser, onRejectUser, on
                         {u.status === 'PENDING' && (
                           <button
                             className="btn btn-sm btn-emerald"
-                            onClick={() => onApproveUser(u.id, u.requestedRole || 'PRODUK')}
+                            onClick={() => onApproveUser(u.id, u.requestedRole || 'BAHAN_BAKU')}
                             title="ACC & Verifikasi Akun Ini"
                           >
                             <Check size={14} /> ACC
                           </button>
                         )}
-
-                        <button
-                          className="btn btn-sm btn-outline"
-                          onClick={() => handleOpenEdit(u)}
-                          title="Edit Profil & Role"
-                        >
-                          <Edit size={14} style={{ color: 'var(--cyan)' }} /> Edit
-                        </button>
-
-                        <button
-                          className="btn btn-sm btn-outline"
-                          onClick={() => handleOpenReset(u)}
-                          title="Reset Kata Sandi"
-                        >
-                          <KeyRound size={14} style={{ color: 'var(--amber)' }} /> Password
-                        </button>
 
                         {u.role !== 'ADMIN' && (
                           <button
@@ -359,7 +339,6 @@ export default function UserApprovalTab({ users, onApproveUser, onRejectUser, on
                   <div className="form-group">
                     <label>Penugasan Role / Divisi *</label>
                     <select className="select-input" value={createRole} onChange={(e) => setCreateRole(e.target.value)} style={{ width: '100%' }}>
-                      <option value="PRODUK">🥖 Tim Produksi & Resep</option>
                       <option value="BAHAN_BAKU">📦 Tim Bahan Baku</option>
                       <option value="ADMIN">🔑 Super Admin</option>
                     </select>
@@ -412,7 +391,6 @@ export default function UserApprovalTab({ users, onApproveUser, onRejectUser, on
                   <div className="form-group">
                     <label>Peran / Role Aktif *</label>
                     <select className="select-input" value={editRole} onChange={(e) => setEditRole(e.target.value)} style={{ width: '100%' }}>
-                      <option value="PRODUK">🥖 Tim Produksi & Resep</option>
                       <option value="BAHAN_BAKU">📦 Tim Bahan Baku</option>
                       <option value="ADMIN">🔑 Super Admin</option>
                     </select>

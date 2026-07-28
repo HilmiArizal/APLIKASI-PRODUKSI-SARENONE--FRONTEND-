@@ -113,33 +113,40 @@ export function ModalBahan({ isOpen, onClose, onSave, editingItem, kategoriList 
 }
 
 export function ModalStokMasuk({ isOpen, onClose, onSave, bahanList }) {
-  const [bahanId, setBahanId] = useState(bahanList[0]?.id || '');
-  const [jumlah, setJumlah] = useState(10);
-  const [supplier, setSupplier] = useState('');
+  const sortedBahanList = React.useMemo(() => {
+    return [...bahanList].sort((a, b) => (a.sku || '').localeCompare(b.sku || '', undefined, { numeric: true, sensitivity: 'base' }));
+  }, [bahanList]);
+
+  const [bahanId, setBahanId] = useState(sortedBahanList[0]?.id || '');
+  const [jumlah, setJumlah] = useState(0);
   const [catatan, setCatatan] = useState('');
 
   useEffect(() => {
-    if (bahanList.length > 0) setBahanId(bahanList[0].id);
-  }, [bahanList, isOpen]);
+    if (sortedBahanList.length > 0) {
+      setBahanId(sortedBahanList[0].id);
+    }
+    setJumlah(0);
+    setCatatan('');
+  }, [sortedBahanList, isOpen]);
 
   if (!isOpen) return null;
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!bahanId || jumlah <= 0) {
-      alert('Pilih bahan baku dan masukkan jumlah stok masuk!');
+    if (!bahanId || Number(jumlah) <= 0) {
+      alert('Pilih bahan baku dan masukkan jumlah stok masuk lebih dari 0!');
       return;
     }
-    onSave({ bahanId, jumlah: Number(jumlah), supplier, catatan });
+    onSave({ bahanId, jumlah: Number(jumlah), supplier: '', catatan });
   };
 
-  const selectedBahan = bahanList.find(x => x.id === bahanId);
+  const selectedBahan = sortedBahanList.find(x => x.id === bahanId);
 
   return (
     <div className="modal-overlay">
       <div className="modal-card">
         <div className="modal-header">
-          <h3><ArrowDownLeft size={18} style={{ color: 'var(--cyan)' }} /> Catat Stok Masuk (Restock Supplier)</h3>
+          <h3><ArrowDownLeft size={18} style={{ color: 'var(--cyan)' }} /> Catat Stok Masuk (Restock Bahan)</h3>
           <button className="btn btn-outline btn-sm" onClick={onClose}><X size={16} /></button>
         </div>
         <form onSubmit={handleSubmit}>
@@ -147,7 +154,7 @@ export function ModalStokMasuk({ isOpen, onClose, onSave, bahanList }) {
             <div className="form-group">
               <label>Pilih Bahan Baku Dapur *</label>
               <select className="select-input" value={bahanId} onChange={e => setBahanId(e.target.value)}>
-                {bahanList.map(b => (
+                {sortedBahanList.map(b => (
                   <option key={b.id} value={b.id}>{b.sku} - {b.nama} (Stok Saat Ini: {b.stok} {b.satuan})</option>
                 ))}
               </select>
@@ -156,11 +163,6 @@ export function ModalStokMasuk({ isOpen, onClose, onSave, bahanList }) {
             <div className="form-group">
               <label>Jumlah Tambahan Stok Masuk ({selectedBahan?.satuan || 'satuan'}) *</label>
               <input type="number" step="any" className="form-control" value={jumlah} onChange={e => setJumlah(e.target.value)} required />
-            </div>
-
-            <div className="form-group">
-              <label>Nama Supplier / Pemasok</label>
-              <input type="text" className="form-control" placeholder="Misal: PT Boga Utama, Toko Bahan..." value={supplier} onChange={e => setSupplier(e.target.value)} />
             </div>
 
             <div className="form-group">

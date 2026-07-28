@@ -32,7 +32,7 @@ export default function Login({ onLogin, onRegister, showAlert }) {
   const [regEmail, setRegEmail] = useState('');
   const [regPass, setRegPass] = useState('');
   const [regConfirmPass, setRegConfirmPass] = useState('');
-  const [regRole, setRegRole] = useState('PRODUK');
+  const [regRole, setRegRole] = useState('BAHAN_BAKU');
   const [regCatatan, setRegCatatan] = useState('');
 
   // Quick Demo Credentials Handler
@@ -131,7 +131,7 @@ export default function Login({ onLogin, onRegister, showAlert }) {
           <img src={logoImg} alt="SAREN ONE Logo" style={{ height: isRegisterMode ? '48px' : '65px', marginBottom: '0.4rem' }} />
           <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em' }}>SAREN ONE SYSTEM</h2>
           <p className="text-muted" style={{ fontSize: '0.82rem', marginTop: '0.2rem' }}>
-            {isRegisterMode ? 'Pendaftaran Akun Pengguna Staf Baru' : 'Sistem Manajerial Inventaris Dapur & Produksi Roti'}
+            {isRegisterMode ? 'Pendaftaran Akun Pengguna Staf Baru' : 'Sistem Manajerial Persediaan Bahan Baku'}
           </p>
         </div>
 

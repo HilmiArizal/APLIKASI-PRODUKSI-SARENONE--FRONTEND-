@@ -13,7 +13,7 @@ export default function ResepTab({
 }) {
   const sortedProduk = [...produk].sort((a, b) => (a.sku || '').localeCompare(b.sku || '', undefined, { numeric: true, sensitivity: 'base' }));
   const [selectedProdukId, setSelectedProdukId] = useState(sortedProduk[0]?.id || '');
-  const canEdit = (activeRoleView === 'ADMIN' || activeRoleView === 'PRODUK' || activeRoleView === 'BAHAN_BAKU');
+  const canEdit = (activeRoleView === 'ADMIN' || activeRoleView === 'BAHAN_BAKU');
 
   const selectedProduk = sortedProduk.find(p => p.id === selectedProdukId) || sortedProduk[0];
   const currentFormula = selectedProduk ? (resep[selectedProduk.id] || []) : [];

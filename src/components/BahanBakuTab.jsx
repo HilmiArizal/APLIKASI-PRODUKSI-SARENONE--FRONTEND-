@@ -20,7 +20,7 @@ export default function BahanBakuTab({
   const [isPreviewPdfOpen, setIsPreviewPdfOpen] = useState(false);
 
   const isSuperAdmin = (activeRoleView === 'ADMIN');
-  const canAddOrRestock = (activeRoleView === 'ADMIN' || activeRoleView === 'BAHAN_BAKU' || activeRoleView === 'PRODUK');
+  const canAddOrRestock = (activeRoleView === 'ADMIN' || activeRoleView === 'BAHAN_BAKU');
 
   const filtered = bahanBaku
     .filter(b => {
