@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Package, MinusCircle, CheckCircle, Search, FileText } from 'lucide-react';
+import { Package, MinusCircle, CheckCircle, Search, Calendar, History, Clock } from 'lucide-react';
 import { formatNumber } from '../data/initialData';
 import { ModalPemakaianKemasan } from './Modals';
 
@@ -14,6 +14,10 @@ export default function PemakaianKemasanTab({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedBahanForModal, setSelectedBahanForModal] = useState(null);
 
+  // Today Date string in YYYY-MM-DD
+  const todayStr = new Date().toISOString().split('T')[0];
+  const [selectedDateFilter, setSelectedDateFilter] = useState(todayStr);
+
   // Filter packaging materials (or all materials)
   const kemasanMaterials = bahanBaku.filter(b => {
     const kat = (b.kategori || '').toLowerCase();
@@ -24,11 +28,21 @@ export default function PemakaianKemasanTab({
   const displayMaterials = (kemasanMaterials.length > 0 ? kemasanMaterials : bahanBaku)
     .filter(b => b.nama.toLowerCase().includes(search.toLowerCase()) || b.sku.toLowerCase().includes(search.toLowerCase()));
 
-  // Filter usage logs from auditLog
-  const usageLogs = auditLog.filter(log =>
-    (log.aksi || '').toLowerCase().includes('kemasan') ||
-    (log.detail || '').toLowerCase().includes('pemakaian')
-  );
+  // Filter packaging usage logs from auditLog
+  const allKemasanLogs = auditLog.filter(log => {
+    const aksi = (log.aksi || '').toLowerCase();
+    const detail = (log.detail || '').toLowerCase();
+    return aksi.includes('kemasan') || detail.includes('pemakaian');
+  });
+
+  // Filter logs for today
+  const todayLogs = allKemasanLogs.filter(log => (log.timestamp || '').startsWith(todayStr));
+
+  // Filter logs for selected date filter (or all if filter is empty)
+  const filteredHistoryLogs = allKemasanLogs.filter(log => {
+    if (!selectedDateFilter) return true;
+    return (log.timestamp || '').startsWith(selectedDateFilter);
+  });
 
   const canUse = (activeRoleView === 'ADMIN' || activeRoleView === 'BAHAN_BAKU');
 
@@ -48,6 +62,41 @@ export default function PemakaianKemasanTab({
           <button className="btn btn-amber" onClick={() => setIsModalOpen(true)}>
             <MinusCircle size={16} /> Catat Pemakaian Kemasan
           </button>
+        )}
+      </div>
+
+      {/* Widget Pemakaian Hari Ini (Today Summary Widget) */}
+      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--amber)', borderRadius: 'var(--radius-md)', padding: '1.25rem', marginBottom: '1.5rem', position: 'relative' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+          <h4 style={{ fontSize: '1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--amber)' }}>
+            <Calendar size={18} /> Pemakaian Bahan Kemasan HARI INI ({todayStr})
+          </h4>
+          <span className="badge badge-amber" style={{ fontSize: '0.82rem', padding: '0.35rem 0.75rem' }}>
+            {todayLogs.length} Transaksi Hari Ini
+          </span>
+        </div>
+
+        {todayLogs.length === 0 ? (
+          <p className="text-muted" style={{ fontSize: '0.85rem', margin: 0 }}>
+            Belum ada catatan pemakaian bahan kemasan untuk hari ini ({todayStr}). Klik tombol <strong>"Catat Pemakaian Kemasan"</strong> untuk menginput.
+          </p>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.75rem' }}>
+            {todayLogs.map(log => (
+              <div key={log.id} style={{ background: 'rgba(245, 158, 11, 0.08)', border: '1px solid rgba(245, 158, 11, 0.25)', borderRadius: 'var(--radius-sm)', padding: '0.75rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
+                  <span><Clock size={12} /> {log.timestamp}</span>
+                  <span className="badge badge-emerald" style={{ fontSize: '0.68rem', padding: '0.1rem 0.4rem' }}>HARI INI</span>
+                </div>
+                <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)' }}>
+                  {log.detail}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--amber)', marginTop: '0.25rem' }}>
+                  Oleh: {log.user} ({log.role})
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </div>
 
@@ -78,7 +127,7 @@ export default function PemakaianKemasanTab({
       </div>
 
       {/* Main Table for Packaging Material Stock */}
-      <div className="table-container">
+      <div className="table-container" style={{ marginBottom: '2rem' }}>
         <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>Inventaris Persediaan Bahan Kemasan</h3>
           <div className="search-box" style={{ maxWidth: '280px' }}>
@@ -145,6 +194,92 @@ export default function PemakaianKemasanTab({
                   )}
                 </tr>
               ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Riwayat & Log Pemakaian Kemasan Per Tanggal */}
+      <div className="table-container">
+        <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+          <div>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <History size={18} style={{ color: 'var(--amber)' }} /> Riwayat &amp; Log Pemakaian Kemasan Per Tanggal
+            </h3>
+            <span className="text-muted" style={{ fontSize: '0.78rem' }}>
+              Menampilkan {filteredHistoryLogs.length} transaksi pemakaian kemasan.
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)' }}>Filter Tanggal:</label>
+            <input
+              type="date"
+              className="form-control"
+              style={{ width: '160px', padding: '0.35rem 0.65rem', fontSize: '0.85rem' }}
+              value={selectedDateFilter}
+              onChange={(e) => setSelectedDateFilter(e.target.value)}
+            />
+            <button
+              className={`btn btn-sm ${selectedDateFilter === todayStr ? 'btn-amber' : 'btn-outline'}`}
+              onClick={() => setSelectedDateFilter(todayStr)}
+            >
+              Hari Ini
+            </button>
+            <button
+              className={`btn btn-sm ${!selectedDateFilter ? 'btn-amber' : 'btn-outline'}`}
+              onClick={() => setSelectedDateFilter('')}
+            >
+              Semua Tanggal
+            </button>
+          </div>
+        </div>
+
+        <table className="custom-table">
+          <thead>
+            <tr>
+              <th>WAKTU / TANGGAL</th>
+              <th>HARI</th>
+              <th>RINCIAN PEMAKAIAN KEMASAN</th>
+              <th>OPERATOR</th>
+              <th>STATUS</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredHistoryLogs.length === 0 ? (
+              <tr>
+                <td colSpan="5" style={{ textAlign: 'center', padding: '2rem' }} className="text-muted">
+                  {selectedDateFilter ? `Tidak ada riwayat pemakaian kemasan pada tanggal ${selectedDateFilter}.` : 'Belum ada riwayat pemakaian kemasan.'}
+                </td>
+              </tr>
+            ) : (
+              filteredHistoryLogs.map(log => {
+                const isToday = (log.timestamp || '').startsWith(todayStr);
+                return (
+                  <tr key={log.id}>
+                    <td style={{ fontWeight: 700, color: 'var(--amber)' }}>
+                      <Clock size={13} style={{ marginRight: '0.35rem' }} />
+                      {log.timestamp}
+                    </td>
+                    <td>
+                      <span className="badge badge-outline" style={{ fontSize: '0.72rem' }}>
+                        {log.timestamp ? log.timestamp.split(' ')[0] : '-'}
+                      </span>
+                    </td>
+                    <td style={{ fontWeight: 600 }}>{log.detail}</td>
+                    <td>
+                      <strong>{log.user}</strong> <span className="text-muted">({log.role})</span>
+                    </td>
+                    <td>
+                      {isToday ? (
+                        <span className="badge badge-emerald" style={{ fontWeight: 700 }}>✓ HARI INI</span>
+                      ) : (
+                        <span className="badge badge-outline">Lampau</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
