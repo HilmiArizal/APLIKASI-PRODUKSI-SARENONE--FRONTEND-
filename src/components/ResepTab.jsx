@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, BookOpen, Edit3 } from 'lucide-react';
+import { Plus, Trash2, BookOpen, Edit3, Upload, FileSpreadsheet } from 'lucide-react';
 import { formatNumber } from '../data/initialData';
+import { ModalImportResepExcel } from './Modals';
 
 export default function ResepTab({
   produk,
@@ -9,8 +10,11 @@ export default function ResepTab({
   activeRoleView,
   onOpenTambahResepItem,
   onOpenEditResepItem,
-  onDeleteResepItem
+  onDeleteResepItem,
+  onImportExcelResep,
+  showAlert
 }) {
+  const [isImportExcelOpen, setIsImportExcelOpen] = useState(false);
   const sortedProduk = [...produk].sort((a, b) => (a.sku || '').localeCompare(b.sku || '', undefined, { numeric: true, sensitivity: 'base' }));
   const [selectedProdukId, setSelectedProdukId] = useState(sortedProduk[0]?.id || '');
   const canEdit = (activeRoleView === 'ADMIN' || activeRoleView === 'BAHAN_BAKU');
@@ -22,13 +26,6 @@ export default function ResepTab({
     const bB = bahanBaku.find(x => x.id === b.bahanId);
     return (bA?.sku || '').localeCompare(bB?.sku || '', undefined, { numeric: true, sensitivity: 'base' });
   });
-
-  // Estimate Production Cost
-  const estimasiModalPerPcs = currentFormula.reduce((acc, item) => {
-    const b = bahanBaku.find(x => x.id === item.bahanId);
-    if (!b) return acc;
-    return acc + (b.harga * item.takaran);
-  }, 0);
 
   return (
     <div className="tab-pane active">
@@ -51,7 +48,7 @@ export default function ResepTab({
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    justify: 'space-between',
+                    justifyContent: 'space-between',
                     padding: '0.85rem 1rem',
                     borderRadius: 'var(--radius-sm)',
                     border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border-color)',
@@ -77,7 +74,7 @@ export default function ResepTab({
         <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1.5rem' }}>
           {selectedProduk ? (
             <>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
                 <div>
                   <span className="badge badge-cyan">{selectedProduk.sku}</span>
                   <h3 style={{ fontSize: '1.3rem', fontWeight: 800, marginTop: '0.25rem' }}>Formulasi Resep (BOM): {selectedProduk.nama}</h3>
@@ -85,9 +82,14 @@ export default function ResepTab({
                 </div>
 
                 {canEdit && (
-                  <button className="btn btn-primary" onClick={() => onOpenTambahResepItem(selectedProduk.id)}>
-                    <Plus size={16} /> Tambah Takaran Bahan
-                  </button>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button className="btn btn-outline btn-amber" onClick={() => setIsImportExcelOpen(true)} title="Import Formulasi Resep (BOM) Masal dari File Excel">
+                      <Upload size={16} style={{ color: 'var(--amber)' }} /> Import Resep (BOM)
+                    </button>
+                    <button className="btn btn-primary" onClick={() => onOpenTambahResepItem(selectedProduk.id)}>
+                      <Plus size={16} /> Tambah Takaran Bahan
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -145,6 +147,13 @@ export default function ResepTab({
           )}
         </div>
       </div>
+
+      <ModalImportResepExcel
+        isOpen={isImportExcelOpen}
+        onClose={() => setIsImportExcelOpen(false)}
+        onImport={onImportExcelResep}
+        showAlert={showAlert}
+      />
     </div>
   );
 }

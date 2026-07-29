@@ -590,3 +590,152 @@ export function ModalImportBahanExcel({ isOpen, onClose, onImport, showAlert }) 
     </div>
   );
 }
+
+export function ModalImportResepExcel({ isOpen, onClose, onImport, showAlert }) {
+  const [file, setFile] = useState(null);
+  const [parsedData, setParsedData] = useState([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setFile(null);
+      setParsedData([]);
+      setIsProcessing(false);
+    }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  const handleDownloadTemplate = () => {
+    const templateData = [
+      { 'SKU PRODUK': 'PRD-001', 'NAMA PRODUK': 'Roti Keju Spesial', 'SKU BAHAN': 'BHN-001', 'NAMA BAHAN BAKU': 'Tepung Terigu Cakra', 'TAKARAN': 0.08 },
+      { 'SKU PRODUK': 'PRD-001', 'NAMA PRODUK': 'Roti Keju Spesial', 'SKU BAHAN': 'BHN-002', 'NAMA BAHAN BAKU': 'Gula Pasir Premium', 'TAKARAN': 0.02 },
+      { 'SKU PRODUK': 'PRD-001', 'NAMA PRODUK': 'Roti Keju Spesial', 'SKU BAHAN': 'BHN-003', 'NAMA BAHAN BAKU': 'Keju Cheddar Olahan', 'TAKARAN': 0.03 }
+    ];
+    const ws = XLSX.utils.json_to_sheet(templateData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Template_Resep_BOM');
+    XLSX.writeFile(wb, 'Template_Import_Resep_BOM.xlsx');
+  };
+
+  const handleFileChange = (e) => {
+    const selectedFile = e.target.files[0];
+    if (!selectedFile) return;
+    setFile(selectedFile);
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const bstr = evt.target.result;
+        const wb = XLSX.read(bstr, { type: 'binary' });
+        const wsName = wb.SheetNames[0];
+        const ws = wb.Sheets[wsName];
+        const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+        const mapped = json.map((row, index) => {
+          const pSkuKey = Object.keys(row).find(k => k.toLowerCase().includes('sku produk') || k.toLowerCase().includes('kode produk') || k.toLowerCase() === 'produk sku') || '';
+          const pNamaKey = Object.keys(row).find(k => k.toLowerCase().includes('nama produk') || k.toLowerCase() === 'produk') || '';
+          const bSkuKey = Object.keys(row).find(k => k.toLowerCase().includes('sku bahan') || k.toLowerCase().includes('kode bahan') || k.toLowerCase() === 'bahan sku') || '';
+          const bNamaKey = Object.keys(row).find(k => k.toLowerCase().includes('nama bahan') || k.toLowerCase() === 'bahan baku' || k.toLowerCase() === 'bahan') || '';
+          const takaranKey = Object.keys(row).find(k => k.toLowerCase().includes('takaran') || k.toLowerCase().includes('jumlah') || k.toLowerCase().includes('qty')) || '';
+
+          return {
+            id: index + 1,
+            produkSku: String(row[pSkuKey] || '').trim(),
+            produkNama: String(row[pNamaKey] || '').trim(),
+            bahanSku: String(row[bSkuKey] || '').trim(),
+            bahanNama: String(row[bNamaKey] || '').trim(),
+            takaran: parseFloat(row[takaranKey]) || 0
+          };
+        }).filter(item => (item.produkSku || item.produkNama) && (item.bahanSku || item.bahanNama) && item.takaran > 0);
+
+        if (mapped.length === 0) {
+          if (showAlert) showAlert('File Excel kosong atau format kolom tidak dikenali!', 'error', 'Format File Salah');
+          setParsedData([]);
+          return;
+        }
+
+        setParsedData(mapped);
+      } catch (err) {
+        if (showAlert) showAlert('Gagal membaca file Excel Resep: ' + err.message, 'error', 'Error File');
+      }
+    };
+    reader.readAsBinaryString(selectedFile);
+  };
+
+  const handleCommitImport = async () => {
+    if (parsedData.length === 0) return;
+    setIsProcessing(true);
+    await onImport(parsedData);
+    setIsProcessing(false);
+    onClose();
+  };
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-card" style={{ maxWidth: '780px' }}>
+        <div className="modal-header">
+          <h3><FileSpreadsheet size={20} style={{ color: 'var(--amber)' }} /> Import Formulasi Resep (BOM) dari Excel / CSV</h3>
+          <button className="btn btn-outline btn-sm" onClick={onClose}><X size={16} /></button>
+        </div>
+        <div className="modal-body">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <p className="text-muted" style={{ fontSize: '0.85rem' }}>
+              Unggah file spreadsheet `.xlsx`, `.xls`, atau `.csv` berisi takaran bahan baku per produk.
+            </p>
+            <button className="btn btn-sm btn-outline" onClick={handleDownloadTemplate} title="Unduh Contoh Format Excel Resep">
+              <Download size={14} style={{ color: 'var(--cyan)' }} /> Unduh Template Excel Resep
+            </button>
+          </div>
+
+          <div className="form-group">
+            <label>Pilih File Excel Resep (.xlsx / .csv) *</label>
+            <input type="file" accept=".xlsx, .xls, .csv" className="form-control" onChange={handleFileChange} />
+          </div>
+
+          {parsedData.length > 0 && (
+            <div className="mt-3">
+              <h4 style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: 'var(--amber)' }}>
+                ✓ Pratinjau Formulasi ({parsedData.length} Baris Takaran Ditemukan):
+              </h4>
+              <div className="table-container" style={{ maxHeight: '250px', overflowY: 'auto' }}>
+                <table className="custom-table">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>PRODUK (SKU / NAMA)</th>
+                      <th>BAHAN BAKU (SKU / NAMA)</th>
+                      <th>TAKARAN (PER 1 PCS)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {parsedData.map((row, idx) => (
+                      <tr key={idx}>
+                        <td>{idx + 1}</td>
+                        <td style={{ fontWeight: 600 }}>{row.produkSku || row.produkNama} {row.produkNama && `(${row.produkNama})`}</td>
+                        <td style={{ fontWeight: 600, color: 'var(--cyan)' }}>{row.bahanSku || row.bahanNama} {row.bahanNama && `(${row.bahanNama})`}</td>
+                        <td style={{ fontWeight: 700, color: 'var(--amber)' }}>{row.takaran}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="modal-footer">
+          <button type="button" className="btn btn-secondary" onClick={onClose}>Batal</button>
+          <button
+            type="button"
+            className="btn btn-amber"
+            disabled={parsedData.length === 0 || isProcessing}
+            onClick={handleCommitImport}
+          >
+            <Upload size={16} /> {isProcessing ? 'Proses Import...' : `Import ${parsedData.length} Resep ke Database`}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

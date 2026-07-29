@@ -68,6 +68,7 @@ import {
   getResepApi,
   saveResepItemApi,
   deleteResepItemApi,
+  importResepExcelApi,
   executeProduksiApi,
   getRiwayatProduksiApi,
   deleteRiwayatProduksiApi,
@@ -756,6 +757,20 @@ export default function App() {
     );
   };
 
+  const handleImportExcelResep = async (items) => {
+    try {
+      const res = await importResepExcelApi(items, activeUser);
+      if (res?.success) {
+        showAlert(res.message, 'success', 'Import Excel Resep Berhasil! 🎉');
+        fetchAllDataFromBackend();
+        return;
+      }
+      showAlert(res?.message || 'Gagal mengimpor formulasi resep dari file Excel.', 'error', 'Import Resep Gagal');
+    } catch (err) {
+      showAlert('Terjadi kesalahan saat mengimpor Excel Resep: ' + err.message, 'error', 'Import Resep Error');
+    }
+  };
+
   // Produksi Batch Handler
   const handleExecuteProduksi = async (produksiData) => {
     const res = await executeProduksiApi(produksiData, activeUser?.name);
@@ -943,6 +958,8 @@ export default function App() {
               onOpenTambahResepItem={(pId) => { setResepProdukId(pId); setEditingResepItem(null); setIsModalResepItemOpen(true); }}
               onOpenEditResepItem={(pId, item) => { setResepProdukId(pId); setEditingResepItem(item); setIsModalResepItemOpen(true); }}
               onDeleteResepItem={handleDeleteResepItem}
+              onImportExcelResep={handleImportExcelResep}
+              showAlert={showAlert}
             />
           )}
 

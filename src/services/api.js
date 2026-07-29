@@ -232,6 +232,13 @@ export async function deleteResepItemApi(produkId, bahanId, activeUser) {
   });
 }
 
+export async function importResepExcelApi(items, activeUser) {
+  return request('/resep/import-excel', {
+    method: 'POST',
+    body: JSON.stringify({ items, user: activeUser })
+  });
+}
+
 // 7. PRODUKSI ENDPOINTS
 export async function executeProduksiApi(data, activeUser) {
   return request('/produksi/execute', {
