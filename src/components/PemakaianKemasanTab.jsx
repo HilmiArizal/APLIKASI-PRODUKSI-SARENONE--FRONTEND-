@@ -46,6 +46,24 @@ export default function PemakaianKemasanTab({
 
   const canUse = (activeRoleView === 'ADMIN' || activeRoleView === 'BAHAN_BAKU');
 
+  // Calculate total used quantity for a specific material on the target date
+  const getItemDateUsage = (bahanItem, targetDate) => {
+    if (!targetDate || !bahanItem) return 0;
+    const dateLogs = allKemasanLogs.filter(log =>
+      (log.timestamp || '').startsWith(targetDate) &&
+      (log.detail || '').toLowerCase().includes((bahanItem.nama || '').toLowerCase())
+    );
+
+    let totalUsed = 0;
+    dateLogs.forEach(log => {
+      const match = (log.detail || '').match(/Pemakaian\s+([0-9.]+)/i) || (log.detail || '').match(/-([0-9.]+)/);
+      if (match && match[1]) {
+        totalUsed += parseFloat(match[1]) || 0;
+      }
+    });
+    return totalUsed;
+  };
+
   return (
     <div className="tab-pane active">
       <div className="toolbar" style={{ marginBottom: '1.5rem', justifyContent: 'space-between' }}>
@@ -100,30 +118,52 @@ export default function PemakaianKemasanTab({
         )}
       </div>
 
-      {/* Grid of Packaging Materials Stock */}
+      {/* Grid of Packaging Materials Stock & Direct Date Usage Metrics */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-        {displayMaterials.slice(0, 4).map(b => (
-          <div key={b.id} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1.25rem' }}>
-            <span className="badge badge-amber">{b.kategori || 'Bahan Kemasan'}</span>
-            <h4 style={{ fontSize: '1rem', fontWeight: 700, marginTop: '0.4rem', marginBottom: '0.2rem' }}>{b.nama}</h4>
-            <span className="text-muted" style={{ fontSize: '0.75rem' }}>SKU: {b.sku}</span>
-            <div style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'baseline', gap: '0.35rem' }}>
-              <span style={{ fontSize: '1.8rem', fontWeight: 800, color: b.stok <= b.minStok ? 'var(--rose)' : 'var(--emerald)' }}>
-                {formatNumber(b.stok)}
-              </span>
-              <span className="text-muted" style={{ fontSize: '0.9rem', fontWeight: 600 }}>{b.satuan}</span>
+        {displayMaterials.slice(0, 4).map(b => {
+          const usedToday = getItemDateUsage(b, todayStr);
+          const usedSelected = selectedDateFilter ? getItemDateUsage(b, selectedDateFilter) : usedToday;
+
+          return (
+            <div key={b.id} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <span className="badge badge-amber">{b.kategori || 'Bahan Kemasan'}</span>
+                {usedToday > 0 && (
+                  <span className="badge badge-rose" style={{ fontSize: '0.68rem', padding: '0.15rem 0.4rem' }}>
+                    🔻 -{formatNumber(usedToday)} {b.satuan}
+                  </span>
+                )}
+              </div>
+
+              <h4 style={{ fontSize: '1rem', fontWeight: 700, marginTop: '0.4rem', marginBottom: '0.2rem' }}>{b.nama}</h4>
+              <span className="text-muted" style={{ fontSize: '0.75rem' }}>SKU: {b.sku}</span>
+
+              <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.35rem' }}>
+                  <span style={{ fontSize: '1.8rem', fontWeight: 800, color: b.stok <= b.minStok ? 'var(--rose)' : 'var(--emerald)' }}>
+                    {formatNumber(b.stok)}
+                  </span>
+                  <span className="text-muted" style={{ fontSize: '0.85rem', fontWeight: 600 }}>{b.satuan} (Sisa)</span>
+                </div>
+
+                <div style={{ fontSize: '0.78rem', color: usedSelected > 0 ? 'var(--rose)' : 'var(--text-muted)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.3rem', marginTop: '0.2rem' }}>
+                  <span>🔻 Terpakai ({selectedDateFilter === todayStr ? 'Hari Ini' : (selectedDateFilter || 'Hari Ini')}):</span>
+                  <strong>{formatNumber(usedSelected)} {b.satuan}</strong>
+                </div>
+              </div>
+
+              {canUse && (
+                <button
+                  className="btn btn-outline btn-sm mt-3"
+                  style={{ width: '100%' }}
+                  onClick={() => { setSelectedBahanForModal(b); setIsModalOpen(true); }}
+                >
+                  <MinusCircle size={14} /> Catat Pemakaian
+                </button>
+              )}
             </div>
-            {canUse && (
-              <button
-                className="btn btn-outline btn-sm mt-3"
-                style={{ width: '100%' }}
-                onClick={() => { setSelectedBahanForModal(b); setIsModalOpen(true); }}
-              >
-                <MinusCircle size={14} /> Catat Pemakaian
-              </button>
-            )}
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Main Table for Packaging Material Stock */}
