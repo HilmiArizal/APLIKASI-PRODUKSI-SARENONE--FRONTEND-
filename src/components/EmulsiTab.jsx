@@ -50,7 +50,7 @@ export default function EmulsiTab({
             <div>
               <span className="badge badge-emerald">EMULSI ISP</span>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginTop: '0.5rem' }}>Stok Emulsi ISP (Isolated Soy Protein)</h3>
-              <p className="text-muted" style={{ fontSize: '0.78rem' }}>Standar Formulasi: 1 ISP : 5 Air/Es : 5 Minyak</p>
+              <p className="text-muted" style={{ fontSize: '0.78rem' }}>1 Batch = 2kg Marksoy + 4kg Air Es + 4 Pouch Minyak 2L ⇒ Yield 20 kg</p>
             </div>
             <div style={{ background: 'rgba(16, 185, 129, 0.15)', padding: '0.75rem', borderRadius: '50%', color: 'var(--emerald)' }}>
               <Layers size={24} />
@@ -75,7 +75,7 @@ export default function EmulsiTab({
             <div>
               <span className="badge badge-cyan">EMULSI TVP</span>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginTop: '0.5rem' }}>Stok Emulsi TVP (Textured Vegetable Protein)</h3>
-              <p className="text-muted" style={{ fontSize: '0.78rem' }}>Standar Formulasi: 1 TVP : 3 Air/Es Batu (Tanpa Minyak)</p>
+              <p className="text-muted" style={{ fontSize: '0.78rem' }}>1 Batch = 1kg TVP + 3kg Air Es ⇒ Yield 3.5 kg (Tanpa Minyak)</p>
             </div>
             <div style={{ background: 'rgba(6, 182, 212, 0.15)', padding: '0.75rem', borderRadius: '50%', color: 'var(--cyan)' }}>
               <Droplet size={24} />

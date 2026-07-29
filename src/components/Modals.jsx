@@ -742,42 +742,39 @@ export function ModalImportResepExcel({ isOpen, onClose, onImport, showAlert }) 
 
 export function ModalPengolahanEmulsi({ isOpen, onClose, onProcess, showAlert }) {
   const [jenisEmulsi, setJenisEmulsi] = useState('ISP');
-  const [qtyUtama, setQtyUtama] = useState(1);
-  const [rasioAir, setRasioAir] = useState(5);
-  const [rasioMinyak, setRasioMinyak] = useState(5);
+  const [jumlahBatch, setJumlahBatch] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (jenisEmulsi === 'ISP') {
-      setRasioAir(5);
-      setRasioMinyak(5);
-    } else {
-      setRasioAir(3);
-      setRasioMinyak(0);
+    if (!isOpen) {
+      setJumlahBatch(1);
+      setIsSubmitting(false);
     }
-  }, [jenisEmulsi]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
   const isTvp = jenisEmulsi === 'TVP';
-  const primaryNum = parseFloat(qtyUtama) || 0;
-  const airNum = Math.round(primaryNum * (parseFloat(rasioAir) || 0) * 1000) / 1000;
-  const minyakNum = isTvp ? 0 : Math.round(primaryNum * (parseFloat(rasioMinyak) || 0) * 1000) / 1000;
-  const totalYield = Math.round((primaryNum + airNum + minyakNum) * 1000) / 1000;
+  const bNum = Math.max(1, parseInt(jumlahBatch) || 1);
+
+  // Calculations per factory batch spec
+  const marksoyQty = isTvp ? 0 : 2 * bNum;
+  const tvpQty = isTvp ? 1 * bNum : 0;
+  const waterQty = (isTvp ? 3 : 4) * bNum;
+  const oilPouchQty = isTvp ? 0 : 4 * bNum;
+  const totalYield = (isTvp ? 3.5 : 20) * bNum;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (primaryNum <= 0) {
-      if (showAlert) showAlert('Jumlah bahan utama harus lebih dari 0 kg.', 'error', 'Validasi Gagal');
+    if (bNum <= 0) {
+      if (showAlert) showAlert('Jumlah batch harus minimal 1 batch.', 'error', 'Validasi Gagal');
       return;
     }
 
     setIsSubmitting(true);
     await onProcess({
       jenisEmulsi,
-      qtyUtama: primaryNum,
-      rasioAir: parseFloat(rasioAir) || 0,
-      rasioMinyak: isTvp ? 0 : (parseFloat(rasioMinyak) || 0)
+      jumlahBatch: bNum
     });
     setIsSubmitting(false);
     onClose();
@@ -787,51 +784,47 @@ export function ModalPengolahanEmulsi({ isOpen, onClose, onProcess, showAlert })
     <div className="modal-overlay">
       <div className="modal-card" style={{ maxWidth: '650px' }}>
         <div className="modal-header">
-          <h3>🧪 Pengolahan Emulsi Sosis ({isTvp ? 'Emulsi TVP' : 'Emulsi ISP'})</h3>
+          <h3>🧪 Eksekusi Batch Pengolahan Emulsi ({isTvp ? 'Emulsi TVP' : 'Emulsi ISP'})</h3>
           <button className="btn btn-outline btn-sm" onClick={onClose}><X size={16} /></button>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
             <div className="form-group">
-              <label>Pilih Formulasi Jenis Emulsi *</label>
+              <label>Pilih Jenis Formulasi Emulsi Sosis *</label>
               <select className="select-input" value={jenisEmulsi} onChange={e => setJenisEmulsi(e.target.value)}>
-                <option value="ISP">Emulsi ISP (Isolated Soy Protein - Standar 1 : 5 : 5)</option>
-                <option value="TVP">Emulsi TVP (Textured Vegetable Protein - Standar 1 : 3 Tanpa Minyak)</option>
+                <option value="ISP">Emulsi ISP (1 Batch = 2kg Marksoy + 4kg Air Es + 4 Pouch Minyak 2L =&gt; Yield 20kg)</option>
+                <option value="TVP">Emulsi TVP (1 Batch = 1kg TVP + 3kg Air Es =&gt; Yield 3.5kg)</option>
               </select>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: isTvp ? '1fr 1fr' : '1fr 1fr 1fr', gap: '1rem' }}>
-              <div className="form-group">
-                <label>Bahan Utama {jenisEmulsi} (kg) *</label>
-                <input type="number" step="any" min="0.1" className="form-control" value={qtyUtama} onChange={e => setQtyUtama(e.target.value)} required />
-              </div>
-              <div className="form-group">
-                <label>Rasio Air / Es *</label>
-                <input type="number" step="any" min="0" className="form-control" value={rasioAir} onChange={e => setRasioAir(e.target.value)} required />
-              </div>
-              {!isTvp && (
-                <div className="form-group">
-                  <label>Rasio Minyak / Fat *</label>
-                  <input type="number" step="any" min="0" className="form-control" value={rasioMinyak} onChange={e => setRasioMinyak(e.target.value)} required />
-                </div>
-              )}
+            <div className="form-group">
+              <label>Jumlah Target Produksi (Berapa Batch?) *</label>
+              <input type="number" min="1" step="1" className="form-control" value={jumlahBatch} onChange={e => setJumlahBatch(e.target.value)} required />
+              <span className="text-muted" style={{ fontSize: '0.75rem', marginTop: '0.35rem', display: 'block' }}>
+                Misal: Masukkan `1` untuk 1 batch, `2` untuk 2 batch, dst.
+              </span>
             </div>
 
             <div className="mt-3" style={{ background: 'rgba(16, 185, 129, 0.1)', border: '1px solid var(--emerald)', borderRadius: 'var(--radius-sm)', padding: '1rem' }}>
               <h4 style={{ fontSize: '0.9rem', color: 'var(--emerald)', marginBottom: '0.5rem', fontWeight: 700 }}>
-                📊 Kalkulasi Pengurangan Stok & Yield Hasil Emulsi:
+                📊 Rincian Otomatis Pemotongan Stok ({bNum} Batch {jenisEmulsi}):
               </h4>
               <ul style={{ fontSize: '0.85rem', listStyle: 'none', paddingLeft: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                <li>🔻 Pemotongan {jenisEmulsi} Granules/Powder: <strong>{primaryNum} kg</strong></li>
-                <li>🔻 Pemotongan Air / Es Batu: <strong>{airNum} kg</strong> ({rasioAir}x dari bahan utama)</li>
-                {!isTvp && (
-                  <li>🔻 Pemotongan Minyak / Lemak: <strong>{minyakNum} kg</strong> ({rasioMinyak}x dari bahan utama)</li>
-                )}
-                {isTvp && (
-                  <li className="text-muted">🔹 Minyak: <strong>0 kg (Tanpa Minyak)</strong></li>
+                {!isTvp ? (
+                  <>
+                    <li>🔻 Pemotongan Marksoy / ISP: <strong>{marksoyQty} kg</strong> (2 kg / batch)</li>
+                    <li>🔻 Pemotongan Air Es Batu: <strong>{waterQty} kg</strong> (4 kg / batch)</li>
+                    <li>🔻 Pemotongan Minyak Goreng: <strong>{oilPouchQty} pouch</strong> (4 pouch 2L / batch)</li>
+                  </>
+                ) : (
+                  <>
+                    <li>🔻 Pemotongan TVP Granules: <strong>{tvpQty} kg</strong> (1 kg / batch)</li>
+                    <li>🔻 Pemotongan Air Es Batu: <strong>{waterQty} kg</strong> (3 kg / batch)</li>
+                    <li className="text-muted">🔹 Minyak Goreng: <strong>0 (Tanpa Minyak)</strong></li>
+                  </>
                 )}
                 <li style={{ borderTop: '1px dashed var(--border-color)', paddingTop: '0.5rem', marginTop: '0.25rem', fontSize: '0.95rem' }}>
-                  🟢 <strong>TOTAL HASIL EMULSI {jenisEmulsi} (YIELD): +{totalYield} kg</strong>
+                  🟢 <strong>TOTAL HASIL KELUARAN EMULSI {jenisEmulsi} (YIELD): +{totalYield} kg</strong>
                 </li>
               </ul>
             </div>
@@ -840,7 +833,7 @@ export function ModalPengolahanEmulsi({ isOpen, onClose, onProcess, showAlert })
           <div className="modal-footer">
             <button type="button" className="btn btn-secondary" onClick={onClose}>Batal</button>
             <button type="submit" className="btn btn-emerald" disabled={isSubmitting}>
-              <Play size={16} /> {isSubmitting ? 'Memproses Emulsi...' : `Proses & Tambah +${totalYield} kg Emulsi ${jenisEmulsi}`}
+              <Play size={16} /> {isSubmitting ? 'Memproses Batch...' : `Proses ${bNum} Batch (+${totalYield} kg Emulsi ${jenisEmulsi})`}
             </button>
           </div>
         </form>
