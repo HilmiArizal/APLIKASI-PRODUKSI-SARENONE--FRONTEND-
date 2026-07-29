@@ -764,11 +764,28 @@ export function ModalPengolahanEmulsi({ isOpen, onClose, onProcess, bahanList = 
   const oilPouchQty = isTvp ? 0 : 4 * bNum;
   const totalYield = (isTvp ? 3.5 : 20) * bNum;
 
-  // Real-time Stock Lookup in bahanList
-  const mainSearchTerm = isTvp ? 'tvp' : 'marksoy';
-  const mainBahan = bahanList.find(b => b.nama.toLowerCase().includes(mainSearchTerm) || b.nama.toLowerCase().includes('isp') || b.sku.toLowerCase().includes(mainSearchTerm));
-  const waterBahan = bahanList.find(b => b.nama.toLowerCase().includes('air') || b.nama.toLowerCase().includes('es') || b.sku.toLowerCase().includes('air'));
-  const oilBahan = !isTvp ? bahanList.find(b => b.nama.toLowerCase().includes('minyak') || b.nama.toLowerCase().includes('lemak') || b.sku.toLowerCase().includes('minyak')) : null;
+  // Real-time Stock Lookup in bahanList (Strictly EXCLUDING Emulsi items!)
+  const mainBahan = bahanList.find(b => {
+    const name = (b.nama || '').toLowerCase();
+    const sku = (b.sku || '').toLowerCase();
+    if (isTvp) {
+      return !name.includes('emulsi') && (name.includes('tvp') || sku.includes('tvp'));
+    } else {
+      return !name.includes('emulsi') && (name.includes('marksoy') || name.includes('isp') || sku.includes('marksoy') || sku.includes('isp'));
+    }
+  });
+
+  const waterBahan = bahanList.find(b => {
+    const name = (b.nama || '').toLowerCase();
+    const sku = (b.sku || '').toLowerCase();
+    return !name.includes('emulsi') && (name.includes('air') || name.includes('es') || sku.includes('air'));
+  });
+
+  const oilBahan = !isTvp ? bahanList.find(b => {
+    const name = (b.nama || '').toLowerCase();
+    const sku = (b.sku || '').toLowerCase();
+    return !name.includes('emulsi') && (name.includes('minyak') || name.includes('lemak') || sku.includes('minyak'));
+  }) : null;
 
   const mainBahanStok = mainBahan ? mainBahan.stok : 0;
   const waterBahanStok = waterBahan ? waterBahan.stok : 0;
