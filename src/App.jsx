@@ -85,7 +85,8 @@ const STORAGE_KEYS = {
   PRODUK: 'saren_one_produk_v2',
   RESEP: 'saren_one_resep_v2',
   AUDIT_LOG: 'saren_one_audit_log_v2',
-  RIWAYAT_PRODUKSI: 'saren_one_riwayat_produksi_v2'
+  RIWAYAT_PRODUKSI: 'saren_one_riwayat_produksi_v2',
+  ACTIVE_TAB: 'saren_one_active_tab_v2'
 };
 
 export default function App() {
@@ -95,7 +96,17 @@ export default function App() {
   });
 
   const [activeRoleView, setActiveRoleView] = useState(() => activeUser?.role || 'ADMIN');
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.ACTIVE_TAB);
+    return saved || 'dashboard';
+  });
+
+  useEffect(() => {
+    if (activeTab) {
+      localStorage.setItem(STORAGE_KEYS.ACTIVE_TAB, activeTab);
+    }
+  }, [activeTab]);
+
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [backendConnected, setBackendConnected] = useState(false);
 
