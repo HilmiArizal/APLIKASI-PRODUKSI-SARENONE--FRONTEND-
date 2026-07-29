@@ -452,8 +452,8 @@ export function ModalImportBahanExcel({ isOpen, onClose, onImport, showAlert }) 
 
   const handleDownloadTemplate = () => {
     const templateData = [
-      { 'SKU': 'BHN-101', 'NAMA BAHAN BAKU': 'Tepung Terigu Segitiga', 'KATEGORI': 'Bahan Utama', 'STOK': 50, 'STOK MINIMAL': 10, 'SATUAN': 'kg' },
-      { 'SKU': 'BHN-102', 'NAMA BAHAN BAKU': 'Gula Halus Murni', 'KATEGORI': 'Pemanis & Perasa', 'STOK': 25, 'STOK MINIMAL': 5, 'SATUAN': 'kg' }
+      { 'SKU': 'BB1', 'NAMA BAHAN BAKU': 'Daging Ayam', 'KATEGORI': 'Bahan Utama', 'STOK': 50, 'STOK MINIMAL': 10, 'SATUAN': 'kg' },
+      { 'SKU': 'BBB2', 'NAMA BAHAN BAKU': 'Daging Sapi', 'KATEGORI': 'Bahan Utama', 'STOK': 25, 'STOK MINIMAL': 5, 'SATUAN': 'kg' }
     ];
     const ws = XLSX.utils.json_to_sheet(templateData);
     const wb = XLSX.utils.book_new();
