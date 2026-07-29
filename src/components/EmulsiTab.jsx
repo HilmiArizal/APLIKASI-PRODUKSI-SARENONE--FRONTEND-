@@ -75,7 +75,7 @@ export default function EmulsiTab({
             <div>
               <span className="badge badge-cyan">EMULSI TVP</span>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginTop: '0.5rem' }}>Stok Emulsi TVP (Textured Vegetable Protein)</h3>
-              <p className="text-muted" style={{ fontSize: '0.78rem' }}>Standar Formulasi: 1 TVP : 3 Air/Es : 1 Minyak</p>
+              <p className="text-muted" style={{ fontSize: '0.78rem' }}>Standar Formulasi: 1 TVP : 3 Air/Es Batu (Tanpa Minyak)</p>
             </div>
             <div style={{ background: 'rgba(6, 182, 212, 0.15)', padding: '0.75rem', borderRadius: '50%', color: 'var(--cyan)' }}>
               <Droplet size={24} />

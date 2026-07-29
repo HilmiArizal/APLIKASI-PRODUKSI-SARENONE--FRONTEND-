@@ -753,15 +753,16 @@ export function ModalPengolahanEmulsi({ isOpen, onClose, onProcess, showAlert })
       setRasioMinyak(5);
     } else {
       setRasioAir(3);
-      setRasioMinyak(1);
+      setRasioMinyak(0);
     }
   }, [jenisEmulsi]);
 
   if (!isOpen) return null;
 
+  const isTvp = jenisEmulsi === 'TVP';
   const primaryNum = parseFloat(qtyUtama) || 0;
   const airNum = Math.round(primaryNum * (parseFloat(rasioAir) || 0) * 1000) / 1000;
-  const minyakNum = Math.round(primaryNum * (parseFloat(rasioMinyak) || 0) * 1000) / 1000;
+  const minyakNum = isTvp ? 0 : Math.round(primaryNum * (parseFloat(rasioMinyak) || 0) * 1000) / 1000;
   const totalYield = Math.round((primaryNum + airNum + minyakNum) * 1000) / 1000;
 
   const handleSubmit = async (e) => {
@@ -776,7 +777,7 @@ export function ModalPengolahanEmulsi({ isOpen, onClose, onProcess, showAlert })
       jenisEmulsi,
       qtyUtama: primaryNum,
       rasioAir: parseFloat(rasioAir) || 0,
-      rasioMinyak: parseFloat(rasioMinyak) || 0
+      rasioMinyak: isTvp ? 0 : (parseFloat(rasioMinyak) || 0)
     });
     setIsSubmitting(false);
     onClose();
@@ -786,7 +787,7 @@ export function ModalPengolahanEmulsi({ isOpen, onClose, onProcess, showAlert })
     <div className="modal-overlay">
       <div className="modal-card" style={{ maxWidth: '650px' }}>
         <div className="modal-header">
-          <h3>🧪 Pengolahan Emulsi Sosis ({jenisEmulsi === 'ISP' ? 'Emulsi ISP' : 'Emulsi TVP'})</h3>
+          <h3>🧪 Pengolahan Emulsi Sosis ({isTvp ? 'Emulsi TVP' : 'Emulsi ISP'})</h3>
           <button className="btn btn-outline btn-sm" onClick={onClose}><X size={16} /></button>
         </div>
         <form onSubmit={handleSubmit}>
@@ -795,11 +796,11 @@ export function ModalPengolahanEmulsi({ isOpen, onClose, onProcess, showAlert })
               <label>Pilih Formulasi Jenis Emulsi *</label>
               <select className="select-input" value={jenisEmulsi} onChange={e => setJenisEmulsi(e.target.value)}>
                 <option value="ISP">Emulsi ISP (Isolated Soy Protein - Standar 1 : 5 : 5)</option>
-                <option value="TVP">Emulsi TVP (Textured Vegetable Protein - Standar 1 : 3 : 1)</option>
+                <option value="TVP">Emulsi TVP (Textured Vegetable Protein - Standar 1 : 3 Tanpa Minyak)</option>
               </select>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isTvp ? '1fr 1fr' : '1fr 1fr 1fr', gap: '1rem' }}>
               <div className="form-group">
                 <label>Bahan Utama {jenisEmulsi} (kg) *</label>
                 <input type="number" step="any" min="0.1" className="form-control" value={qtyUtama} onChange={e => setQtyUtama(e.target.value)} required />
@@ -808,10 +809,12 @@ export function ModalPengolahanEmulsi({ isOpen, onClose, onProcess, showAlert })
                 <label>Rasio Air / Es *</label>
                 <input type="number" step="any" min="0" className="form-control" value={rasioAir} onChange={e => setRasioAir(e.target.value)} required />
               </div>
-              <div className="form-group">
-                <label>Rasio Minyak / Fat *</label>
-                <input type="number" step="any" min="0" className="form-control" value={rasioMinyak} onChange={e => setRasioMinyak(e.target.value)} required />
-              </div>
+              {!isTvp && (
+                <div className="form-group">
+                  <label>Rasio Minyak / Fat *</label>
+                  <input type="number" step="any" min="0" className="form-control" value={rasioMinyak} onChange={e => setRasioMinyak(e.target.value)} required />
+                </div>
+              )}
             </div>
 
             <div className="mt-3" style={{ background: 'rgba(16, 185, 129, 0.1)', border: '1px solid var(--emerald)', borderRadius: 'var(--radius-sm)', padding: '1rem' }}>
@@ -819,9 +822,14 @@ export function ModalPengolahanEmulsi({ isOpen, onClose, onProcess, showAlert })
                 📊 Kalkulasi Pengurangan Stok & Yield Hasil Emulsi:
               </h4>
               <ul style={{ fontSize: '0.85rem', listStyle: 'none', paddingLeft: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                <li>🔻 Pemotongan {jenisEmulsi} Powder: <strong>{primaryNum} kg</strong></li>
+                <li>🔻 Pemotongan {jenisEmulsi} Granules/Powder: <strong>{primaryNum} kg</strong></li>
                 <li>🔻 Pemotongan Air / Es Batu: <strong>{airNum} kg</strong> ({rasioAir}x dari bahan utama)</li>
-                <li>🔻 Pemotongan Minyak / Lemak: <strong>{minyakNum} kg</strong> ({rasioMinyak}x dari bahan utama)</li>
+                {!isTvp && (
+                  <li>🔻 Pemotongan Minyak / Lemak: <strong>{minyakNum} kg</strong> ({rasioMinyak}x dari bahan utama)</li>
+                )}
+                {isTvp && (
+                  <li className="text-muted">🔹 Minyak: <strong>0 kg (Tanpa Minyak)</strong></li>
+                )}
                 <li style={{ borderTop: '1px dashed var(--border-color)', paddingTop: '0.5rem', marginTop: '0.25rem', fontSize: '0.95rem' }}>
                   🟢 <strong>TOTAL HASIL EMULSI {jenisEmulsi} (YIELD): +{totalYield} kg</strong>
                 </li>
