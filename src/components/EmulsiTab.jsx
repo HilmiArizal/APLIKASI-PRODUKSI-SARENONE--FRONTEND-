@@ -15,11 +15,27 @@ export default function EmulsiTab({
   const emulsiIspItem = bahanBaku.find(b => b.sku === 'EML-ISP' || b.nama.toLowerCase().includes('emulsi isp'));
   const emulsiTvpItem = bahanBaku.find(b => b.sku === 'EML-TVP' || b.nama.toLowerCase().includes('emulsi tvp'));
 
-  // Find Raw materials
-  const ispPowderItem = bahanBaku.find(b => b.nama.toLowerCase().includes('isp'));
-  const tvpGranulesItem = bahanBaku.find(b => b.nama.toLowerCase().includes('tvp'));
-  const waterItem = bahanBaku.find(b => b.nama.toLowerCase().includes('air') || b.nama.toLowerCase().includes('es'));
-  const oilItem = bahanBaku.find(b => b.nama.toLowerCase().includes('minyak') || b.nama.toLowerCase().includes('lemak'));
+  // Find Raw materials (strictly excluding Emulsi items!)
+  const ispPowderItem = bahanBaku.find(b => {
+    const name = (b.nama || '').toLowerCase();
+    const sku = (b.sku || '').toLowerCase();
+    return !name.includes('emulsi') && (name.includes('marksoy') || name.includes('isp') || sku.includes('marksoy') || sku.includes('isp'));
+  });
+  const tvpGranulesItem = bahanBaku.find(b => {
+    const name = (b.nama || '').toLowerCase();
+    const sku = (b.sku || '').toLowerCase();
+    return !name.includes('emulsi') && (name.includes('tvp') || sku.includes('tvp'));
+  });
+  const waterItem = bahanBaku.find(b => {
+    const name = (b.nama || '').toLowerCase();
+    const sku = (b.sku || '').toLowerCase();
+    return !name.includes('emulsi') && (name.includes('air') || name.includes('es') || sku.includes('air'));
+  });
+  const oilItem = bahanBaku.find(b => {
+    const name = (b.nama || '').toLowerCase();
+    const sku = (b.sku || '').toLowerCase();
+    return !name.includes('emulsi') && (name.includes('minyak') || name.includes('lemak') || sku.includes('minyak'));
+  });
 
   const isCanProcess = (activeRoleView === 'ADMIN' || activeRoleView === 'BAHAN_BAKU');
 
@@ -103,7 +119,7 @@ export default function EmulsiTab({
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
           <div style={{ border: '1px solid var(--border-color)', padding: '0.85rem', borderRadius: 'var(--radius-sm)' }}>
-            <span className="text-muted" style={{ fontSize: '0.75rem' }}>ISP Powder (Primary)</span>
+            <span className="text-muted" style={{ fontSize: '0.75rem' }}>Marksoy (ISP)</span>
             <div style={{ fontSize: '1.1rem', fontWeight: 700, marginTop: '0.2rem' }}>
               {ispPowderItem ? `${formatNumber(ispPowderItem.stok)} ${ispPowderItem.satuan}` : 'Belum Terdaftar'}
             </div>
