@@ -270,7 +270,15 @@ export async function deleteAuditLogApi(id) {
 }
 
 export async function clearAllAuditLogsApi() {
-  return request('/audit-log/clear/all', {
+  return request('/audit-log/all', {
     method: 'DELETE'
+  });
+}
+
+// 9. EMULSI ENDPOINTS
+export async function processEmulsiApi(data, activeUser) {
+  return request('/emulsi/process', {
+    method: 'POST',
+    body: JSON.stringify({ ...data, user: activeUser })
   });
 }

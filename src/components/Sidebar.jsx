@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Boxes, Package, BookOpen, ChefHat, History, UserCheck, LogOut, X, Layers } from 'lucide-react';
+import { LayoutDashboard, Boxes, Package, BookOpen, ChefHat, History, UserCheck, LogOut, X, Layers, FlaskConical } from 'lucide-react';
 import logoImg from '../assets/logo.png';
 
 export default function Sidebar({
@@ -66,16 +66,26 @@ export default function Sidebar({
           </a>
 
           {showBahan && (
-            <a
-              href="#bahan-baku"
-              className={`menu-item ${activeTab === 'bahan-baku' ? 'active' : ''}`}
-              onClick={(e) => { e.preventDefault(); handleNavClick('bahan-baku'); }}
-            >
-              <Boxes size={18} /> <span>Stok Bahan Baku</span>
-              {lowStockCount > 0 && (
-                <span className="badge badge-amber">{lowStockCount}</span>
-              )}
-            </a>
+            <>
+              <a
+                href="#bahan-baku"
+                className={`menu-item ${activeTab === 'bahan-baku' ? 'active' : ''}`}
+                onClick={(e) => { e.preventDefault(); handleNavClick('bahan-baku'); }}
+              >
+                <Boxes size={18} /> <span>Stok Bahan Baku</span>
+                {lowStockCount > 0 && (
+                  <span className="badge badge-amber">{lowStockCount}</span>
+                )}
+              </a>
+
+              <a
+                href="#emulsi"
+                className={`menu-item ${activeTab === 'emulsi' ? 'active' : ''}`}
+                onClick={(e) => { e.preventDefault(); handleNavClick('emulsi'); }}
+              >
+                <FlaskConical size={18} /> <span>Pengolahan Emulsi</span>
+              </a>
+            </>
           )}
 
           {showProduk && (

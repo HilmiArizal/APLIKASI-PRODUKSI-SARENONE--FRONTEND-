@@ -5,6 +5,7 @@ import Login from './components/Login';
 
 import DashboardTab from './components/DashboardTab';
 import BahanBakuTab from './components/BahanBakuTab';
+import EmulsiTab from './components/EmulsiTab';
 import ProdukTab from './components/ProdukTab';
 import ResepTab from './components/ResepTab';
 import RiwayatProduksiTab from './components/RiwayatProduksiTab';
@@ -74,7 +75,8 @@ import {
   deleteRiwayatProduksiApi,
   getAuditLogApi,
   deleteAuditLogApi,
-  clearAllAuditLogsApi
+  clearAllAuditLogsApi,
+  processEmulsiApi
 } from './services/api';
 
 const STORAGE_KEYS = {
@@ -659,6 +661,20 @@ export default function App() {
     }
   };
 
+  const handleProcessEmulsi = async (emulsiData) => {
+    try {
+      const res = await processEmulsiApi(emulsiData, activeUser);
+      if (res?.success) {
+        showAlert(res.message, 'success', `Pengolahan Emulsi ${emulsiData.jenisEmulsi} Berhasil! 🧪`);
+        fetchAllDataFromBackend();
+        return;
+      }
+      showAlert(res?.message || 'Gagal memproses emulsi.', 'error', 'Pengolahan Emulsi Gagal');
+    } catch (err) {
+      showAlert('Terjadi kesalahan saat memproses emulsi: ' + err.message, 'error', 'Pengolahan Emulsi Error');
+    }
+  };
+
   // Produk Handlers
   const handleSaveProduk = async (produkData) => {
     if (produkData.id) {
@@ -930,6 +946,15 @@ export default function App() {
               onOpenKelolaKategoriBahan={() => setIsModalKelolaKategoriBahanOpen(true)}
               onOpenPdfPreview={handleOpenPdfPreview}
               onImportExcelBahan={handleImportExcelBahan}
+              showAlert={showAlert}
+            />
+          )}
+
+          {activeTab === 'emulsi' && (
+            <EmulsiTab
+              bahanBaku={bahanBaku}
+              activeRoleView={activeRoleView}
+              onProcessEmulsi={handleProcessEmulsi}
               showAlert={showAlert}
             />
           )}

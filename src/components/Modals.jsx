@@ -298,7 +298,7 @@ export function ModalProduksi({ isOpen, onClose, onExecute, produkList, bahanLis
     <div className="modal-overlay">
       <div className="modal-card" style={{ maxWidth: '580px' }}>
         <div className="modal-header">
-          <h3><Play size={18} style={{ color: 'var(--emerald)' }} /> Jalankan Batch Pemrosesan Produksi Roti</h3>
+          <h3><Play size={18} style={{ color: 'var(--emerald)' }} /> Jalankan Batch Pemrosesan Produksi</h3>
           <button className="btn btn-outline btn-sm" onClick={onClose}><X size={16} /></button>
         </div>
         <form onSubmit={handleSubmit}>
@@ -735,6 +735,107 @@ export function ModalImportResepExcel({ isOpen, onClose, onImport, showAlert }) 
             <Upload size={16} /> {isProcessing ? 'Proses Import...' : `Import ${parsedData.length} Resep ke Database`}
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+export function ModalPengolahanEmulsi({ isOpen, onClose, onProcess, showAlert }) {
+  const [jenisEmulsi, setJenisEmulsi] = useState('ISP');
+  const [qtyUtama, setQtyUtama] = useState(1);
+  const [rasioAir, setRasioAir] = useState(5);
+  const [rasioMinyak, setRasioMinyak] = useState(5);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (jenisEmulsi === 'ISP') {
+      setRasioAir(5);
+      setRasioMinyak(5);
+    } else {
+      setRasioAir(3);
+      setRasioMinyak(1);
+    }
+  }, [jenisEmulsi]);
+
+  if (!isOpen) return null;
+
+  const primaryNum = parseFloat(qtyUtama) || 0;
+  const airNum = Math.round(primaryNum * (parseFloat(rasioAir) || 0) * 1000) / 1000;
+  const minyakNum = Math.round(primaryNum * (parseFloat(rasioMinyak) || 0) * 1000) / 1000;
+  const totalYield = Math.round((primaryNum + airNum + minyakNum) * 1000) / 1000;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (primaryNum <= 0) {
+      if (showAlert) showAlert('Jumlah bahan utama harus lebih dari 0 kg.', 'error', 'Validasi Gagal');
+      return;
+    }
+
+    setIsSubmitting(true);
+    await onProcess({
+      jenisEmulsi,
+      qtyUtama: primaryNum,
+      rasioAir: parseFloat(rasioAir) || 0,
+      rasioMinyak: parseFloat(rasioMinyak) || 0
+    });
+    setIsSubmitting(false);
+    onClose();
+  };
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-card" style={{ maxWidth: '650px' }}>
+        <div className="modal-header">
+          <h3>🧪 Pengolahan Emulsi Sosis ({jenisEmulsi === 'ISP' ? 'Emulsi ISP' : 'Emulsi TVP'})</h3>
+          <button className="btn btn-outline btn-sm" onClick={onClose}><X size={16} /></button>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <div className="modal-body">
+            <div className="form-group">
+              <label>Pilih Formulasi Jenis Emulsi *</label>
+              <select className="select-input" value={jenisEmulsi} onChange={e => setJenisEmulsi(e.target.value)}>
+                <option value="ISP">Emulsi ISP (Isolated Soy Protein - Standar 1 : 5 : 5)</option>
+                <option value="TVP">Emulsi TVP (Textured Vegetable Protein - Standar 1 : 3 : 1)</option>
+              </select>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+              <div className="form-group">
+                <label>Bahan Utama {jenisEmulsi} (kg) *</label>
+                <input type="number" step="any" min="0.1" className="form-control" value={qtyUtama} onChange={e => setQtyUtama(e.target.value)} required />
+              </div>
+              <div className="form-group">
+                <label>Rasio Air / Es *</label>
+                <input type="number" step="any" min="0" className="form-control" value={rasioAir} onChange={e => setRasioAir(e.target.value)} required />
+              </div>
+              <div className="form-group">
+                <label>Rasio Minyak / Fat *</label>
+                <input type="number" step="any" min="0" className="form-control" value={rasioMinyak} onChange={e => setRasioMinyak(e.target.value)} required />
+              </div>
+            </div>
+
+            <div className="mt-3" style={{ background: 'rgba(16, 185, 129, 0.1)', border: '1px solid var(--emerald)', borderRadius: 'var(--radius-sm)', padding: '1rem' }}>
+              <h4 style={{ fontSize: '0.9rem', color: 'var(--emerald)', marginBottom: '0.5rem', fontWeight: 700 }}>
+                📊 Kalkulasi Pengurangan Stok & Yield Hasil Emulsi:
+              </h4>
+              <ul style={{ fontSize: '0.85rem', listStyle: 'none', paddingLeft: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                <li>🔻 Pemotongan {jenisEmulsi} Powder: <strong>{primaryNum} kg</strong></li>
+                <li>🔻 Pemotongan Air / Es Batu: <strong>{airNum} kg</strong> ({rasioAir}x dari bahan utama)</li>
+                <li>🔻 Pemotongan Minyak / Lemak: <strong>{minyakNum} kg</strong> ({rasioMinyak}x dari bahan utama)</li>
+                <li style={{ borderTop: '1px dashed var(--border-color)', paddingTop: '0.5rem', marginTop: '0.25rem', fontSize: '0.95rem' }}>
+                  🟢 <strong>TOTAL HASIL EMULSI {jenisEmulsi} (YIELD): +{totalYield} kg</strong>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="modal-footer">
+            <button type="button" className="btn btn-secondary" onClick={onClose}>Batal</button>
+            <button type="submit" className="btn btn-emerald" disabled={isSubmitting}>
+              <Play size={16} /> {isSubmitting ? 'Memproses Emulsi...' : `Proses & Tambah +${totalYield} kg Emulsi ${jenisEmulsi}`}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
