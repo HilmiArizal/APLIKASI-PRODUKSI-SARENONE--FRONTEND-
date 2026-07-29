@@ -608,9 +608,9 @@ export function ModalImportResepExcel({ isOpen, onClose, onImport, showAlert }) 
 
   const handleDownloadTemplate = () => {
     const templateData = [
-      { 'SKU PRODUK': 'PRD-001', 'NAMA PRODUK': 'Roti Keju Spesial', 'SKU BAHAN': 'BHN-001', 'NAMA BAHAN BAKU': 'Tepung Terigu Cakra', 'TAKARAN': 0.08 },
-      { 'SKU PRODUK': 'PRD-001', 'NAMA PRODUK': 'Roti Keju Spesial', 'SKU BAHAN': 'BHN-002', 'NAMA BAHAN BAKU': 'Gula Pasir Premium', 'TAKARAN': 0.02 },
-      { 'SKU PRODUK': 'PRD-001', 'NAMA PRODUK': 'Roti Keju Spesial', 'SKU BAHAN': 'BHN-003', 'NAMA BAHAN BAKU': 'Keju Cheddar Olahan', 'TAKARAN': 0.03 }
+      { 'SKU PRODUK': 'PR1', 'NAMA PRODUK': 'RCS', 'SKU BAHAN': 'BB1', 'NAMA BAHAN BAKU': 'BLP', 'TAKARAN': 0.08 },
+      { 'SKU PRODUK': 'PR1', 'NAMA PRODUK': 'RCS', 'SKU BAHAN': 'BB2', 'NAMA BAHAN BAKU': 'CL 65', 'TAKARAN': 0.02 },
+      { 'SKU PRODUK': 'PR1', 'NAMA PRODUK': 'RCS', 'SKU BAHAN': 'BB3', 'NAMA BAHAN BAKU': 'MDM', 'TAKARAN': 0.03 }
     ];
     const ws = XLSX.utils.json_to_sheet(templateData);
     const wb = XLSX.utils.book_new();
