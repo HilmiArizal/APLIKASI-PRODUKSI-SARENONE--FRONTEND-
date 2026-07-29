@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, ArrowDownLeft, Play, Plus, Edit3 } from 'lucide-react';
+import { X, Save, ArrowDownLeft, Play, Plus, Edit3, Upload, Download, FileSpreadsheet } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { formatNumber } from '../data/initialData';
 
 export function ModalBahan({ isOpen, onClose, onSave, editingItem, kategoriList = [] }) {
@@ -429,6 +430,162 @@ export function ModalResepItem({ isOpen, onClose, onSave, bahanList, editingItem
             <button type="submit" className="btn btn-primary"><Save size={16} /> Simpan Takaran Resep</button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+}
+
+export function ModalImportBahanExcel({ isOpen, onClose, onImport, showAlert }) {
+  const [file, setFile] = useState(null);
+  const [parsedData, setParsedData] = useState([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setFile(null);
+      setParsedData([]);
+      setIsProcessing(false);
+    }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  const handleDownloadTemplate = () => {
+    const templateData = [
+      { 'SKU': 'BHN-101', 'NAMA BAHAN BAKU': 'Tepung Terigu Segitiga', 'KATEGORI': 'Bahan Utama', 'STOK': 50, 'STOK MINIMAL': 10, 'SATUAN': 'kg' },
+      { 'SKU': 'BHN-102', 'NAMA BAHAN BAKU': 'Gula Halus Murni', 'KATEGORI': 'Pemanis & Perasa', 'STOK': 25, 'STOK MINIMAL': 5, 'SATUAN': 'kg' }
+    ];
+    const ws = XLSX.utils.json_to_sheet(templateData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Template_Bahan_Baku');
+    XLSX.writeFile(wb, 'Template_Import_Bahan_Baku.xlsx');
+  };
+
+  const handleFileChange = (e) => {
+    const selectedFile = e.target.files[0];
+    if (!selectedFile) return;
+    setFile(selectedFile);
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const bstr = evt.target.result;
+        const wb = XLSX.read(bstr, { type: 'binary' });
+        const wsName = wb.SheetNames[0];
+        const ws = wb.Sheets[wsName];
+        const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+        const mapped = json.map((row, index) => {
+          const skuKey = Object.keys(row).find(k => k.toLowerCase().includes('sku') || k.toLowerCase().includes('kode')) || '';
+          const namaKey = Object.keys(row).find(k => k.toLowerCase().includes('nama') || k.toLowerCase().includes('bahan')) || '';
+          const katKey = Object.keys(row).find(k => k.toLowerCase().includes('kategori')) || '';
+          const stokKey = Object.keys(row).find(k => k.toLowerCase() === 'stok' || k.toLowerCase().includes('stok saat ini')) || '';
+          const minKey = Object.keys(row).find(k => k.toLowerCase().includes('min') || k.toLowerCase().includes('batas')) || '';
+          const satKey = Object.keys(row).find(k => k.toLowerCase().includes('satuan')) || '';
+
+          return {
+            id: index + 1,
+            sku: String(row[skuKey] || `BHN-${Math.floor(100 + Math.random() * 900)}`).trim(),
+            nama: String(row[namaKey] || '').trim(),
+            kategori: String(row[katKey] || 'Bahan Utama').trim(),
+            stok: parseFloat(row[stokKey]) || 0,
+            minStok: parseFloat(row[minKey]) || 0,
+            satuan: String(row[satKey] || 'kg').trim()
+          };
+        }).filter(item => item.nama.length > 0 || item.sku.length > 0);
+
+        if (mapped.length === 0) {
+          if (showAlert) showAlert('File Excel kosong atau format kolom tidak dikenali!', 'error', 'Format File Salah');
+          setParsedData([]);
+          return;
+        }
+
+        setParsedData(mapped);
+      } catch (err) {
+        if (showAlert) showAlert('Gagal membaca file Excel: ' + err.message, 'error', 'Error File');
+      }
+    };
+    reader.readAsBinaryString(selectedFile);
+  };
+
+  const handleCommitImport = async () => {
+    if (parsedData.length === 0) return;
+    setIsProcessing(true);
+    await onImport(parsedData);
+    setIsProcessing(false);
+    onClose();
+  };
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-card" style={{ maxWidth: '750px' }}>
+        <div className="modal-header">
+          <h3><FileSpreadsheet size={20} style={{ color: 'var(--emerald)' }} /> Import Bahan Baku dari Excel / CSV</h3>
+          <button className="btn btn-outline btn-sm" onClick={onClose}><X size={16} /></button>
+        </div>
+        <div className="modal-body">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <p className="text-muted" style={{ fontSize: '0.85rem' }}>
+              Unggah file spreadsheet `.xlsx`, `.xls`, atau `.csv` berisi daftar bahan baku dapur Anda.
+            </p>
+            <button className="btn btn-sm btn-outline" onClick={handleDownloadTemplate} title="Unduh Contoh Format Excel">
+              <Download size={14} style={{ color: 'var(--cyan)' }} /> Unduh Template Excel
+            </button>
+          </div>
+
+          <div className="form-group">
+            <label>Pilih File Excel (.xlsx / .csv) *</label>
+            <input type="file" accept=".xlsx, .xls, .csv" className="form-control" onChange={handleFileChange} />
+          </div>
+
+          {parsedData.length > 0 && (
+            <div className="mt-3">
+              <h4 style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: 'var(--emerald)' }}>
+                ✓ Pratinjau Data ({parsedData.length} Baris Bahan Baku Ditemukan):
+              </h4>
+              <div className="table-container" style={{ maxHeight: '250px', overflowY: 'auto' }}>
+                <table className="custom-table">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>SKU</th>
+                      <th>NAMA BAHAN</th>
+                      <th>KATEGORI</th>
+                      <th>STOK</th>
+                      <th>MIN STOK</th>
+                      <th>SATUAN</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {parsedData.map((row, idx) => (
+                      <tr key={idx}>
+                        <td>{idx + 1}</td>
+                        <td><span className="badge badge-cyan">{row.sku}</span></td>
+                        <td style={{ fontWeight: 600 }}>{row.nama}</td>
+                        <td>{row.kategori}</td>
+                        <td style={{ fontWeight: 700 }}>{row.stok}</td>
+                        <td className="text-muted">{row.minStok}</td>
+                        <td>{row.satuan}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="modal-footer">
+          <button type="button" className="btn btn-secondary" onClick={onClose}>Batal</button>
+          <button
+            type="button"
+            className="btn btn-emerald"
+            disabled={parsedData.length === 0 || isProcessing}
+            onClick={handleCommitImport}
+          >
+            <Upload size={16} /> {isProcessing ? 'Proses Import...' : `Import ${parsedData.length} Data ke Database`}
+          </button>
+        </div>
       </div>
     </div>
   );

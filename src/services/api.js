@@ -180,6 +180,13 @@ export async function restockBahanBakuApi(data, activeUser) {
   });
 }
 
+export async function importBahanBakuExcelApi(items, activeUser) {
+  return request('/bahan-baku/import-excel', {
+    method: 'POST',
+    body: JSON.stringify({ items, user: activeUser })
+  });
+}
+
 // 5. PRODUK ENDPOINTS
 export async function getProdukApi() {
   return request('/produk');

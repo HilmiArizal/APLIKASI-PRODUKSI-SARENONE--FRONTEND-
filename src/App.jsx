@@ -60,6 +60,7 @@ import {
   updateBahanBakuApi,
   deleteBahanBakuApi,
   restockBahanBakuApi,
+  importBahanBakuExcelApi,
   getProdukApi,
   createProdukApi,
   updateProdukApi,
@@ -632,6 +633,20 @@ export default function App() {
     showAlert('Stok masuk berhasil dicatat!', 'success', 'Restock Berhasil! 📦');
   };
 
+  const handleImportExcelBahan = async (items) => {
+    try {
+      const res = await importBahanBakuExcelApi(items, activeUser);
+      if (res?.success) {
+        showAlert(res.message, 'success', 'Import Excel Berhasil! 🎉');
+        fetchAllDataFromBackend();
+        return;
+      }
+      showAlert(res?.message || 'Gagal mengimpor data bahan baku dari file Excel.', 'error', 'Import Excel Gagal');
+    } catch (err) {
+      showAlert('Terjadi kesalahan saat mengimpor Excel: ' + err.message, 'error', 'Import Excel Error');
+    }
+  };
+
   // Produk Handlers
   const handleSaveProduk = async (produkData) => {
     if (produkData.id) {
@@ -888,6 +903,8 @@ export default function App() {
               onDeleteBahan={handleDeleteBahan}
               onOpenKelolaKategoriBahan={() => setIsModalKelolaKategoriBahanOpen(true)}
               onOpenPdfPreview={handleOpenPdfPreview}
+              onImportExcelBahan={handleImportExcelBahan}
+              showAlert={showAlert}
             />
           )}
 

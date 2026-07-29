@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Search, Plus, ArrowDownLeft, Edit3, Trash2, FileText, FileSpreadsheet, Tag } from 'lucide-react';
+import { Search, Plus, ArrowDownLeft, Edit3, Trash2, FileText, FileSpreadsheet, Tag, Upload } from 'lucide-react';
 import { formatNumber } from '../data/initialData';
 import { exportToExcel } from '../utils/exportUtils';
 import ModalPreviewPdf from './ModalPreviewPdf';
+import { ModalImportBahanExcel } from './Modals';
 
 export default function BahanBakuTab({
   bahanBaku,
@@ -13,11 +14,14 @@ export default function BahanBakuTab({
   onOpenStokMasuk,
   onDeleteBahan,
   onOpenKelolaKategoriBahan,
-  onOpenPdfPreview
+  onOpenPdfPreview,
+  onImportExcelBahan,
+  showAlert
 }) {
   const [search, setSearch] = useState('');
   const [kategoriFilter, setKategoriFilter] = useState('');
   const [isPreviewPdfOpen, setIsPreviewPdfOpen] = useState(false);
+  const [isImportExcelOpen, setIsImportExcelOpen] = useState(false);
 
   const isSuperAdmin = (activeRoleView === 'ADMIN');
   const canAddOrRestock = (activeRoleView === 'ADMIN' || activeRoleView === 'BAHAN_BAKU');
@@ -112,6 +116,12 @@ export default function BahanBakuTab({
             </button>
           )}
 
+          {canAddOrRestock && (
+            <button className="btn btn-outline btn-emerald" onClick={() => setIsImportExcelOpen(true)} title="Import Bahan Baku Masal dari File Excel">
+              <Upload size={16} style={{ color: 'var(--emerald)' }} /> Import Excel
+            </button>
+          )}
+
           <button className="btn btn-outline" onClick={handleExportExcel} title="Export Data ke Excel (.csv)">
             <FileSpreadsheet size={16} style={{ color: 'var(--emerald)' }} /> Excel
           </button>
@@ -137,39 +147,34 @@ export default function BahanBakuTab({
         <table className="custom-table">
           <thead>
             <tr>
-              <th>SKU / KODE</th>
+              <th>SKU</th>
               <th>NAMA BAHAN BAKU</th>
               <th>KATEGORI</th>
               <th>STOK SAAT INI</th>
-              <th>BATAS MIN.</th>
+              <th>BATAS MINIMUM</th>
               <th>STATUS STOK</th>
-              {isSuperAdmin && <th style={{ textAlign: 'right' }}>AKSI (SUPER ADMIN)</th>}
+              {canAddOrRestock && <th style={{ textAlign: 'right' }}>AKSI</th>}
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={isSuperAdmin ? 7 : 6} style={{ textAlign: 'center', padding: '2rem' }} className="text-muted">
-                  Tidak ada bahan baku yang cocok dengan kata kunci pencarian.
+                <td colSpan={canAddOrRestock ? 7 : 6} style={{ textAlign: 'center', padding: '2rem' }} className="text-muted">
+                  Tidak ada data bahan baku dapur yang sesuai.
                 </td>
               </tr>
             ) : (
               filtered.map(b => (
                 <tr key={b.id}>
-                  <td style={{ fontWeight: 700, color: 'var(--primary)', fontSize: '0.8rem' }}>{b.sku}</td>
+                  <td><span className="badge badge-cyan">{b.sku}</span></td>
                   <td style={{ fontWeight: 600 }}>{b.nama}</td>
-                  <td><span className="text-muted">{b.kategori}</span></td>
-                  <td>
-                    <strong style={{ fontSize: '0.95rem', color: b.stok <= b.minStok ? 'var(--rose)' : 'var(--text-main)' }}>
-                      {b.stok}
-                    </strong>{' '}
-                    <span className="text-muted" style={{ fontSize: '0.78rem' }}>{b.satuan}</span>
-                  </td>
-                  <td className="text-muted">{b.minStok} {b.satuan}</td>
+                  <td>{b.kategori}</td>
+                  <td><strong style={{ fontSize: '1.05rem' }}>{formatNumber(b.stok)}</strong> <span className="text-muted" style={{ fontSize: '0.8rem' }}>{b.satuan}</span></td>
+                  <td>{formatNumber(b.minStok)} <span className="text-muted" style={{ fontSize: '0.8rem' }}>{b.satuan}</span></td>
                   <td>{getStatusBadge(b.stok, b.minStok)}</td>
-                  {isSuperAdmin && (
+                  {canAddOrRestock && (
                     <td style={{ textAlign: 'right' }}>
-                      <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'flex-end' }}>
+                      <div className="btn-group">
                         <button className="btn btn-sm btn-outline" title="Edit Bahan Baku" onClick={() => onOpenEditBahan(b)}>
                           <Edit3 size={14} />
                         </button>
@@ -191,6 +196,13 @@ export default function BahanBakuTab({
         onClose={() => setIsPreviewPdfOpen(false)}
         bahanBaku={filtered}
         activeUser={{ name: activeRoleView === 'ADMIN' ? 'Super Admin SAREN ONE' : 'Tim Bahan Baku' }}
+      />
+
+      <ModalImportBahanExcel
+        isOpen={isImportExcelOpen}
+        onClose={() => setIsImportExcelOpen(false)}
+        onImport={onImportExcelBahan}
+        showAlert={showAlert}
       />
     </div>
   );
