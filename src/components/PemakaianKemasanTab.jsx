@@ -83,41 +83,6 @@ export default function PemakaianKemasanTab({
         )}
       </div>
 
-      {/* Widget Pemakaian Hari Ini (Today Summary Widget) */}
-      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--amber)', borderRadius: 'var(--radius-md)', padding: '1.25rem', marginBottom: '1.5rem', position: 'relative' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-          <h4 style={{ fontSize: '1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--amber)' }}>
-            <Calendar size={18} /> Pemakaian Bahan Kemasan HARI INI ({todayStr})
-          </h4>
-          <span className="badge badge-amber" style={{ fontSize: '0.82rem', padding: '0.35rem 0.75rem' }}>
-            {todayLogs.length} Transaksi Hari Ini
-          </span>
-        </div>
-
-        {todayLogs.length === 0 ? (
-          <p className="text-muted" style={{ fontSize: '0.85rem', margin: 0 }}>
-            Belum ada catatan pemakaian bahan kemasan untuk hari ini ({todayStr}). Klik tombol <strong>"Catat Pemakaian Kemasan"</strong> untuk menginput.
-          </p>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.75rem' }}>
-            {todayLogs.map(log => (
-              <div key={log.id} style={{ background: 'rgba(245, 158, 11, 0.08)', border: '1px solid rgba(245, 158, 11, 0.25)', borderRadius: 'var(--radius-sm)', padding: '0.75rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
-                  <span><Clock size={12} /> {log.timestamp}</span>
-                  <span className="badge badge-emerald" style={{ fontSize: '0.68rem', padding: '0.1rem 0.4rem' }}>HARI INI</span>
-                </div>
-                <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)' }}>
-                  {log.detail}
-                </div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--amber)', marginTop: '0.25rem' }}>
-                  Oleh: {log.user} ({log.role})
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
       {/* Grid of Packaging Materials Stock & Direct Date Usage Metrics */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
         {displayMaterials.slice(0, 4).map(b => {
@@ -151,16 +116,6 @@ export default function PemakaianKemasanTab({
                   <strong>{formatNumber(usedSelected)} {b.satuan}</strong>
                 </div>
               </div>
-
-              {canUse && (
-                <button
-                  className="btn btn-outline btn-sm mt-3"
-                  style={{ width: '100%' }}
-                  onClick={() => { setSelectedBahanForModal(b); setIsModalOpen(true); }}
-                >
-                  <MinusCircle size={14} /> Catat Pemakaian
-                </button>
-              )}
             </div>
           );
         })}
