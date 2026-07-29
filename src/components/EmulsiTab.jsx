@@ -136,6 +136,7 @@ export default function EmulsiTab({
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onProcess={onProcessEmulsi}
+        bahanList={bahanBaku}
         showAlert={showAlert}
       />
     </div>

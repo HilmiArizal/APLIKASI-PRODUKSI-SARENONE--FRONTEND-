@@ -740,7 +740,7 @@ export function ModalImportResepExcel({ isOpen, onClose, onImport, showAlert }) 
   );
 }
 
-export function ModalPengolahanEmulsi({ isOpen, onClose, onProcess, showAlert }) {
+export function ModalPengolahanEmulsi({ isOpen, onClose, onProcess, bahanList = [], showAlert }) {
   const [jenisEmulsi, setJenisEmulsi] = useState('ISP');
   const [jumlahBatch, setJumlahBatch] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -764,10 +764,30 @@ export function ModalPengolahanEmulsi({ isOpen, onClose, onProcess, showAlert })
   const oilPouchQty = isTvp ? 0 : 4 * bNum;
   const totalYield = (isTvp ? 3.5 : 20) * bNum;
 
+  // Real-time Stock Lookup in bahanList
+  const mainSearchTerm = isTvp ? 'tvp' : 'marksoy';
+  const mainBahan = bahanList.find(b => b.nama.toLowerCase().includes(mainSearchTerm) || b.nama.toLowerCase().includes('isp') || b.sku.toLowerCase().includes(mainSearchTerm));
+  const waterBahan = bahanList.find(b => b.nama.toLowerCase().includes('air') || b.nama.toLowerCase().includes('es') || b.sku.toLowerCase().includes('air'));
+  const oilBahan = !isTvp ? bahanList.find(b => b.nama.toLowerCase().includes('minyak') || b.nama.toLowerCase().includes('lemak') || b.sku.toLowerCase().includes('minyak')) : null;
+
+  const mainBahanStok = mainBahan ? mainBahan.stok : 0;
+  const waterBahanStok = waterBahan ? waterBahan.stok : 0;
+  const oilBahanStok = oilBahan ? oilBahan.stok : 0;
+
+  const isMainEnough = isTvp ? (mainBahanStok >= tvpQty) : (mainBahanStok >= marksoyQty);
+  const isWaterEnough = waterBahanStok >= waterQty;
+  const isOilEnough = isTvp ? true : (oilBahanStok >= oilPouchQty);
+
+  const isAnyInsufficient = !isMainEnough || !isWaterEnough || !isOilEnough;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (bNum <= 0) {
       if (showAlert) showAlert('Jumlah batch harus minimal 1 batch.', 'error', 'Validasi Gagal');
+      return;
+    }
+    if (isAnyInsufficient) {
+      if (showAlert) showAlert('Stok bahan baku tidak mencukupi untuk memproses batch emulsi ini.', 'error', 'Stok Kurang!');
       return;
     }
 
@@ -805,24 +825,85 @@ export function ModalPengolahanEmulsi({ isOpen, onClose, onProcess, showAlert })
               </span>
             </div>
 
-            <div className="mt-3" style={{ background: 'rgba(16, 185, 129, 0.1)', border: '1px solid var(--emerald)', borderRadius: 'var(--radius-sm)', padding: '1rem' }}>
-              <h4 style={{ fontSize: '0.9rem', color: 'var(--emerald)', marginBottom: '0.5rem', fontWeight: 700 }}>
+            {isAnyInsufficient && (
+              <div style={{ background: 'rgba(244, 63, 94, 0.12)', border: '1px solid var(--rose)', borderRadius: 'var(--radius-sm)', padding: '0.75rem 1rem', marginBottom: '1rem', color: 'var(--rose)', fontSize: '0.83rem', fontWeight: 600 }}>
+                ⚠️ <strong>Peringatan Stok Bahan Baku Tidak Mencukupi!</strong> Beberapa bahan mentah dapur di bawah ini bernilai kurang dari kebutuhan target batch. Harap lakukan Restock / Tambah Stok Masuk terlebih dahulu.
+              </div>
+            )}
+
+            <div className="mt-3" style={{ background: 'rgba(16, 185, 129, 0.08)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '1rem' }}>
+              <h4 style={{ fontSize: '0.9rem', color: 'var(--emerald)', marginBottom: '0.65rem', fontWeight: 700 }}>
                 📊 Rincian Otomatis Pemotongan Stok ({bNum} Batch {jenisEmulsi}):
               </h4>
-              <ul style={{ fontSize: '0.85rem', listStyle: 'none', paddingLeft: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+              <ul style={{ fontSize: '0.85rem', listStyle: 'none', paddingLeft: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 {!isTvp ? (
                   <>
-                    <li>🔻 Pemotongan Marksoy / ISP: <strong>{marksoyQty} kg</strong> (2 kg / batch)</li>
-                    <li>🔻 Pemotongan Air Es Batu: <strong>{waterQty} kg</strong> (4 kg / batch)</li>
-                    <li>🔻 Pemotongan Minyak Goreng: <strong>{oilPouchQty} pouch</strong> (4 pouch 2L / batch)</li>
+                    <li style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>🔻 Pemotongan Marksoy / ISP: <strong>{marksoyQty} kg</strong></span>
+                      <span style={{ fontSize: '0.8rem' }}>
+                        (Stok Tersedia: <strong>{mainBahanStok} {mainBahan?.satuan || 'kg'}</strong>){' '}
+                        {isMainEnough ? (
+                          <span style={{ color: 'var(--emerald)', fontWeight: 700 }}>✓ Cukup</span>
+                        ) : (
+                          <span style={{ color: 'var(--rose)', fontWeight: 700 }}>✗ Stok Kurang!</span>
+                        )}
+                      </span>
+                    </li>
+
+                    <li style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>🔻 Pemotongan Air Es Batu: <strong>{waterQty} kg</strong></span>
+                      <span style={{ fontSize: '0.8rem' }}>
+                        (Stok Tersedia: <strong>{waterBahanStok} {waterBahan?.satuan || 'kg'}</strong>){' '}
+                        {isWaterEnough ? (
+                          <span style={{ color: 'var(--emerald)', fontWeight: 700 }}>✓ Cukup</span>
+                        ) : (
+                          <span style={{ color: 'var(--rose)', fontWeight: 700 }}>✗ Stok Kurang!</span>
+                        )}
+                      </span>
+                    </li>
+
+                    <li style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>🔻 Pemotongan Minyak Goreng: <strong>{oilPouchQty} pouch</strong></span>
+                      <span style={{ fontSize: '0.8rem' }}>
+                        (Stok Tersedia: <strong>{oilBahanStok} {oilBahan?.satuan || 'pouch'}</strong>){' '}
+                        {isOilEnough ? (
+                          <span style={{ color: 'var(--emerald)', fontWeight: 700 }}>✓ Cukup</span>
+                        ) : (
+                          <span style={{ color: 'var(--rose)', fontWeight: 700 }}>✗ Stok Kurang!</span>
+                        )}
+                      </span>
+                    </li>
                   </>
                 ) : (
                   <>
-                    <li>🔻 Pemotongan TVP Granules: <strong>{tvpQty} kg</strong> (1 kg / batch)</li>
-                    <li>🔻 Pemotongan Air Es Batu: <strong>{waterQty} kg</strong> (3 kg / batch)</li>
+                    <li style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>🔻 Pemotongan TVP Granules: <strong>{tvpQty} kg</strong></span>
+                      <span style={{ fontSize: '0.8rem' }}>
+                        (Stok Tersedia: <strong>{mainBahanStok} {mainBahan?.satuan || 'kg'}</strong>){' '}
+                        {isMainEnough ? (
+                          <span style={{ color: 'var(--emerald)', fontWeight: 700 }}>✓ Cukup</span>
+                        ) : (
+                          <span style={{ color: 'var(--rose)', fontWeight: 700 }}>✗ Stok Kurang!</span>
+                        )}
+                      </span>
+                    </li>
+
+                    <li style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>🔻 Pemotongan Air Es Batu: <strong>{waterQty} kg</strong></span>
+                      <span style={{ fontSize: '0.8rem' }}>
+                        (Stok Tersedia: <strong>{waterBahanStok} {waterBahan?.satuan || 'kg'}</strong>){' '}
+                        {isWaterEnough ? (
+                          <span style={{ color: 'var(--emerald)', fontWeight: 700 }}>✓ Cukup</span>
+                        ) : (
+                          <span style={{ color: 'var(--rose)', fontWeight: 700 }}>✗ Stok Kurang!</span>
+                        )}
+                      </span>
+                    </li>
+
                     <li className="text-muted">🔹 Minyak Goreng: <strong>0 (Tanpa Minyak)</strong></li>
                   </>
                 )}
+
                 <li style={{ borderTop: '1px dashed var(--border-color)', paddingTop: '0.5rem', marginTop: '0.25rem', fontSize: '0.95rem' }}>
                   🟢 <strong>TOTAL HASIL KELUARAN EMULSI {jenisEmulsi} (YIELD): +{totalYield} kg</strong>
                 </li>
@@ -832,8 +913,12 @@ export function ModalPengolahanEmulsi({ isOpen, onClose, onProcess, showAlert })
 
           <div className="modal-footer">
             <button type="button" className="btn btn-secondary" onClick={onClose}>Batal</button>
-            <button type="submit" className="btn btn-emerald" disabled={isSubmitting}>
-              <Play size={16} /> {isSubmitting ? 'Memproses Batch...' : `Proses ${bNum} Batch (+${totalYield} kg Emulsi ${jenisEmulsi})`}
+            <button
+              type="submit"
+              className={`btn ${isAnyInsufficient ? 'btn-danger' : 'btn-emerald'}`}
+              disabled={isSubmitting || isAnyInsufficient}
+            >
+              <Play size={16} /> {isAnyInsufficient ? '⚠️ Stok Bahan Tidak Cukup' : (isSubmitting ? 'Memproses Batch...' : `Proses ${bNum} Batch (+${totalYield} kg Emulsi ${jenisEmulsi})`)}
             </button>
           </div>
         </form>
