@@ -107,6 +107,14 @@ export default function Sidebar({
               </a>
 
               <a
+                href="#pemakaian-kemasan"
+                className={`menu-item ${activeTab === 'pemakaian-kemasan' ? 'active' : ''}`}
+                onClick={(e) => { e.preventDefault(); handleNavClick('pemakaian-kemasan'); }}
+              >
+                <Package size={18} /> <span>Pemakaian Kemasan</span>
+              </a>
+
+              <a
                 href="#riwayat-produksi"
                 className={`menu-item ${activeTab === 'riwayat-produksi' ? 'active' : ''}`}
                 onClick={(e) => { e.preventDefault(); handleNavClick('riwayat-produksi'); }}

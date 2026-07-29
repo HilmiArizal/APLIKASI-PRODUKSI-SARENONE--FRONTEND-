@@ -8,6 +8,7 @@ import BahanBakuTab from './components/BahanBakuTab';
 import EmulsiTab from './components/EmulsiTab';
 import ProdukTab from './components/ProdukTab';
 import ResepTab from './components/ResepTab';
+import PemakaianKemasanTab from './components/PemakaianKemasanTab';
 import RiwayatProduksiTab from './components/RiwayatProduksiTab';
 import UserApprovalTab from './components/UserApprovalTab';
 import AuditLogTab from './components/AuditLogTab';
@@ -1002,6 +1003,16 @@ export default function App() {
               onOpenEditResepItem={(pId, item) => { setResepProdukId(pId); setEditingResepItem(item); setIsModalResepItemOpen(true); }}
               onDeleteResepItem={handleDeleteResepItem}
               onImportExcelResep={handleImportExcelResep}
+              showAlert={showAlert}
+            />
+          )}
+
+          {activeTab === 'pemakaian-kemasan' && (
+            <PemakaianKemasanTab
+              bahanBaku={bahanBaku}
+              auditLog={auditLog}
+              activeRoleView={activeRoleView}
+              onUseKemasan={handleUseKemasan}
               showAlert={showAlert}
             />
           )}

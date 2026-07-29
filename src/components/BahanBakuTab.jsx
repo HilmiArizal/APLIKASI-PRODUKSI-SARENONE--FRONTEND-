@@ -133,9 +133,6 @@ export default function BahanBakuTab({
 
           {canAddOrRestock && (
             <>
-              <button className="btn btn-amber" onClick={onOpenPemakaianKemasan} title="Catat Pemakaian Bahan Kemasan (Casing/Plastik/Box)">
-                <Package size={16} /> Pemakaian Kemasan
-              </button>
               <button className="btn btn-cyan" onClick={onOpenStokMasuk}>
                 <ArrowDownLeft size={16} /> Stok Masuk (Restock)
               </button>
