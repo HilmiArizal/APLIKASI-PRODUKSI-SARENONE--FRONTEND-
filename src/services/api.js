@@ -187,6 +187,13 @@ export async function importBahanBakuExcelApi(items, activeUser) {
   });
 }
 
+export async function useKemasanBahanApi(data, activeUser) {
+  return request('/bahan-baku/pemakaian-kemasan', {
+    method: 'POST',
+    body: JSON.stringify({ ...data, user: activeUser })
+  });
+}
+
 // 5. PRODUK ENDPOINTS
 export async function getProdukApi() {
   return request('/produk');

@@ -19,7 +19,8 @@ import {
   ModalStokMasuk,
   ModalProduk,
   ModalProduksi,
-  ModalResepItem
+  ModalResepItem,
+  ModalPemakaianKemasan
 } from './components/Modals';
 
 import ModalKelolaKategori from './components/ModalKelolaKategori';
@@ -62,6 +63,7 @@ import {
   deleteBahanBakuApi,
   restockBahanBakuApi,
   importBahanBakuExcelApi,
+  useKemasanBahanApi,
   getProdukApi,
   createProdukApi,
   updateProdukApi,
@@ -159,6 +161,7 @@ export default function App() {
   const [editingBahan, setEditingBahan] = useState(null);
 
   const [isModalStokMasukOpen, setIsModalStokMasukOpen] = useState(false);
+  const [isModalPemakaianKemasanOpen, setIsModalPemakaianKemasanOpen] = useState(false);
 
   const [isModalProdukOpen, setIsModalProdukOpen] = useState(false);
   const [editingProduk, setEditingProduk] = useState(null);
@@ -661,6 +664,20 @@ export default function App() {
     }
   };
 
+  const handleUseKemasan = async (kemasanData) => {
+    try {
+      const res = await useKemasanBahanApi(kemasanData, activeUser);
+      if (res?.success) {
+        showAlert(res.message, 'success', 'Pemakaian Kemasan Dicatat! 📦');
+        fetchAllDataFromBackend();
+        return;
+      }
+      showAlert(res?.message || 'Gagal mencatat pemakaian kemasan.', 'error', 'Pemakaian Kemasan Gagal');
+    } catch (err) {
+      showAlert('Terjadi kesalahan saat mencatat pemakaian kemasan: ' + err.message, 'error', 'Pemakaian Kemasan Error');
+    }
+  };
+
   const handleProcessEmulsi = async (emulsiData) => {
     try {
       const res = await processEmulsiApi(emulsiData, activeUser);
@@ -942,6 +959,7 @@ export default function App() {
               onOpenTambahBahan={() => { setEditingBahan(null); setIsModalBahanOpen(true); }}
               onOpenEditBahan={(b) => { setEditingBahan(b); setIsModalBahanOpen(true); }}
               onOpenStokMasuk={() => setIsModalStokMasukOpen(true)}
+              onOpenPemakaianKemasan={() => setIsModalPemakaianKemasanOpen(true)}
               onDeleteBahan={handleDeleteBahan}
               onOpenKelolaKategoriBahan={() => setIsModalKelolaKategoriBahanOpen(true)}
               onOpenPdfPreview={handleOpenPdfPreview}
@@ -1049,6 +1067,14 @@ export default function App() {
         onClose={() => setIsModalStokMasukOpen(false)}
         onSave={handleRestockBahan}
         bahanList={bahanBaku}
+      />
+
+      <ModalPemakaianKemasan
+        isOpen={isModalPemakaianKemasanOpen}
+        onClose={() => setIsModalPemakaianKemasanOpen(false)}
+        onUseKemasan={handleUseKemasan}
+        bahanList={bahanBaku}
+        showAlert={showAlert}
       />
 
       <ModalProduk

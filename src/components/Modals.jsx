@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, ArrowDownLeft, Play, Plus, Edit3, Upload, Download, FileSpreadsheet } from 'lucide-react';
+import { X, Save, ArrowDownLeft, Play, Plus, Edit3, Upload, Download, FileSpreadsheet, MinusCircle, Package } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { formatNumber } from '../data/initialData';
 
@@ -936,6 +936,118 @@ export function ModalPengolahanEmulsi({ isOpen, onClose, onProcess, bahanList = 
               disabled={isSubmitting || isAnyInsufficient}
             >
               <Play size={16} /> {isAnyInsufficient ? '⚠️ Stok Bahan Tidak Cukup' : (isSubmitting ? 'Memproses Batch...' : `Proses ${bNum} Batch (+${totalYield} kg Emulsi ${jenisEmulsi})`)}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+export function ModalPemakaianKemasan({ isOpen, onClose, onUseKemasan, bahanList = [], showAlert }) {
+  const [bahanId, setBahanId] = useState('');
+  const [jumlah, setJumlah] = useState(1);
+  const [keterangan, setKeterangan] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const kemasanList = bahanList.filter(b => {
+    const kat = (b.kategori || '').toLowerCase();
+    const name = (b.nama || '').toLowerCase();
+    return kat.includes('kemasan') || name.includes('casing') || name.includes('plastik') || name.includes('pouch') || name.includes('box') || name.includes('label');
+  });
+
+  const displayList = kemasanList.length > 0 ? kemasanList : bahanList;
+
+  useEffect(() => {
+    if (isOpen) {
+      if (displayList.length > 0 && !bahanId) {
+        setBahanId(displayList[0].id);
+      }
+      setJumlah(1);
+      setKeterangan('');
+      setIsSubmitting(false);
+    }
+  }, [isOpen, bahanList]);
+
+  if (!isOpen) return null;
+
+  const selectedBahan = displayList.find(b => b.id === bahanId) || displayList[0];
+  const currentStok = selectedBahan ? selectedBahan.stok : 0;
+  const useQty = parseFloat(jumlah) || 0;
+  const isInsufficient = selectedBahan ? (currentStok < useQty) : true;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!bahanId || useQty <= 0) {
+      if (showAlert) showAlert('Pilih bahan kemasan dan tentukan jumlah pemakaian (>0).', 'error', 'Validasi Gagal');
+      return;
+    }
+    if (isInsufficient) {
+      if (showAlert) showAlert(`Stok ${selectedBahan?.nama || 'bahan'} tidak mencukupi!`, 'error', 'Stok Kurang');
+      return;
+    }
+
+    setIsSubmitting(true);
+    await onUseKemasan({
+      bahanId: selectedBahan.id,
+      jumlah: useQty,
+      keterangan
+    });
+    setIsSubmitting(false);
+    onClose();
+  };
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-card" style={{ maxWidth: '580px' }}>
+        <div className="modal-header">
+          <h3>📦 Catat Pemakaian Bahan Kemasan (Casing / Plastik / Box)</h3>
+          <button className="btn btn-outline btn-sm" onClick={onClose}><X size={16} /></button>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <div className="modal-body">
+            <div className="form-group">
+              <label>Pilih Bahan Kemasan Dapur *</label>
+              <select className="select-input" value={bahanId} onChange={e => setBahanId(e.target.value)}>
+                {displayList.map(b => (
+                  <option key={b.id} value={b.id}>
+                    {b.sku} - {b.nama} (Stok Tersedia: {b.stok} {b.satuan})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className="form-group">
+                <label>Jumlah Pemakaian ({selectedBahan?.satuan || 'satuan'}) *</label>
+                <input type="number" step="any" min="0.1" className="form-control" value={jumlah} onChange={e => setJumlah(e.target.value)} required />
+              </div>
+              <div className="form-group">
+                <label>Stok Saat Ini</label>
+                <input type="text" className="form-control" value={`${currentStok} ${selectedBahan?.satuan || ''}`} disabled readOnly />
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>Keterangan / Catatan Pemakaian</label>
+              <input type="text" className="form-control" placeholder="Misal: Pengemasan Sosis Original Batch #05" value={keterangan} onChange={e => setKeterangan(e.target.value)} />
+            </div>
+
+            {isInsufficient && (
+              <div style={{ background: 'rgba(244, 63, 94, 0.12)', border: '1px solid var(--rose)', borderRadius: 'var(--radius-sm)', padding: '0.75rem 1rem', marginTop: '0.5rem', color: 'var(--rose)', fontSize: '0.83rem', fontWeight: 600 }}>
+                ⚠️ <strong>Stok Bahan Kemasan Tidak Cukup!</strong> Stok tersedia ({currentStok} {selectedBahan?.satuan}) lebih kecil dari jumlah pemakaian ({useQty} {selectedBahan?.satuan}).
+              </div>
+            )}
+          </div>
+
+          <div className="modal-footer">
+            <button type="button" className="btn btn-secondary" onClick={onClose}>Batal</button>
+            <button
+              type="submit"
+              className={`btn ${isInsufficient ? 'btn-danger' : 'btn-primary'}`}
+              disabled={isSubmitting || isInsufficient}
+            >
+              <MinusCircle size={16} /> {isInsufficient ? 'Stok Tidak Cukup' : (isSubmitting ? 'Memproses...' : `Pemakaian -${useQty} ${selectedBahan?.satuan || ''}`)}
             </button>
           </div>
         </form>
