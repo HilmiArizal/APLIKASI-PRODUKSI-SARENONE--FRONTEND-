@@ -122,9 +122,9 @@ export default function BahanBakuTab({
             </button>
           )}
 
-          <button className="btn btn-outline" onClick={handleExportExcel} title="Export Data ke Excel (.csv)">
+          {/* <button className="btn btn-outline" onClick={handleExportExcel} title="Export Data ke Excel (.csv)">
             <FileSpreadsheet size={16} style={{ color: 'var(--emerald)' }} /> Excel
-          </button>
+          </button> */}
 
           <button className="btn btn-outline" onClick={() => setIsPreviewPdfOpen(true)} title="Preview & Cetak Laporan PDF">
             <FileText size={16} style={{ color: 'var(--amber)' }} /> Cetak PDF
