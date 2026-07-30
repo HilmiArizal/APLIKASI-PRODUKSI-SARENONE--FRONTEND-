@@ -85,7 +85,7 @@ export default function PemakaianKemasanTab({
 
       {/* Grid of Packaging Materials Stock & Direct Date Usage Metrics */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-        {displayMaterials.slice(0, 4).map(b => {
+        {displayMaterials.map(b => {
           const usedToday = getItemDateUsage(b, todayStr);
           const usedSelected = selectedDateFilter ? getItemDateUsage(b, selectedDateFilter) : usedToday;
 
