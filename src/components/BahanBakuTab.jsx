@@ -123,23 +123,14 @@ export default function BahanBakuTab({
             </button>
           )}
 
-          {/* <button className="btn btn-outline" onClick={handleExportExcel} title="Export Data ke Excel (.csv)">
-            <FileSpreadsheet size={16} style={{ color: 'var(--emerald)' }} /> Excel
-          </button> */}
-
           <button className="btn btn-outline" onClick={() => setIsPreviewPdfOpen(true)} title="Preview & Cetak Laporan PDF">
             <FileText size={16} style={{ color: 'var(--amber)' }} /> Cetak PDF
           </button>
 
-          {canAddOrRestock && (
-            <>
-              <button className="btn btn-cyan" onClick={onOpenStokMasuk}>
-                <ArrowDownLeft size={16} /> Stok Masuk (Restock)
-              </button>
-              <button className="btn btn-primary" onClick={onOpenTambahBahan}>
-                <Plus size={16} /> Tambah Bahan
-              </button>
-            </>
+          {isSuperAdmin && (
+            <button className="btn btn-primary" onClick={onOpenTambahBahan}>
+              <Plus size={16} /> Tambah Bahan
+            </button>
           )}
         </div>
       </div>
@@ -154,13 +145,13 @@ export default function BahanBakuTab({
               <th>STOK SAAT INI</th>
               <th>BATAS MINIMUM</th>
               <th>STATUS STOK</th>
-              {canAddOrRestock && <th style={{ textAlign: 'right' }}>AKSI</th>}
+              {isSuperAdmin && <th style={{ textAlign: 'right' }}>AKSI</th>}
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={canAddOrRestock ? 7 : 6} style={{ textAlign: 'center', padding: '2rem' }} className="text-muted">
+                <td colSpan={isSuperAdmin ? 7 : 6} style={{ textAlign: 'center', padding: '2rem' }} className="text-muted">
                   Tidak ada data bahan baku dapur yang sesuai.
                 </td>
               </tr>
@@ -173,7 +164,7 @@ export default function BahanBakuTab({
                   <td><strong style={{ fontSize: '1.05rem' }}>{formatNumber(b.stok)}</strong> <span className="text-muted" style={{ fontSize: '0.8rem' }}>{b.satuan}</span></td>
                   <td>{formatNumber(b.minStok)} <span className="text-muted" style={{ fontSize: '0.8rem' }}>{b.satuan}</span></td>
                   <td>{getStatusBadge(b.stok, b.minStok)}</td>
-                  {canAddOrRestock && (
+                  {isSuperAdmin && (
                     <td style={{ textAlign: 'right' }}>
                       <div className="btn-group">
                         <button className="btn btn-sm btn-outline" title="Edit Bahan Baku" onClick={() => onOpenEditBahan(b)}>
