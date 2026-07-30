@@ -309,6 +309,13 @@ export async function payUtangSupplierApi(id, data, activeUser) {
   });
 }
 
+export async function receiveUtangSupplierApi(id, data, activeUser) {
+  return request(`/utang-supplier/${id}/receive`, {
+    method: 'POST',
+    body: JSON.stringify({ ...data, user: activeUser })
+  });
+}
+
 export async function deleteUtangSupplierApi(id, activeUser) {
   return request(`/utang-supplier/${id}`, {
     method: 'DELETE',

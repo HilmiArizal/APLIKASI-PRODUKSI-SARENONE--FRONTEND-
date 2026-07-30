@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Boxes, Package, BookOpen, ChefHat, History, UserCheck, LogOut, X, Layers, FlaskConical, CreditCard } from 'lucide-react';
+import { LayoutDashboard, Boxes, Package, BookOpen, ChefHat, History, UserCheck, LogOut, X, Layers, FlaskConical, CreditCard, PackageCheck } from 'lucide-react';
 import logoImg from '../assets/logo.png';
 
 export default function Sidebar({
@@ -79,6 +79,14 @@ export default function Sidebar({
                 {lowStockCount > 0 && (
                   <span className="badge badge-amber">{lowStockCount}</span>
                 )}
+              </a>
+
+              <a
+                href="#penerimaan-bahan"
+                className={`menu-item ${activeTab === 'penerimaan-bahan' ? 'active' : ''}`}
+                onClick={(e) => { e.preventDefault(); handleNavClick('penerimaan-bahan'); }}
+              >
+                <PackageCheck size={18} /> <span>Penerimaan Bahan Baku</span>
               </a>
 
               {showEmulsi && (

@@ -1424,3 +1424,185 @@ export function ModalRiwayatBayarSupplier({ isOpen, onClose, utangRecord }) {
     </div>
   );
 }
+
+// ----------------------------------------------------
+// MODAL TERIMA BARANG / VERIFIKASI STOK FISIK
+// ----------------------------------------------------
+export function ModalTerimaBahanSupplier({ isOpen, onClose, utangRecord, onSubmitReceive, showAlert }) {
+  const [jumlahTerima, setJumlahTerima] = useState(0);
+  const [penerima, setPenerima] = useState('');
+  const [catatan, setCatatan] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && utangRecord) {
+      const total = utangRecord.jumlah || 0;
+      const diterim = utangRecord.jumlahDiterima || 0;
+      const pending = utangRecord.sisaBelumDiterima !== undefined ? utangRecord.sisaBelumDiterima : Math.max(0, total - diterim);
+
+      setJumlahTerima(pending);
+      setPenerima('');
+      setCatatan('Verifikasi Fisik & Penerimaan Gudang');
+      setIsSubmitting(false);
+    }
+  }, [isOpen, utangRecord]);
+
+  if (!isOpen || !utangRecord) return null;
+
+  const total = utangRecord.jumlah || 0;
+  const diterim = utangRecord.jumlahDiterima || 0;
+  const pending = utangRecord.sisaBelumDiterima !== undefined ? utangRecord.sisaBelumDiterima : Math.max(0, total - diterim);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const receiveVal = parseFloat(jumlahTerima) || 0;
+    if (receiveVal <= 0) {
+      if (showAlert) showAlert('Masukkan jumlah barang yang diterima (>0).', 'error', 'Validasi Gagal');
+      return;
+    }
+    if (receiveVal > pending) {
+      if (showAlert) showAlert(`Jumlah penerimaan (${receiveVal} ${utangRecord.satuan}) melebihi sisa barang pending (${pending} ${utangRecord.satuan}).`, 'error', 'Jumlah Melebihi Pesanan');
+      return;
+    }
+
+    setIsSubmitting(true);
+    await onSubmitReceive(utangRecord.id, {
+      jumlahTerima: receiveVal,
+      penerima,
+      catatan
+    });
+    setIsSubmitting(false);
+    onClose();
+  };
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-card" style={{ maxWidth: '520px' }}>
+        <div className="modal-header">
+          <h3>📦 Verifikasi Penerimaan Barang Fisik Gudang</h3>
+          <button className="btn btn-outline btn-sm" onClick={onClose}><X size={16} /></button>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <div className="modal-body">
+            <div style={{ background: 'var(--bg-darker)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '0.85rem 1rem', marginBottom: '1rem' }}>
+              <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>No. Faktur Pembelian:</div>
+              <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--primary)' }}>{utangRecord.noFaktur}</div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#fff', marginTop: '0.2rem' }}>{utangRecord.supplier}</div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '0.75rem', fontSize: '0.82rem', borderTop: '1px border var(--border-color)', paddingTop: '0.5rem' }}>
+                <div>Order Beli: <strong>{total} {utangRecord.satuan} {utangRecord.bahanNama}</strong></div>
+                <div>Sudah Diterima: <strong style={{ color: 'var(--emerald)' }}>{diterim} {utangRecord.satuan}</strong></div>
+              </div>
+              <div style={{ marginTop: '0.4rem', fontSize: '0.95rem', fontWeight: 800, color: 'var(--amber)' }}>
+                Sisa Pending Pengiriman: {pending} {utangRecord.satuan}
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>Jumlah Fisik Barang Diterima ({utangRecord.satuan}) *</label>
+              <input type="number" step="any" min="0.1" max={pending} className="form-control" value={jumlahTerima} onChange={e => setJumlahTerima(e.target.value)} required />
+              <button
+                type="button"
+                className="btn btn-outline btn-emerald btn-sm"
+                style={{ marginTop: '0.4rem', width: '100%', fontSize: '0.75rem' }}
+                onClick={() => setJumlahTerima(pending)}
+              >
+                ⚡ Terima Seluruh Sisa Barang ({pending} {utangRecord.satuan})
+              </button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
+              <div className="form-group">
+                <label>Nama Penerima / Verifikator</label>
+                <input type="text" className="form-control" placeholder="Misal: Siti Gudang" value={penerima} onChange={e => setPenerima(e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label>Catatan Fisik Barang</label>
+                <input type="text" className="form-control" placeholder="Kondisi barang baik &amp; segel utuh" value={catatan} onChange={e => setCatatan(e.target.value)} />
+              </div>
+            </div>
+
+            <div style={{ background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: 'var(--radius-sm)', padding: '0.75rem 1rem', marginTop: '0.25rem', fontSize: '0.8rem', color: 'var(--emerald)', fontWeight: 600 }}>
+              💡 <strong>INFO STOK:</strong> Mengonfirmasi penerimaan ini akan <strong>otomatis menambah +{jumlahTerima} {utangRecord.satuan} {utangRecord.bahanNama}</strong> ke persediaan stok fisik gudang!
+            </div>
+          </div>
+
+          <div className="modal-footer">
+            <button type="button" className="btn btn-secondary" onClick={onClose}>Batal</button>
+            <button type="submit" className="btn btn-emerald" disabled={isSubmitting}>
+              {isSubmitting ? 'Memproses...' : `Konfirmasi Terima +${parseFloat(jumlahTerima || 0)} ${utangRecord.satuan}`}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ----------------------------------------------------
+// MODAL RIWAYAT PENERIMAAN BARANG SUPPLIER
+// ----------------------------------------------------
+export function ModalRiwayatTerimaSupplier({ isOpen, onClose, utangRecord }) {
+  if (!isOpen || !utangRecord) return null;
+
+  const riwayat = utangRecord.riwayatPenerimaan || [];
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-card" style={{ maxWidth: '600px' }}>
+        <div className="modal-header">
+          <h3>📜 Riwayat Penerimaan Fisik Faktur {utangRecord.noFaktur}</h3>
+          <button className="btn btn-outline btn-sm" onClick={onClose}><X size={16} /></button>
+        </div>
+        <div className="modal-body">
+          <div style={{ background: 'var(--bg-darker)', borderRadius: 'var(--radius-sm)', padding: '0.85rem', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#fff' }}>{utangRecord.supplier}</div>
+              <div className="text-muted" style={{ fontSize: '0.78rem' }}>{utangRecord.bahanNama} (Total Order: {utangRecord.jumlah} {utangRecord.satuan})</div>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Jumlah Diterima:</div>
+              <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--emerald)' }}>
+                {utangRecord.jumlahDiterima || 0} {utangRecord.satuan}
+              </div>
+            </div>
+          </div>
+
+          {riwayat.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '2rem' }} className="text-muted">
+              Belum ada riwayat pengiriman / penerimaan fisik barang untuk faktur ini.
+            </div>
+          ) : (
+            <div className="table-container" style={{ maxHeight: '280px', overflowY: 'auto' }}>
+              <table className="custom-table">
+                <thead>
+                  <tr>
+                    <th>TANGGAL &amp; WAKTU</th>
+                    <th>JUMLAH DITERIMA</th>
+                    <th>PENERIMA</th>
+                    <th>CATATAN</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {riwayat.map((r, i) => (
+                    <tr key={i}>
+                      <td style={{ fontSize: '0.78rem', whiteSpace: 'nowrap' }}>{r.tanggal}</td>
+                      <td style={{ color: 'var(--emerald)', fontWeight: 700 }}>
+                        +{r.jumlah} {utangRecord.satuan}
+                      </td>
+                      <td style={{ fontSize: '0.8rem', fontWeight: 600 }}>{r.penerima || 'Staf Gudang'}</td>
+                      <td style={{ fontSize: '0.78rem' }} className="text-muted">{r.catatan}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+        <div className="modal-footer">
+          <button type="button" className="btn btn-secondary" onClick={onClose}>Tutup</button>
+        </div>
+      </div>
+    </div>
+  );
+}

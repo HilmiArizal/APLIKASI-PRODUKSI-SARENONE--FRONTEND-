@@ -14,6 +14,7 @@ import UserApprovalTab from './components/UserApprovalTab';
 import AuditLogTab from './components/AuditLogTab';
 import KategoriTab from './components/KategoriTab';
 import UtangSupplierTab from './components/UtangSupplierTab';
+import PenerimaanBahanTab from './components/PenerimaanBahanTab';
 import PendingApprovalView from './components/PendingApprovalView';
 
 import {
@@ -84,6 +85,7 @@ import {
   getUtangSupplierApi,
   createUtangSupplierApi,
   payUtangSupplierApi,
+  receiveUtangSupplierApi,
   deleteUtangSupplierApi
 } from './services/api';
 
@@ -301,12 +303,12 @@ export default function App() {
 
   useEffect(() => {
     if (activeRoleView === 'PEMBELIAN') {
-      const allowed = ['dashboard', 'bahan-baku', 'utang-supplier'];
+      const allowed = ['dashboard', 'bahan-baku', 'utang-supplier', 'penerimaan-bahan'];
       if (!allowed.includes(activeTab)) {
         setActiveTab('utang-supplier');
       }
     } else if (activeRoleView === 'BAHAN_BAKU') {
-      const allowed = ['dashboard', 'bahan-baku', 'emulsi', 'produk', 'resep', 'pemakaian-kemasan', 'riwayat-produksi'];
+      const allowed = ['dashboard', 'bahan-baku', 'penerimaan-bahan', 'emulsi', 'produk', 'resep', 'pemakaian-kemasan', 'riwayat-produksi'];
       if (!allowed.includes(activeTab)) {
         setActiveTab('bahan-baku');
       }
@@ -938,6 +940,20 @@ export default function App() {
     }
   };
 
+  const handleReceiveBahan = async (id, receiveData) => {
+    try {
+      const res = await receiveUtangSupplierApi(id, receiveData, activeUser);
+      if (res?.success) {
+        showAlert(res.message, 'success', 'Penerimaan Berhasil & Stok Bertambah! 📦');
+        fetchAllDataFromBackend();
+        return;
+      }
+      showAlert(res?.message || 'Gagal mencatat penerimaan barang.', 'error', 'Gagal Terima');
+    } catch (err) {
+      showAlert('Error: ' + err.message, 'error', 'Gagal Terima');
+    }
+  };
+
   const handleDeleteUtang = async (id) => {
     try {
       const res = await deleteUtangSupplierApi(id, activeUser);
@@ -1091,6 +1107,16 @@ export default function App() {
               onCreateUtang={handleCreateUtang}
               onPayUtang={handlePayUtang}
               onDeleteUtang={handleDeleteUtang}
+              showAlert={showAlert}
+            />
+          )}
+
+          {activeTab === 'penerimaan-bahan' && (
+            <PenerimaanBahanTab
+              utangList={utangList}
+              bahanBaku={bahanBaku}
+              activeRoleView={activeRoleView}
+              onReceiveBahan={handleReceiveBahan}
               showAlert={showAlert}
             />
           )}
