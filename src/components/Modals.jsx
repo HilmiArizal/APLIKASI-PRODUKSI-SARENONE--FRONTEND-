@@ -829,8 +829,8 @@ export function ModalPengolahanEmulsi({ isOpen, onClose, onProcess, bahanList = 
             <div className="form-group">
               <label>Pilih Jenis Formulasi Emulsi Sosis *</label>
               <select className="select-input" value={jenisEmulsi} onChange={e => setJenisEmulsi(e.target.value)}>
-                <option value="ISP">Emulsi ISP (1 Batch = 2kg Marksoy + 4kg Air Es + 4 Pouch Minyak 2L =&gt; Yield 20kg)</option>
-                <option value="TVP">Emulsi TVP (1 Batch = 1kg TVP + 3kg Air Es =&gt; Yield 3.5kg)</option>
+                <option value="ISP">Emulsi ISP</option>
+                <option value="TVP">Emulsi TVP</option>
               </select>
             </div>
 
