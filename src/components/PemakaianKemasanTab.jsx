@@ -179,8 +179,10 @@ export default function PemakaianKemasanTab({
           const isStokThin = b.stok <= b.minStok && b.stok > 0;
           const isStokEmpty = b.stok === 0;
 
-          // Compute usage metrics for selected date
-          const dateUsedQty = getItemDateUsage(b, selectedDateFilter);
+          // Compute usage metrics for selected date (For Sticker Barcode & Sticker Produk, match total Vacumbag used today)
+          const nameLower = (b.nama || '').toLowerCase();
+          const isSticker = nameLower.includes('sticker') || nameLower.includes('stiker') || nameLower.includes('barcode');
+          const dateUsedQty = isSticker ? totalVacumbagUsedToday : getItemDateUsage(b, selectedDateFilter);
           const todayUsedQty = getItemDateUsage(b, todayStr);
 
           return (
