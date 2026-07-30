@@ -972,6 +972,7 @@ export default function App() {
           {activeTab === 'emulsi' && (
             <EmulsiTab
               bahanBaku={bahanBaku}
+              auditLog={auditLog}
               activeRoleView={activeRoleView}
               onProcessEmulsi={handleProcessEmulsi}
               showAlert={showAlert}
