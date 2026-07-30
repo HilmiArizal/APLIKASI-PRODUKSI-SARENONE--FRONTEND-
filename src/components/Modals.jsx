@@ -1089,3 +1089,338 @@ export function ModalPemakaianKemasan({ isOpen, onClose, onUseKemasan, bahanList
     </div>
   );
 }
+
+// ----------------------------------------------------
+// MODAL TAMBAH UTANG / FAKTUR SUPPLIER BARU
+// ----------------------------------------------------
+export function ModalTambahUtangSupplier({ isOpen, onClose, bahanList = [], onSubmit, showAlert }) {
+  const [noFaktur, setNoFaktur] = useState('');
+  const [supplier, setSupplier] = useState('');
+  const [bahanId, setBahanId] = useState('');
+  const [jumlah, setJumlah] = useState(1);
+  const [hargaSatuan, setHargaSatuan] = useState(0);
+  const [dp, setDp] = useState(0);
+  const [jatuhTempo, setJatuhTempo] = useState('');
+  const [catatan, setCatatan] = useState('');
+  const [autoAddStok, setAutoAddStok] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      const autoFaktur = 'INV-SUP-' + new Date().toISOString().slice(0,7).replace('-','') + '-' + String(Math.floor(Math.random()*900)+100);
+      setNoFaktur(autoFaktur);
+      setSupplier('');
+      if (bahanList.length > 0) {
+        setBahanId(bahanList[0].id || bahanList[0]._id || bahanList[0].sku);
+      }
+      setJumlah(100);
+      setHargaSatuan(0);
+      setDp(0);
+      const in14Days = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      setJatuhTempo(in14Days);
+      setCatatan('');
+      setAutoAddStok(true);
+      setIsSubmitting(false);
+    }
+  }, [isOpen, bahanList]);
+
+  if (!isOpen) return null;
+
+  const selectedBahan = bahanList.find(b => b.id === bahanId || b._id === bahanId || b.sku === bahanId) || bahanList[0];
+  const totalTagihan = (parseFloat(jumlah) || 0) * (parseFloat(hargaSatuan) || 0);
+  const sisaUtang = Math.max(0, totalTagihan - (parseFloat(dp) || 0));
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!supplier || !noFaktur || parseFloat(jumlah) <= 0) {
+      if (showAlert) showAlert('Supplier, No Faktur, dan Jumlah wajib diisi (>0).', 'error', 'Validasi Gagal');
+      return;
+    }
+
+    setIsSubmitting(true);
+    await onSubmit({
+      noFaktur,
+      supplier,
+      bahanId: selectedBahan ? (selectedBahan.id || selectedBahan._id || selectedBahan.sku) : '',
+      bahanNama: selectedBahan ? selectedBahan.nama : 'Bahan Baku',
+      satuan: selectedBahan ? selectedBahan.satuan : 'unit',
+      jumlah: parseFloat(jumlah),
+      hargaSatuan: parseFloat(hargaSatuan),
+      dp: parseFloat(dp) || 0,
+      jatuhTempo,
+      catatan,
+      autoAddStok
+    });
+    setIsSubmitting(false);
+    onClose();
+  };
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-card" style={{ maxWidth: '620px' }}>
+        <div className="modal-header">
+          <h3>💳 Catat Pembelian Bahan &amp; Utang Supplier Baru</h3>
+          <button className="btn btn-outline btn-sm" onClick={onClose}><X size={16} /></button>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <div className="modal-body">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
+              <div className="form-group">
+                <label>Nomor Faktur / Invoice *</label>
+                <input type="text" className="form-control" value={noFaktur} onChange={e => setNoFaktur(e.target.value)} required />
+              </div>
+              <div className="form-group">
+                <label>Nama Supplier / Vendor *</label>
+                <input type="text" className="form-control" placeholder="Misal: PT Marksoy Indonesia" value={supplier} onChange={e => setSupplier(e.target.value)} required />
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>Pilih Bahan Baku Yang Dibeli</label>
+              <select className="select-input" value={bahanId} onChange={e => {
+                setBahanId(e.target.value);
+                const b = bahanList.find(x => (x.id || x._id || x.sku) === e.target.value);
+                if (b && b.harga) setHargaSatuan(b.harga);
+              }}>
+                {bahanList.map(b => (
+                  <option key={b.id || b._id || b.sku} value={b.id || b._id || b.sku}>
+                    {b.sku} - {b.nama} (Stok Saat Ini: {b.stok} {b.satuan})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
+              <div className="form-group">
+                <label>Jumlah ({selectedBahan?.satuan || 'unit'}) *</label>
+                <input type="number" step="any" min="0.1" className="form-control" value={jumlah} onChange={e => setJumlah(e.target.value)} required />
+              </div>
+              <div className="form-group">
+                <label>Harga Satuan (Rp)</label>
+                <input type="number" step="any" min="0" className="form-control" value={hargaSatuan} onChange={e => setHargaSatuan(e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label>Total Tagihan</label>
+                <input type="text" className="form-control" value={`Rp ${totalTagihan.toLocaleString('id-ID')}`} disabled readOnly style={{ fontWeight: 700, color: 'var(--amber)' }} />
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
+              <div className="form-group">
+                <label>Uang Muka / DP Dibayar (Rp)</label>
+                <input type="number" step="any" min="0" className="form-control" placeholder="0" value={dp} onChange={e => setDp(e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label>Sisa Utang Tempo</label>
+                <input type="text" className="form-control" value={`Rp ${sisaUtang.toLocaleString('id-ID')}`} disabled readOnly style={{ fontWeight: 800, color: 'var(--rose)' }} />
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
+              <div className="form-group">
+                <label>Tanggal Jatuh Tempo *</label>
+                <input type="date" className="form-control" value={jatuhTempo} onChange={e => setJatuhTempo(e.target.value)} required />
+              </div>
+              <div className="form-group">
+                <label>Catatan Pembelian</label>
+                <input type="text" className="form-control" placeholder="Misal: DP 50%, sisa tempo 14 hari" value={catatan} onChange={e => setCatatan(e.target.value)} />
+              </div>
+            </div>
+
+            <div style={{ background: 'rgba(59, 130, 246, 0.08)', border: '1px solid rgba(59, 130, 246, 0.3)', borderRadius: 'var(--radius-sm)', padding: '0.75rem 1rem', marginTop: '0.25rem' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '0.82rem', cursor: 'pointer', fontWeight: 600, color: '#fff' }}>
+                <input
+                  type="checkbox"
+                  checked={autoAddStok}
+                  onChange={e => setAutoAddStok(e.target.checked)}
+                />
+                ☑️ Otomatis tambahkan +{jumlah} {selectedBahan?.satuan} {selectedBahan?.nama} ke stok gudang
+              </label>
+            </div>
+          </div>
+
+          <div className="modal-footer">
+            <button type="button" className="btn btn-secondary" onClick={onClose}>Batal</button>
+            <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+              {isSubmitting ? 'Menyimpan...' : 'Simpan Pembelian & Faktur Utang'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ----------------------------------------------------
+// MODAL BAYAR / CICIL UTANG SUPPLIER
+// ----------------------------------------------------
+export function ModalBayarUtangSupplier({ isOpen, onClose, utangRecord, onSubmitPay, showAlert }) {
+  const [jumlahBayar, setJumlahBayar] = useState(0);
+  const [metode, setMetode] = useState('Transfer Bank');
+  const [keterangan, setKeterangan] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && utangRecord) {
+      setJumlahBayar(utangRecord.sisaUtang || 0);
+      setMetode('Transfer Bank');
+      setKeterangan('Pelunasan Utang Supplier');
+      setIsSubmitting(false);
+    }
+  }, [isOpen, utangRecord]);
+
+  if (!isOpen || !utangRecord) return null;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const payVal = parseFloat(jumlahBayar) || 0;
+    if (payVal <= 0) {
+      if (showAlert) showAlert('Masukkan jumlah pembayaran (>0).', 'error', 'Validasi Gagal');
+      return;
+    }
+    if (payVal > utangRecord.sisaUtang) {
+      if (showAlert) showAlert(`Jumlah bayar (Rp ${payVal.toLocaleString('id-ID')}) melebihi sisa utang (Rp ${utangRecord.sisaUtang.toLocaleString('id-ID')}).`, 'error', 'Pembayaran Melebihi Utang');
+      return;
+    }
+
+    setIsSubmitting(true);
+    await onSubmitPay(utangRecord.id, {
+      jumlahBayar: payVal,
+      metode,
+      keterangan
+    });
+    setIsSubmitting(false);
+    onClose();
+  };
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-card" style={{ maxWidth: '520px' }}>
+        <div className="modal-header">
+          <h3>💸 Bayar / Cicil Utang Supplier</h3>
+          <button className="btn btn-outline btn-sm" onClick={onClose}><X size={16} /></button>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <div className="modal-body">
+            <div style={{ background: 'var(--bg-darker)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '0.85rem 1rem', marginBottom: '1rem' }}>
+              <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Faktur Tagihan:</div>
+              <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--primary)' }}>{utangRecord.noFaktur}</div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#fff', marginTop: '0.2rem' }}>{utangRecord.supplier} ({utangRecord.bahanNama})</div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '0.75rem', fontSize: '0.82rem', borderTop: '1px border var(--border-color)', paddingTop: '0.5rem' }}>
+                <div>Total Tagihan: <strong>Rp {utangRecord.totalTagihan?.toLocaleString('id-ID')}</strong></div>
+                <div>Sudah Dibayar: <strong style={{ color: 'var(--emerald)' }}>Rp {utangRecord.jumlahDibayar?.toLocaleString('id-ID')}</strong></div>
+              </div>
+              <div style={{ marginTop: '0.4rem', fontSize: '0.95rem', fontWeight: 800, color: 'var(--rose)' }}>
+                Sisa Utang Tempo: Rp {utangRecord.sisaUtang?.toLocaleString('id-ID')}
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>Jumlah Pembayaran Saat Ini (Rp) *</label>
+              <input type="number" step="any" min="1" max={utangRecord.sisaUtang} className="form-control" value={jumlahBayar} onChange={e => setJumlahBayar(e.target.value)} required />
+              <button
+                type="button"
+                className="btn btn-outline btn-emerald btn-sm"
+                style={{ marginTop: '0.4rem', width: '100%', fontSize: '0.75rem' }}
+                onClick={() => setJumlahBayar(utangRecord.sisaUtang)}
+              >
+                ⚡ Lunasi Seluruh Sisa Utang (Rp {utangRecord.sisaUtang?.toLocaleString('id-ID')})
+              </button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
+              <div className="form-group">
+                <label>Metode Pembayaran</label>
+                <select className="select-input" value={metode} onChange={e => setMetode(e.target.value)}>
+                  <option value="Transfer Bank">Transfer Bank</option>
+                  <option value="Tunai / Cash">Tunai / Cash</option>
+                  <option value="Giro / Cek">Giro / Cek</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Keterangan Pembayaran</label>
+                <input type="text" className="form-control" placeholder="Misal: Cicilan ke-2" value={keterangan} onChange={e => setKeterangan(e.target.value)} />
+              </div>
+            </div>
+          </div>
+
+          <div className="modal-footer">
+            <button type="button" className="btn btn-secondary" onClick={onClose}>Batal</button>
+            <button type="submit" className="btn btn-emerald" disabled={isSubmitting}>
+              {isSubmitting ? 'Memproses...' : `Simpan Pembayaran Rp ${parseFloat(jumlahBayar || 0).toLocaleString('id-ID')}`}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ----------------------------------------------------
+// MODAL RIWAYAT PEMBAYARAN SUPPLIER
+// ----------------------------------------------------
+export function ModalRiwayatBayarSupplier({ isOpen, onClose, utangRecord }) {
+  if (!isOpen || !utangRecord) return null;
+
+  const riwayat = utangRecord.riwayatBayar || [];
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-card" style={{ maxWidth: '600px' }}>
+        <div className="modal-header">
+          <h3>📜 Riwayat Pembayaran Faktur {utangRecord.noFaktur}</h3>
+          <button className="btn btn-outline btn-sm" onClick={onClose}><X size={16} /></button>
+        </div>
+        <div className="modal-body">
+          <div style={{ background: 'var(--bg-darker)', borderRadius: 'var(--radius-sm)', padding: '0.85rem', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#fff' }}>{utangRecord.supplier}</div>
+              <div className="text-muted" style={{ fontSize: '0.78rem' }}>{utangRecord.bahanNama} ({utangRecord.jumlah} {utangRecord.satuan})</div>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Sisa Utang:</div>
+              <div style={{ fontSize: '1rem', fontWeight: 800, color: utangRecord.sisaUtang === 0 ? 'var(--emerald)' : 'var(--rose)' }}>
+                Rp {utangRecord.sisaUtang?.toLocaleString('id-ID')}
+              </div>
+            </div>
+          </div>
+
+          {riwayat.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '2rem' }} className="text-muted">
+              Belum ada riwayat pembayaran untuk faktur ini.
+            </div>
+          ) : (
+            <div className="table-container" style={{ maxHeight: '280px', overflowY: 'auto' }}>
+              <table className="custom-table">
+                <thead>
+                  <tr>
+                    <th>TANGGAL &amp; WAKTU</th>
+                    <th>JUMLAH DIBAYAR</th>
+                    <th>METODE</th>
+                    <th>KETERANGAN</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {riwayat.map((r, i) => (
+                    <tr key={i}>
+                      <td style={{ fontSize: '0.78rem', whiteSpace: 'nowrap' }}>{r.tanggal}</td>
+                      <td style={{ color: 'var(--emerald)', fontWeight: 700 }}>
+                        +Rp {r.jumlah?.toLocaleString('id-ID')}
+                      </td>
+                      <td style={{ fontSize: '0.8rem' }}>{r.metode}</td>
+                      <td style={{ fontSize: '0.78rem' }} className="text-muted">{r.keterangan}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+        <div className="modal-footer">
+          <button type="button" className="btn btn-secondary" onClick={onClose}>Tutup</button>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -289,3 +289,29 @@ export async function processEmulsiApi(data, activeUser) {
     body: JSON.stringify({ ...data, user: activeUser })
   });
 }
+
+// 9. UTANG SUPPLIER ENDPOINTS
+export async function getUtangSupplierApi() {
+  return request('/utang-supplier');
+}
+
+export async function createUtangSupplierApi(data, activeUser) {
+  return request('/utang-supplier', {
+    method: 'POST',
+    body: JSON.stringify({ ...data, user: activeUser })
+  });
+}
+
+export async function payUtangSupplierApi(id, data, activeUser) {
+  return request(`/utang-supplier/${id}/pay`, {
+    method: 'POST',
+    body: JSON.stringify({ ...data, user: activeUser })
+  });
+}
+
+export async function deleteUtangSupplierApi(id, activeUser) {
+  return request(`/utang-supplier/${id}`, {
+    method: 'DELETE',
+    body: JSON.stringify({ user: activeUser })
+  });
+}

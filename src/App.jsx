@@ -13,6 +13,7 @@ import RiwayatProduksiTab from './components/RiwayatProduksiTab';
 import UserApprovalTab from './components/UserApprovalTab';
 import AuditLogTab from './components/AuditLogTab';
 import KategoriTab from './components/KategoriTab';
+import UtangSupplierTab from './components/UtangSupplierTab';
 import PendingApprovalView from './components/PendingApprovalView';
 
 import {
@@ -79,7 +80,11 @@ import {
   getAuditLogApi,
   deleteAuditLogApi,
   clearAllAuditLogsApi,
-  processEmulsiApi
+  processEmulsiApi,
+  getUtangSupplierApi,
+  createUtangSupplierApi,
+  payUtangSupplierApi,
+  deleteUtangSupplierApi
 } from './services/api';
 
 const STORAGE_KEYS = {
@@ -157,6 +162,8 @@ export default function App() {
     return saved ? JSON.parse(saved) : INITIAL_RIWAYAT_PRODUKSI;
   });
 
+  const [utangList, setUtangList] = useState([]);
+
   // Modal Control States
   const [isModalBahanOpen, setIsModalBahanOpen] = useState(false);
   const [editingBahan, setEditingBahan] = useState(null);
@@ -217,7 +224,7 @@ export default function App() {
   // Sync Data from Backend API on Initial Mount
   const fetchAllDataFromBackend = async () => {
     try {
-      const [uRes, kpRes, kbRes, bRes, pRes, rRes, prodRes, logRes] = await Promise.all([
+      const [uRes, kpRes, kbRes, bRes, pRes, rRes, prodRes, logRes, utgRes] = await Promise.all([
         getUsersApi(),
         getKategoriProdukApi(),
         getKategoriBahanBakuApi(),
@@ -225,7 +232,8 @@ export default function App() {
         getProdukApi(),
         getResepApi(),
         getRiwayatProduksiApi(),
-        getAuditLogApi()
+        getAuditLogApi(),
+        getUtangSupplierApi()
       ]);
 
       if (uRes?.success) setUsers(uRes.data);
@@ -236,6 +244,7 @@ export default function App() {
       if (rRes?.success) setResep(rRes.data);
       if (prodRes?.success) setRiwayatProduksi(prodRes.data);
       if (logRes?.success) setAuditLog(logRes.data);
+      if (utgRes?.success) setUtangList(utgRes.data);
 
       setBackendConnected(true);
     } catch (err) {
@@ -887,6 +896,48 @@ export default function App() {
     );
   };
 
+  const handleCreateUtang = async (utangData) => {
+    try {
+      const res = await createUtangSupplierApi(utangData, activeUser);
+      if (res?.success) {
+        showAlert(res.message, 'success', 'Faktur & Utang Berhasil!');
+        fetchAllDataFromBackend();
+        return;
+      }
+      showAlert(res?.message || 'Gagal menyimpan faktur utang.', 'error', 'Gagal Simpan');
+    } catch (err) {
+      showAlert('Error: ' + err.message, 'error', 'Gagal Simpan');
+    }
+  };
+
+  const handlePayUtang = async (id, payData) => {
+    try {
+      const res = await payUtangSupplierApi(id, payData, activeUser);
+      if (res?.success) {
+        showAlert(res.message, 'success', 'Pembayaran Berhasil! 💸');
+        fetchAllDataFromBackend();
+        return;
+      }
+      showAlert(res?.message || 'Gagal menyimpan pembayaran.', 'error', 'Gagal Bayar');
+    } catch (err) {
+      showAlert('Error: ' + err.message, 'error', 'Gagal Bayar');
+    }
+  };
+
+  const handleDeleteUtang = async (id) => {
+    try {
+      const res = await deleteUtangSupplierApi(id, activeUser);
+      if (res?.success) {
+        showAlert(res.message, 'success', 'Catatan Utang Dihapus!');
+        fetchAllDataFromBackend();
+        return;
+      }
+      showAlert(res?.message || 'Gagal menghapus utang.', 'error', 'Gagal Hapus');
+    } catch (err) {
+      showAlert('Error: ' + err.message, 'error', 'Gagal Hapus');
+    }
+  };
+
   if (!activeUser) {
     return (
       <>
@@ -1014,6 +1065,18 @@ export default function App() {
               auditLog={auditLog}
               activeRoleView={activeRoleView}
               onUseKemasan={handleUseKemasan}
+              showAlert={showAlert}
+            />
+          )}
+
+          {activeTab === 'utang-supplier' && (
+            <UtangSupplierTab
+              utangList={utangList}
+              bahanBaku={bahanBaku}
+              activeRoleView={activeRoleView}
+              onCreateUtang={handleCreateUtang}
+              onPayUtang={handlePayUtang}
+              onDeleteUtang={handleDeleteUtang}
               showAlert={showAlert}
             />
           )}

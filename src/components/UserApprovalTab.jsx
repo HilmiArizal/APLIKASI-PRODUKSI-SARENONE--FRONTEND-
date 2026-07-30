@@ -39,11 +39,14 @@ export default function UserApprovalTab({ users, onApproveUser, onRejectUser, on
 
   const getRoleLabel = (role) => {
     if (role === 'ADMIN') return 'Super Admin';
-    return 'Tim Bahan Baku';
+    if (role === 'BAHAN_BAKU') return 'Tim Bahan Baku';
+    if (role === 'PEMBELIAN') return 'Tim Pembelian';
+    return role;
   };
 
   const getRoleBadgeClass = (role) => {
     if (role === 'ADMIN') return 'badge-amber';
+    if (role === 'PEMBELIAN') return 'badge-emerald';
     return 'badge-cyan';
   };
 
@@ -340,6 +343,7 @@ export default function UserApprovalTab({ users, onApproveUser, onRejectUser, on
                     <label>Penugasan Role / Divisi *</label>
                     <select className="select-input" value={createRole} onChange={(e) => setCreateRole(e.target.value)} style={{ width: '100%' }}>
                       <option value="BAHAN_BAKU">📦 Tim Bahan Baku</option>
+                      <option value="PEMBELIAN">🛒 Tim Pembelian &amp; Utang Supplier</option>
                       <option value="ADMIN">🔑 Super Admin</option>
                     </select>
                   </div>
@@ -392,6 +396,7 @@ export default function UserApprovalTab({ users, onApproveUser, onRejectUser, on
                     <label>Peran / Role Aktif *</label>
                     <select className="select-input" value={editRole} onChange={(e) => setEditRole(e.target.value)} style={{ width: '100%' }}>
                       <option value="BAHAN_BAKU">📦 Tim Bahan Baku</option>
+                      <option value="PEMBELIAN">🛒 Tim Pembelian &amp; Utang Supplier</option>
                       <option value="ADMIN">🔑 Super Admin</option>
                     </select>
                   </div>

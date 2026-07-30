@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Boxes, Package, BookOpen, ChefHat, History, UserCheck, LogOut, X, Layers, FlaskConical } from 'lucide-react';
+import { LayoutDashboard, Boxes, Package, BookOpen, ChefHat, History, UserCheck, LogOut, X, Layers, FlaskConical, CreditCard } from 'lucide-react';
 import logoImg from '../assets/logo.png';
 
 export default function Sidebar({
@@ -16,11 +16,13 @@ export default function Sidebar({
   const getRoleTitle = (role) => {
     if (role === 'ADMIN') return 'Super Admin';
     if (role === 'BAHAN_BAKU') return 'Tim Bahan Baku';
+    if (role === 'PEMBELIAN') return 'Tim Pembelian';
     if (role === 'PENDING') return 'Menunggu Approval';
     return role;
   };
 
-  const showBahan = (activeRoleView === 'ADMIN' || activeRoleView === 'BAHAN_BAKU');
+  const showBahan = (activeRoleView === 'ADMIN' || activeRoleView === 'BAHAN_BAKU' || activeRoleView === 'PEMBELIAN');
+  const showPembelian = (activeRoleView === 'ADMIN' || activeRoleView === 'PEMBELIAN');
   const showProduk = (activeRoleView === 'ADMIN' || activeRoleView === 'BAHAN_BAKU');
   const showAudit = (activeRoleView === 'ADMIN');
 
@@ -86,6 +88,16 @@ export default function Sidebar({
                 <FlaskConical size={18} /> <span>Pengolahan Emulsi</span>
               </a>
             </>
+          )}
+
+          {showPembelian && (
+            <a
+              href="#utang-supplier"
+              className={`menu-item ${activeTab === 'utang-supplier' ? 'active' : ''}`}
+              onClick={(e) => { e.preventDefault(); handleNavClick('utang-supplier'); }}
+            >
+              <CreditCard size={18} /> <span>Utang Supplier &amp; Pembelian</span>
+            </a>
           )}
 
           {showProduk && (
