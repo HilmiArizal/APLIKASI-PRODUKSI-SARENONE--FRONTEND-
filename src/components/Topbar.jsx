@@ -8,7 +8,7 @@ export default function Topbar({ activeUser, activeRoleView, onChangeRoleView, a
     'produk': { title: 'Katalog & Pemrosesan Produksi', sub: 'Kelola stok produk jadi dan jalankan batch produksi otomatis.' },
     'resep': { title: 'Manajemen Resep & BOM', sub: 'Konfigurasi formula kebutuhan bahan baku untuk setiap produk.' },
     'riwayat-produksi': { title: 'Riwayat Batch Produksi', sub: 'Jurnal rekam jejak hasil olahan dapur & detail konsumsi pemotongan bahan baku.' },
-    'kategori': { title: 'Manajemen Kategori Produk & Bahan Baku', sub: 'Kelola pengelompokan jenis produk jadi dan kategori stok bahan baku dapur.' },
+    'kategori': { title: 'Manajemen Brand & Kategori Produk', sub: 'Kelola pengelompokan brand merk produk jadi dan kategori stok bahan baku dapur.' },
     'user-approval': { title: 'Verifikasi User & Akses Peran', sub: 'Modul persetujuan pendaftaran & manajemen hak akses peran pengguna.' },
     'audit-log': { title: 'Jurnal Transaksi & Audit Log', sub: 'Riwayat pencatatan lengkap aktivitas pergerakan stok.' },
     'utang-supplier': { title: 'Utang Supplier & Pembelian Bahan Baku', sub: 'Kelola faktur tagihan supplier, pembayaran cicilan, dan tempo utang.' },

@@ -162,7 +162,7 @@ export default function Sidebar({
                 className={`menu-item ${activeTab === 'kategori' ? 'active' : ''}`}
                 onClick={(e) => { e.preventDefault(); handleNavClick('kategori'); }}
               >
-                <Layers size={18} /> <span>Kelola Kategori</span>
+                <Layers size={18} /> <span>Kelola Brand</span>
               </a>
             </>
           )}

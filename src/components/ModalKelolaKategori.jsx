@@ -50,7 +50,7 @@ export default function ModalKelolaKategori({ isOpen, onClose, kategoriProduk, o
     <div className="modal-overlay">
       <div className="modal-card" style={{ maxWidth: '620px' }}>
         <div className="modal-header">
-          <h3>🏷️ Kelola Kategori Produk Jadi</h3>
+          <h3>🏷️ Kelola Brand &amp; Merk Produk</h3>
           <button className="btn btn-outline btn-sm" onClick={onClose}><X size={16} /></button>
         </div>
 
@@ -59,11 +59,11 @@ export default function ModalKelolaKategori({ isOpen, onClose, kategoriProduk, o
           {isEditing ? (
             <form onSubmit={handleSubmit} style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid var(--primary)', borderRadius: 'var(--radius-sm)', padding: '1rem', marginBottom: '1.25rem' }}>
               <h4 style={{ fontSize: '0.9rem', marginBottom: '0.75rem', color: 'var(--primary)' }}>
-                {editingId === 'NEW' ? '+ Tambah Kategori Baru' : '✏️ Edit Kategori Produk'}
+                {editingId === 'NEW' ? '+ Tambah Brand Baru' : '✏️ Edit Brand Produk'}
               </h4>
 
               <div className="form-group" style={{ marginBottom: '0.75rem' }}>
-                <label>Nama Kategori Produk *</label>
+                <label>Nama Brand / Merk Produk *</label>
                 <input
                   type="text"
                   className="form-control"

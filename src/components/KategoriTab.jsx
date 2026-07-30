@@ -76,16 +76,16 @@ export default function KategoriTab({
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Layers size={22} style={{ color: 'var(--amber)' }} /> Manajemen Kategori Produk & Bahan Baku
+              <Layers size={22} style={{ color: 'var(--amber)' }} /> Manajemen Brand Produk &amp; Kategori Bahan Baku
             </h3>
             <p className="text-muted" style={{ fontSize: '0.82rem', marginTop: '0.2rem' }}>
-              Kelola pengelompokan jenis produk jadi dan kategori stok bahan baku dapur secara terpusat di Cloud MongoDB Atlas.
+              Kelola pengelompokan brand merk produk jadi dan kategori stok bahan baku dapur secara terpusat di Cloud MongoDB Atlas.
             </p>
           </div>
 
           {canEdit && (
             <button className="btn btn-primary" onClick={handleStartAdd}>
-              <Plus size={16} /> Tambah Kategori {subTab === 'produk' ? 'Produk' : 'Bahan Baku'} Baru
+              <Plus size={16} /> Tambah {subTab === 'produk' ? 'Brand Produk' : 'Kategori Bahan'} Baru
             </button>
           )}
         </div>
@@ -107,12 +107,12 @@ export default function KategoriTab({
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            justify: 'center',
+            justifyContent: 'center',
             gap: '0.5rem',
             transition: 'all 0.2s ease'
           }}
         >
-          <Tag size={18} /> Kategori Produk Jadi ({kategoriProduk.length})
+          <Tag size={18} /> Brand / Merk Produk Jadi ({kategoriProduk.length})
         </button>
 
         <button
@@ -129,7 +129,7 @@ export default function KategoriTab({
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            justify: 'center',
+            justifyContent: 'center',
             gap: '0.5rem',
             transition: 'all 0.2s ease'
           }}
