@@ -70,14 +70,23 @@ export default function PemakaianKemasanTab({
   // Calculate total used quantity for a specific material on the target date
   const getItemDateUsage = (bahanItem, targetDate) => {
     if (!targetDate || !bahanItem) return 0;
-    const dateLogs = allKemasanLogs.filter(log =>
-      (log.timestamp || '').startsWith(targetDate) &&
-      (log.detail || '').toLowerCase().includes((bahanItem.nama || '').toLowerCase())
-    );
+    const targetName = (bahanItem.nama || '').trim().toLowerCase();
+    const targetSku = (bahanItem.sku || '').trim().toLowerCase();
+
+    const dateLogs = allKemasanLogs.filter(log => {
+      const timeMatch = (log.timestamp || '').startsWith(targetDate);
+      if (!timeMatch) return false;
+
+      const detail = (log.detail || '').toLowerCase();
+      // Extract main action phrase before "keterangan:" or before "." to ignore item name mentioned in Keterangan
+      const mainPhrase = detail.split('keterangan:')[0] || detail;
+
+      return mainPhrase.includes(targetName) || (targetSku && mainPhrase.includes(targetSku));
+    });
 
     let totalUsed = 0;
     dateLogs.forEach(log => {
-      const match = (log.detail || '').match(/Pemakaian\s+([0-9.]+)/i) || (log.detail || '').match(/-([0-9.]+)/);
+      const match = (log.detail || '').match(/Pemakaian\s+([0-9.]+)/i);
       if (match && match[1]) {
         totalUsed += parseFloat(match[1]) || 0;
       }
