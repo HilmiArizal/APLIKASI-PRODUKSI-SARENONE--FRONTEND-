@@ -960,10 +960,12 @@ export function ModalPemakaianKemasan({ isOpen, onClose, onUseKemasan, bahanList
 
   useEffect(() => {
     if (isOpen) {
-      if (selectedBahanProp && selectedBahanProp.id) {
-        setBahanId(selectedBahanProp.id);
+      if (selectedBahanProp) {
+        const val = selectedBahanProp.id || selectedBahanProp._id || selectedBahanProp.sku;
+        if (val) setBahanId(val);
       } else if (displayList.length > 0) {
-        setBahanId(displayList[0].id);
+        const val = displayList[0].id || displayList[0]._id || displayList[0].sku;
+        if (val) setBahanId(val);
       }
       setJumlah(1);
       setKeterangan('');
@@ -991,7 +993,7 @@ export function ModalPemakaianKemasan({ isOpen, onClose, onUseKemasan, bahanList
 
     setIsSubmitting(true);
     await onUseKemasan({
-      bahanId: selectedBahan.id,
+      bahanId: selectedBahan.id || selectedBahan._id || selectedBahan.sku,
       jumlah: useQty,
       keterangan
     });
@@ -1011,11 +1013,14 @@ export function ModalPemakaianKemasan({ isOpen, onClose, onUseKemasan, bahanList
             <div className="form-group">
               <label>Pilih Bahan Kemasan Dapur *</label>
               <select className="select-input" value={bahanId} onChange={e => setBahanId(e.target.value)}>
-                {displayList.map(b => (
-                  <option key={b.id} value={b.id}>
-                    {b.sku} - {b.nama} (Stok Tersedia: {b.stok} {b.satuan})
-                  </option>
-                ))}
+                {displayList.map(b => {
+                  const bValue = b.id || b._id || b.sku;
+                  return (
+                    <option key={bValue} value={bValue}>
+                      {b.sku} - {b.nama} (Stok Tersedia: {b.stok} {b.satuan})
+                    </option>
+                  );
+                })}
               </select>
             </div>
 
