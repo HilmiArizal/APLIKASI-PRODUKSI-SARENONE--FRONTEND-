@@ -23,7 +23,7 @@ export default function SupplierTab({
   useEffect(() => {
     if (!editingId) {
       const nextNum = suppliersList.length + 1;
-      setKode('SUP-' + String(nextNum).padStart(3, '0'));
+      setKode('S' + nextNum);
     }
   }, [suppliersList.length, editingId]);
 
@@ -38,7 +38,7 @@ export default function SupplierTab({
 
   const resetForm = () => {
     const nextNum = suppliersList.length + 1;
-    setKode('SUP-' + String(nextNum).padStart(3, '0'));
+    setKode('S' + nextNum);
     setNama('');
     setKontak('');
     setAlamat('');
@@ -64,7 +64,7 @@ export default function SupplierTab({
       return;
     }
 
-    const cleanKode = (kode || '').trim().toUpperCase() || ('SUP-' + String(suppliersList.length + 1).padStart(3, '0'));
+    const cleanKode = (kode || '').trim().toUpperCase() || ('S' + (suppliersList.length + 1));
 
     setIsSubmitting(true);
     if (editingId) {
@@ -145,7 +145,7 @@ export default function SupplierTab({
               <input
                 type="text"
                 className="form-control"
-                placeholder="SUP-001"
+                placeholder="S1"
                 value={kode}
                 onChange={e => setKode(e.target.value)}
                 required
