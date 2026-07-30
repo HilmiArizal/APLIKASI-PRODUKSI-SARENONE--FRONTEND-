@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Package, MinusCircle, CheckCircle, Search, Calendar, History, Clock } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Package, MinusCircle, CheckCircle, Search, Calendar, History, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatNumber } from '../data/initialData';
 import { ModalPemakaianKemasan } from './Modals';
 
@@ -14,9 +14,18 @@ export default function PemakaianKemasanTab({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedBahanForModal, setSelectedBahanForModal] = useState(null);
 
+  const carouselRef = useRef(null);
+
   // Today Date string in YYYY-MM-DD
   const todayStr = new Date().toISOString().split('T')[0];
   const [selectedDateFilter, setSelectedDateFilter] = useState(todayStr);
+
+  const scrollCarousel = (direction) => {
+    if (carouselRef.current) {
+      const scrollAmount = direction === 'left' ? -300 : 300;
+      carouselRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+  };
 
   // Filter packaging materials (or all materials)
   const kemasanMaterials = bahanBaku.filter(b => {
@@ -83,14 +92,51 @@ export default function PemakaianKemasanTab({
         )}
       </div>
 
-      {/* Grid of Packaging Materials Stock & Direct Date Usage Metrics */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+      {/* Header & Controls for Carousel */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+        <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--amber)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          📦 Kartu Ringkasan Kemasan ({displayMaterials.length} Item)
+        </span>
+        {displayMaterials.length > 1 && (
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button className="btn btn-outline btn-sm" onClick={() => scrollCarousel('left')} title="Geser Kiri" style={{ padding: '0.3rem 0.6rem' }}>
+              <ChevronLeft size={16} />
+            </button>
+            <button className="btn btn-outline btn-sm" onClick={() => scrollCarousel('right')} title="Geser Kanan" style={{ padding: '0.3rem 0.6rem' }}>
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Single-Row Horizontal Carousel Container */}
+      <div
+        ref={carouselRef}
+        style={{
+          display: 'flex',
+          gap: '1rem',
+          overflowX: 'auto',
+          paddingBottom: '0.75rem',
+          marginBottom: '1.5rem',
+          scrollBehavior: 'smooth'
+        }}
+      >
         {displayMaterials.map(b => {
           const usedToday = getItemDateUsage(b, todayStr);
           const usedSelected = selectedDateFilter ? getItemDateUsage(b, selectedDateFilter) : usedToday;
 
           return (
-            <div key={b.id} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1.25rem' }}>
+            <div
+              key={b.id}
+              style={{
+                flex: '0 0 240px',
+                minWidth: '240px',
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border-color)',
+                borderRadius: 'var(--radius-md)',
+                padding: '1.25rem'
+              }}
+            >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <span className="badge badge-amber">{b.kategori || 'Bahan Kemasan'}</span>
                 {usedToday > 0 && (
@@ -100,7 +146,9 @@ export default function PemakaianKemasanTab({
                 )}
               </div>
 
-              <h4 style={{ fontSize: '1rem', fontWeight: 700, marginTop: '0.4rem', marginBottom: '0.2rem' }}>{b.nama}</h4>
+              <h4 style={{ fontSize: '1rem', fontWeight: 700, marginTop: '0.4rem', marginBottom: '0.2rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={b.nama}>
+                {b.nama}
+              </h4>
               <span className="text-muted" style={{ fontSize: '0.75rem' }}>SKU: {b.sku}</span>
 
               <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
