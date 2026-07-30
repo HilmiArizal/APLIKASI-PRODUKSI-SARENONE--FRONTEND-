@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Building2, Plus, Edit3, Trash2, Search, Phone, MapPin, FileText, CheckCircle, Store } from 'lucide-react';
+import { Building2, Plus, Edit3, Trash2, Search, Phone, MapPin, FileText, CheckCircle, Store, X } from 'lucide-react';
 
 export default function SupplierTab({
   suppliersList = [],
@@ -88,56 +88,46 @@ export default function SupplierTab({
   }
 
   return (
-    <div className="tab-pane active">
-      {/* Header */}
-      <div className="toolbar" style={{ marginBottom: '1.5rem' }}>
-        <div>
-          <h2 style={{ fontSize: '1.3rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Building2 size={22} style={{ color: 'var(--amber)' }} /> Master Data Supplier &amp; Vendor
-          </h2>
-          <p className="text-muted" style={{ fontSize: '0.82rem', marginTop: '0.2rem' }}>
-            Kelola daftar nama perusahaan pemasok bahan baku, kemasan, dan bumbu dapur (Akses Khusus Super Admin).
-          </p>
+    <div className="tab-pane active" style={{ paddingTop: '0.5rem' }}>
+      {/* Header Banner */}
+      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1.25rem 1.5rem', marginBottom: '1.25rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+          <div>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
+              <Building2 size={22} style={{ color: 'var(--amber)' }} /> Master Data Supplier &amp; Vendor
+            </h2>
+            <p className="text-muted" style={{ fontSize: '0.82rem', marginTop: '0.25rem', marginBottom: 0 }}>
+              Kelola daftar perusahaan pemasok bahan baku, kemasan, dan bumbu dapur (Akses Khusus Super Admin).
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            <div style={{ background: 'var(--bg-darker)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '0.4rem 0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Store size={16} style={{ color: 'var(--amber)' }} />
+              <span style={{ fontSize: '0.82rem', fontWeight: 700 }}>{suppliersList.length} Vendor Terdaftar</span>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem', marginBottom: '1.5rem' }}>
-        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderTop: '4px solid var(--amber)', borderRadius: 'var(--radius-md)', padding: '1.25rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="text-muted" style={{ fontSize: '0.78rem' }}>Total Supplier Terdaftar</span>
-            <Store size={18} style={{ color: 'var(--amber)' }} />
-          </div>
-          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--amber)', marginTop: '0.5rem' }}>
-            {suppliersList.length} <span style={{ fontSize: '1rem', fontWeight: 600 }}>Vendor</span>
-          </div>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Tersedia untuk opsi pencatatan utang</span>
-        </div>
-
-        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderTop: '4px solid var(--emerald)', borderRadius: 'var(--radius-md)', padding: '1.25rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="text-muted" style={{ fontSize: '0.78rem' }}>Status Master Data</span>
-            <CheckCircle size={18} style={{ color: 'var(--emerald)' }} />
-          </div>
-          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--emerald)', marginTop: '0.5rem' }}>
-            AKTIF
-          </div>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Sinkronisasi ke MongoDB &amp; JSON</span>
-        </div>
-      </div>
-
-      {/* Grid Layout: Form Left/Top + Table Right/Bottom */}
-      <div style={{ display: 'grid', gridTemplateColumns: '360px 1fr', gap: '1.5rem', alignItems: 'start' }}>
-        {/* Form Container */}
-        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1.25rem' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1rem', color: editingId ? 'var(--cyan)' : 'var(--emerald)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+      {/* Input / Edit Form Card */}
+      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderLeft: editingId ? '4px solid var(--cyan)' : '4px solid var(--emerald)', borderRadius: 'var(--radius-md)', padding: '1.25rem', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color: editingId ? 'var(--cyan)' : 'var(--emerald)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
             {editingId ? <Edit3 size={18} /> : <Plus size={18} />}
-            {editingId ? 'Edit Data Supplier' : 'Tambah Supplier Baru'}
+            {editingId ? `Edit Supplier: "${nama}"` : 'Form Tambah Supplier Baru'}
           </h3>
+          {editingId && (
+            <button className="btn btn-outline btn-sm" onClick={resetForm}>
+              <X size={14} /> Batal Edit
+            </button>
+          )}
+        </div>
 
-          <form onSubmit={handleSubmit}>
-            <div className="form-group">
-              <label>Nama Perusahaan / Supplier *</label>
+        <form onSubmit={handleSubmit}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Nama Perusahaan / Supplier *</label>
               <input
                 type="text"
                 className="form-control"
@@ -148,8 +138,8 @@ export default function SupplierTab({
               />
             </div>
 
-            <div className="form-group">
-              <label>No HP Sales / Kontak</label>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>No HP Sales / Kontak</label>
               <input
                 type="text"
                 className="form-control"
@@ -159,8 +149,8 @@ export default function SupplierTab({
               />
             </div>
 
-            <div className="form-group">
-              <label>Alamat Kota / Wilayah</label>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Alamat Kota / Wilayah</label>
               <input
                 type="text"
                 className="form-control"
@@ -170,108 +160,108 @@ export default function SupplierTab({
               />
             </div>
 
-            <div className="form-group">
-              <label>Catatan / Keterangan</label>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Catatan / Keterangan</label>
               <input
                 type="text"
                 className="form-control"
-                placeholder="Misal: Pemasok tepung ISP"
+                placeholder="Misal: Pemasok tepung ISP &amp; Marksoy"
                 value={catatan}
                 onChange={e => setCatatan(e.target.value)}
               />
             </div>
-
-            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1.25rem' }}>
-              {editingId && (
-                <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={resetForm}>
-                  Batal
-                </button>
-              )}
-              <button
-                type="submit"
-                className={`btn ${editingId ? 'btn-cyan' : 'btn-emerald'}`}
-                style={{ flex: 1 }}
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? 'Memproses...' : (editingId ? 'Simpan Edit' : '+ Tambah Supplier')}
-              </button>
-            </div>
-          </form>
-        </div>
-
-        {/* Table Container */}
-        <div className="table-container">
-          <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
-            <div>
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 700 }}>Daftar Supplier ({suppliersList.length})</h3>
-              <span className="text-muted" style={{ fontSize: '0.78rem' }}>Master data supplier yang tersedia di dropdown pembelian.</span>
-            </div>
-
-            <div className="search-box" style={{ maxWidth: '260px' }}>
-              <Search size={16} />
-              <input
-                type="text"
-                placeholder="Cari Supplier..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-              />
-            </div>
           </div>
 
-          <table className="custom-table">
-            <thead>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
+            {editingId && (
+              <button type="button" className="btn btn-secondary" onClick={resetForm}>
+                Batal
+              </button>
+            )}
+            <button
+              type="submit"
+              className={`btn ${editingId ? 'btn-cyan' : 'btn-emerald'}`}
+              style={{ padding: '0.55rem 1.5rem', fontWeight: 700 }}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Memproses...' : (editingId ? 'Simpan Perubahan Supplier' : '+ Simpan Supplier Baru')}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* Supplier List Table Card */}
+      <div className="table-container">
+        <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+          <div>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0 }}>Daftar Supplier Terdaftar ({filteredList.length})</h3>
+            <span className="text-muted" style={{ fontSize: '0.78rem' }}>Master data supplier yang tersedia dalam dropdown pencatatan pembelian.</span>
+          </div>
+
+          <div className="search-box" style={{ maxWidth: '280px' }}>
+            <Search size={16} />
+            <input
+              type="text"
+              placeholder="Cari Supplier, Kontak, Kota..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <table className="custom-table">
+          <thead>
+            <tr>
+              <th>NAMA SUPPLIER / VENDOR</th>
+              <th>KONTAK SALES</th>
+              <th>ALAMAT KOTA</th>
+              <th>CATATAN PRODUK</th>
+              <th style={{ textAlign: 'center' }}>AKSI</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredList.length === 0 ? (
               <tr>
-                <th>NAMA SUPPLIER</th>
-                <th>KONTAK</th>
-                <th>ALAMAT</th>
-                <th>CATATAN</th>
-                <th style={{ textAlign: 'right' }}>AKSI</th>
+                <td colSpan={5} style={{ textAlign: 'center', padding: '2.5rem' }} className="text-muted">
+                  Belum ada supplier yang sesuai dengan kata kunci pencarian.
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {filteredList.length === 0 ? (
-                <tr>
-                  <td colSpan={5} style={{ textAlign: 'center', padding: '2.5rem' }} className="text-muted">
-                    Tidak ada supplier yang sesuai dengan pencarian.
+            ) : (
+              filteredList.map(s => (
+                <tr key={s.id || s._id || s.nama}>
+                  <td>
+                    <div style={{ fontWeight: 800, color: '#fff', fontSize: '0.95rem' }}>{s.nama}</div>
+                  </td>
+                  <td>
+                    <div style={{ fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <Phone size={14} style={{ color: 'var(--emerald)' }} />
+                      {s.kontak || '-'}
+                    </div>
+                  </td>
+                  <td>
+                    <div style={{ fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <MapPin size={14} style={{ color: 'var(--amber)' }} />
+                      {s.alamat || '-'}
+                    </div>
+                  </td>
+                  <td>
+                    <div style={{ fontSize: '0.78rem' }} className="text-muted">{s.catatan || '-'}</div>
+                  </td>
+                  <td style={{ textAlign: 'center' }}>
+                    <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'center' }}>
+                      <button className="btn btn-sm btn-outline" title="Edit Supplier" onClick={() => handleEditClick(s)}>
+                        <Edit3 size={14} /> Edit
+                      </button>
+                      <button className="btn btn-sm btn-outline btn-danger" title="Hapus Supplier" onClick={() => handleDelete(s)}>
+                        <Trash2 size={14} /> Hapus
+                      </button>
+                    </div>
                   </td>
                 </tr>
-              ) : (
-                filteredList.map(s => (
-                  <tr key={s.id || s._id || s.nama}>
-                    <td>
-                      <div style={{ fontWeight: 800, color: '#fff', fontSize: '0.95rem' }}>{s.nama}</div>
-                    </td>
-                    <td>
-                      <div style={{ fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                        <Phone size={13} style={{ color: 'var(--emerald)' }} />
-                        {s.kontak || '-'}
-                      </div>
-                    </td>
-                    <td>
-                      <div style={{ fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                        <MapPin size={13} style={{ color: 'var(--amber)' }} />
-                        {s.alamat || '-'}
-                      </div>
-                    </td>
-                    <td>
-                      <div style={{ fontSize: '0.78rem' }} className="text-muted">{s.catatan || '-'}</div>
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <div className="btn-group">
-                        <button className="btn btn-sm btn-outline" title="Edit Supplier" onClick={() => handleEditClick(s)}>
-                          <Edit3 size={14} />
-                        </button>
-                        <button className="btn btn-sm btn-outline btn-danger" title="Hapus Supplier" onClick={() => handleDelete(s)}>
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );
