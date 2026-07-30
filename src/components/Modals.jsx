@@ -948,7 +948,6 @@ export function ModalPemakaianKemasan({ isOpen, onClose, onUseKemasan, bahanList
   const [bahanId, setBahanId] = useState('');
   const [jumlah, setJumlah] = useState(1);
   const [keterangan, setKeterangan] = useState('');
-  const [autoDeductStickers, setAutoDeductStickers] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const kemasanList = bahanList.filter(b => {
@@ -980,7 +979,6 @@ export function ModalPemakaianKemasan({ isOpen, onClose, onUseKemasan, bahanList
       }
       setJumlah(1);
       setKeterangan('');
-      setAutoDeductStickers(true);
       setIsSubmitting(false);
     }
   }, [isOpen, selectedBahanProp, bahanList]);
@@ -992,19 +990,6 @@ export function ModalPemakaianKemasan({ isOpen, onClose, onUseKemasan, bahanList
   const useQty = parseFloat(jumlah) || 0;
   const isInsufficient = selectedBahan ? (currentStok < useQty) : true;
 
-  // Find Sticker items in bahanList
-  const stkBarcodeItem = bahanList.find(b => (b.nama || '').toLowerCase().includes('barcode'));
-  const stkProdukItem = bahanList.find(b => (b.nama || '').toLowerCase() === 'sticker produk' || ((b.nama || '').toLowerCase().includes('sticker') && !(b.nama || '').toLowerCase().includes('barcode')));
-
-  const isVacumbagSelected = selectedBahan ? (selectedBahan.nama || '').toLowerCase().includes('vacum') : false;
-
-  const stkBarcodeStok = stkBarcodeItem ? stkBarcodeItem.stok : 0;
-  const stkProdukStok = stkProdukItem ? stkProdukItem.stok : 0;
-
-  const isBarcodeStokEnough = stkBarcodeStok >= useQty;
-  const isProdukStokEnough = stkProdukStok >= useQty;
-  const isStickerStokShort = isVacumbagSelected && (useQty > 0) && (!isBarcodeStokEnough || !isProdukStokEnough);
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!bahanId || useQty <= 0) {
@@ -1015,13 +1000,9 @@ export function ModalPemakaianKemasan({ isOpen, onClose, onUseKemasan, bahanList
       if (showAlert) showAlert(`Stok ${selectedBahan?.nama || 'bahan'} tidak mencukupi!`, 'error', 'Stok Kurang');
       return;
     }
-    if (isVacumbagSelected && autoDeductStickers && isStickerStokShort) {
-      if (showAlert) showAlert('Stok Sticker Barcode atau Sticker Produk tidak mencukupi untuk pemakaian Vacumbag ini! Harap restock sticker terlebih dahulu.', 'error', 'Stok Sticker Kurang');
-      return;
-    }
 
     setIsSubmitting(true);
-    // 1. Deduct target Vacumbag
+    // Deduct ONLY the selected item (100% Independent)
     await onUseKemasan({
       bahanId: selectedBahan.id || selectedBahan._id || selectedBahan.sku,
       sku: selectedBahan.sku,
@@ -1029,28 +1010,6 @@ export function ModalPemakaianKemasan({ isOpen, onClose, onUseKemasan, bahanList
       jumlah: useQty,
       keterangan
     });
-
-    // 2. Automatically deduct Sticker Barcode & Sticker Produk if checked
-    if (isVacumbagSelected && autoDeductStickers && useQty > 0) {
-      if (stkBarcodeItem) {
-        await onUseKemasan({
-          bahanId: stkBarcodeItem.id || stkBarcodeItem._id || stkBarcodeItem.sku,
-          sku: stkBarcodeItem.sku,
-          nama: stkBarcodeItem.nama,
-          jumlah: useQty,
-          keterangan: `Otomatis Terpotong Bersama Pemakaian ${selectedBahan.nama} (${useQty} pcs)`
-        });
-      }
-      if (stkProdukItem) {
-        await onUseKemasan({
-          bahanId: stkProdukItem.id || stkProdukItem._id || stkProdukItem.sku,
-          sku: stkProdukItem.sku,
-          nama: stkProdukItem.nama,
-          jumlah: useQty,
-          keterangan: `Otomatis Terpotong Bersama Pemakaian ${selectedBahan.nama} (${useQty} pcs)`
-        });
-      }
-    }
 
     setIsSubmitting(false);
     onClose();
@@ -1107,50 +1066,6 @@ export function ModalPemakaianKemasan({ isOpen, onClose, onUseKemasan, bahanList
               <label>Keterangan / Catatan Pemakaian</label>
               <input type="text" className="form-control" placeholder="Misal: Pengemasan Sosis Original Batch #05" value={keterangan} onChange={e => setKeterangan(e.target.value)} />
             </div>
-
-            {/* Sticker Stock Check & Auto Deduction Box for Vacumbag */}
-            {isVacumbagSelected && (
-              <div style={{ background: 'rgba(251, 191, 36, 0.08)', border: '1px solid rgba(251, 191, 36, 0.3)', borderRadius: 'var(--radius-sm)', padding: '0.85rem 1rem', marginTop: '0.5rem' }}>
-                <h4 style={{ fontSize: '0.86rem', color: 'var(--amber)', fontWeight: 700, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  🏷️ Kebutuhan Sticker (Per 1 Vacumbag = 1 Sticker Barcode &amp; 1 Sticker Produk):
-                </h4>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.8rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span>• Sticker Barcode (Butuh: <strong>{useQty} pcs</strong>)</span>
-                    <span>
-                      Stok Tersedia: <strong>{stkBarcodeStok} pcs</strong>{' '}
-                      {isBarcodeStokEnough ? (
-                        <span style={{ color: 'var(--emerald)', fontWeight: 700 }}>✓ Cukup</span>
-                      ) : (
-                        <span style={{ color: 'var(--rose)', fontWeight: 700 }}>⚠️ Stok Kurang</span>
-                      )}
-                    </span>
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span>• Sticker Produk (Butuh: <strong>{useQty} pcs</strong>)</span>
-                    <span>
-                      Stok Tersedia: <strong>{stkProdukStok} pcs</strong>{' '}
-                      {isProdukStokEnough ? (
-                        <span style={{ color: 'var(--emerald)', fontWeight: 700 }}>✓ Cukup</span>
-                      ) : (
-                        <span style={{ color: 'var(--rose)', fontWeight: 700 }}>⚠️ Stok Kurang</span>
-                      )}
-                    </span>
-                  </div>
-                </div>
-
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.75rem', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600, color: '#fff', borderTop: '1px dashed var(--border-color)', paddingTop: '0.5rem' }}>
-                  <input
-                    type="checkbox"
-                    checked={autoDeductStickers}
-                    onChange={e => setAutoDeductStickers(e.target.checked)}
-                  />
-                  Otomatis potong {useQty} pcs Sticker Barcode &amp; {useQty} pcs Sticker Produk sekaligus
-                </label>
-              </div>
-            )}
 
             {isInsufficient && (
               <div style={{ background: 'rgba(244, 63, 94, 0.12)', border: '1px solid var(--rose)', borderRadius: 'var(--radius-sm)', padding: '0.75rem 1rem', marginTop: '0.5rem', color: 'var(--rose)', fontSize: '0.83rem', fontWeight: 600 }}>
