@@ -15,7 +15,7 @@ export default function Sidebar({
 }) {
   const getRoleTitle = (role) => {
     if (role === 'ADMIN') return 'Super Admin';
-    if (role === 'BAHAN_BAKU') return 'Tim Bahan Baku';
+    if (role === 'BAHAN_BAKU') return 'Tim Produksi';
     if (role === 'PEMBELIAN') return 'Tim Pembelian';
     if (role === 'PENDING') return 'Menunggu Approval';
     return role;

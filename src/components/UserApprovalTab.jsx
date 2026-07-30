@@ -39,7 +39,7 @@ export default function UserApprovalTab({ users, onApproveUser, onRejectUser, on
 
   const getRoleLabel = (role) => {
     if (role === 'ADMIN') return 'Super Admin';
-    if (role === 'BAHAN_BAKU') return 'Tim Bahan Baku';
+    if (role === 'BAHAN_BAKU') return 'Tim Produksi';
     if (role === 'PEMBELIAN') return 'Tim Pembelian';
     return role;
   };
@@ -342,7 +342,7 @@ export default function UserApprovalTab({ users, onApproveUser, onRejectUser, on
                   <div className="form-group">
                     <label>Penugasan Role / Divisi *</label>
                     <select className="select-input" value={createRole} onChange={(e) => setCreateRole(e.target.value)} style={{ width: '100%' }}>
-                      <option value="BAHAN_BAKU">📦 Tim Bahan Baku</option>
+                      <option value="BAHAN_BAKU">🏭 Tim Produksi</option>
                       <option value="PEMBELIAN">🛒 Tim Pembelian &amp; Utang Supplier</option>
                       <option value="ADMIN">🔑 Super Admin</option>
                     </select>
@@ -395,7 +395,7 @@ export default function UserApprovalTab({ users, onApproveUser, onRejectUser, on
                   <div className="form-group">
                     <label>Peran / Role Aktif *</label>
                     <select className="select-input" value={editRole} onChange={(e) => setEditRole(e.target.value)} style={{ width: '100%' }}>
-                      <option value="BAHAN_BAKU">📦 Tim Bahan Baku</option>
+                      <option value="BAHAN_BAKU">🏭 Tim Produksi</option>
                       <option value="PEMBELIAN">🛒 Tim Pembelian &amp; Utang Supplier</option>
                       <option value="ADMIN">🔑 Super Admin</option>
                     </select>

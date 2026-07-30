@@ -37,7 +37,7 @@ export default function Topbar({ activeUser, activeRoleView, onChangeRoleView, a
               onChange={(e) => onChangeRoleView(e.target.value)}
             >
               <option value="ADMIN">Super Admin</option>
-              <option value="BAHAN_BAKU">Tim Bahan Baku</option>
+              <option value="BAHAN_BAKU">Tim Produksi</option>
               <option value="PEMBELIAN">Tim Pembelian</option>
             </select>
           </div>
