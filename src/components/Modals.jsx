@@ -956,7 +956,17 @@ export function ModalPemakaianKemasan({ isOpen, onClose, onUseKemasan, bahanList
     return kat.includes('kemasan') || name.includes('casing') || name.includes('plastik') || name.includes('pouch') || name.includes('box') || name.includes('label') || name.includes('sticker') || name.includes('stiker') || name.includes('vacum');
   });
 
-  const displayList = kemasanList.length > 0 ? kemasanList : bahanList;
+  const rawDisplay = kemasanList.length > 0 ? kemasanList : bahanList;
+  const displayList = [...rawDisplay].sort((a, b) => {
+    const nameA = (a.nama || '').toLowerCase();
+    const nameB = (b.nama || '').toLowerCase();
+    const isASticker = nameA.includes('sticker') || nameA.includes('stiker') || nameA.includes('label');
+    const isBSticker = nameB.includes('sticker') || nameB.includes('stiker') || nameB.includes('label');
+
+    if (isASticker && !isBSticker) return 1;
+    if (!isASticker && isBSticker) return -1;
+    return (a.sku || '').localeCompare(b.sku || '', undefined, { numeric: true, sensitivity: 'base' });
+  });
 
   useEffect(() => {
     if (isOpen) {
