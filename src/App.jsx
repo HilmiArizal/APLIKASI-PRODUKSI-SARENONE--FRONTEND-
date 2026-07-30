@@ -299,6 +299,20 @@ export default function App() {
     }
   }, [activeUser]);
 
+  useEffect(() => {
+    if (activeRoleView === 'PEMBELIAN') {
+      const allowed = ['dashboard', 'bahan-baku', 'utang-supplier'];
+      if (!allowed.includes(activeTab)) {
+        setActiveTab('utang-supplier');
+      }
+    } else if (activeRoleView === 'BAHAN_BAKU') {
+      const allowed = ['dashboard', 'bahan-baku', 'emulsi', 'produk', 'resep', 'pemakaian-kemasan', 'riwayat-produksi'];
+      if (!allowed.includes(activeTab)) {
+        setActiveTab('bahan-baku');
+      }
+    }
+  }, [activeRoleView, activeTab]);
+
   // Auth Handlers
   const handleLogin = async (usernameOrEmail, password) => {
     const res = await loginApi(usernameOrEmail, password);

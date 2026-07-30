@@ -22,6 +22,7 @@ export default function Sidebar({
   };
 
   const showBahan = (activeRoleView === 'ADMIN' || activeRoleView === 'BAHAN_BAKU' || activeRoleView === 'PEMBELIAN');
+  const showEmulsi = (activeRoleView === 'ADMIN' || activeRoleView === 'BAHAN_BAKU');
   const showPembelian = (activeRoleView === 'ADMIN' || activeRoleView === 'PEMBELIAN');
   const showProduk = (activeRoleView === 'ADMIN' || activeRoleView === 'BAHAN_BAKU');
   const showAudit = (activeRoleView === 'ADMIN');
@@ -80,13 +81,15 @@ export default function Sidebar({
                 )}
               </a>
 
-              <a
-                href="#emulsi"
-                className={`menu-item ${activeTab === 'emulsi' ? 'active' : ''}`}
-                onClick={(e) => { e.preventDefault(); handleNavClick('emulsi'); }}
-              >
-                <FlaskConical size={18} /> <span>Pengolahan Emulsi</span>
-              </a>
+              {showEmulsi && (
+                <a
+                  href="#emulsi"
+                  className={`menu-item ${activeTab === 'emulsi' ? 'active' : ''}`}
+                  onClick={(e) => { e.preventDefault(); handleNavClick('emulsi'); }}
+                >
+                  <FlaskConical size={18} /> <span>Pengolahan Emulsi</span>
+                </a>
+              )}
             </>
           )}
 
