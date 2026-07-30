@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Building2, Plus, Edit3, Trash2, Search, Phone, MapPin, FileText, CheckCircle, Store, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Building2, Plus, Edit3, Trash2, Search, Phone, MapPin, FileText, CheckCircle, Store, X, Tag } from 'lucide-react';
 
 export default function SupplierTab({
   suppliersList = [],
@@ -10,6 +10,7 @@ export default function SupplierTab({
   showAlert
 }) {
   const [search, setSearch] = useState('');
+  const [kode, setKode] = useState('');
   const [nama, setNama] = useState('');
   const [kontak, setKontak] = useState('');
   const [alamat, setAlamat] = useState('');
@@ -19,15 +20,25 @@ export default function SupplierTab({
 
   const isSuperAdmin = (activeRoleView === 'ADMIN');
 
+  useEffect(() => {
+    if (!editingId) {
+      const nextNum = suppliersList.length + 1;
+      setKode('SUP-' + String(nextNum).padStart(3, '0'));
+    }
+  }, [suppliersList.length, editingId]);
+
   const filteredList = suppliersList.filter(s => {
     const q = search.toLowerCase();
-    return (s.nama || '').toLowerCase().includes(q) ||
+    return (s.kode || '').toLowerCase().includes(q) ||
+           (s.nama || '').toLowerCase().includes(q) ||
            (s.kontak || '').toLowerCase().includes(q) ||
            (s.alamat || '').toLowerCase().includes(q) ||
            (s.catatan || '').toLowerCase().includes(q);
   });
 
   const resetForm = () => {
+    const nextNum = suppliersList.length + 1;
+    setKode('SUP-' + String(nextNum).padStart(3, '0'));
     setNama('');
     setKontak('');
     setAlamat('');
@@ -38,6 +49,7 @@ export default function SupplierTab({
 
   const handleEditClick = (s) => {
     setEditingId(s.id || s._id);
+    setKode(s.kode || '');
     setNama(s.nama || '');
     setKontak(s.kontak || '');
     setAlamat(s.alamat || '');
@@ -52,11 +64,13 @@ export default function SupplierTab({
       return;
     }
 
+    const cleanKode = (kode || '').trim().toUpperCase() || ('SUP-' + String(suppliersList.length + 1).padStart(3, '0'));
+
     setIsSubmitting(true);
     if (editingId) {
-      await onUpdateSupplier(editingId, { nama: nama.trim(), kontak, alamat, catatan });
+      await onUpdateSupplier(editingId, { kode: cleanKode, nama: nama.trim(), kontak, alamat, catatan });
     } else {
-      await onCreateSupplier({ nama: nama.trim(), kontak, alamat, catatan });
+      await onCreateSupplier({ kode: cleanKode, nama: nama.trim(), kontak, alamat, catatan });
     }
     setIsSubmitting(false);
     resetForm();
@@ -65,7 +79,7 @@ export default function SupplierTab({
   const handleDelete = (s) => {
     if (showAlert) {
       showAlert(
-        `Hapus supplier "${s.nama}" dari master data?`,
+        `Hapus supplier [${s.kode || 'SUP'}] "${s.nama}" dari master data?`,
         'danger',
         'Hapus Supplier',
         () => onDeleteSupplier(s.id || s._id),
@@ -97,7 +111,7 @@ export default function SupplierTab({
               <Building2 size={22} style={{ color: 'var(--amber)' }} /> Master Data Supplier &amp; Vendor
             </h2>
             <p className="text-muted" style={{ fontSize: '0.82rem', marginTop: '0.25rem', marginBottom: 0 }}>
-              Kelola daftar perusahaan pemasok bahan baku, kemasan, dan bumbu dapur (Akses Khusus Super Admin).
+              Kelola kode supplier dan daftar perusahaan pemasok bahan baku, kemasan, dan bumbu (Akses Khusus Super Admin).
             </p>
           </div>
 
@@ -115,7 +129,7 @@ export default function SupplierTab({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
           <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color: editingId ? 'var(--cyan)' : 'var(--emerald)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
             {editingId ? <Edit3 size={18} /> : <Plus size={18} />}
-            {editingId ? `Edit Supplier: "${nama}"` : 'Form Tambah Supplier Baru'}
+            {editingId ? `Edit Supplier [${kode}]: "${nama}"` : 'Form Tambah Supplier Baru'}
           </h3>
           {editingId && (
             <button className="btn btn-outline btn-sm" onClick={resetForm}>
@@ -125,7 +139,20 @@ export default function SupplierTab({
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Kode Supplier / Vendor *</label>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="SUP-001"
+                value={kode}
+                onChange={e => setKode(e.target.value)}
+                required
+                style={{ fontWeight: 800, color: 'var(--cyan)', letterSpacing: '0.5px' }}
+              />
+            </div>
+
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Nama Perusahaan / Supplier *</label>
               <input
@@ -159,7 +186,9 @@ export default function SupplierTab({
                 onChange={e => setAlamat(e.target.value)}
               />
             </div>
+          </div>
 
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '1rem', alignItems: 'flex-end', marginTop: '0.85rem' }}>
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Catatan / Keterangan</label>
               <input
@@ -170,22 +199,22 @@ export default function SupplierTab({
                 onChange={e => setCatatan(e.target.value)}
               />
             </div>
-          </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
-            {editingId && (
-              <button type="button" className="btn btn-secondary" onClick={resetForm}>
-                Batal
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              {editingId && (
+                <button type="button" className="btn btn-secondary" onClick={resetForm}>
+                  Batal
+                </button>
+              )}
+              <button
+                type="submit"
+                className={`btn ${editingId ? 'btn-cyan' : 'btn-emerald'}`}
+                style={{ padding: '0.55rem 1.5rem', fontWeight: 700 }}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Memproses...' : (editingId ? 'Simpan Edit' : '+ Simpan Supplier Baru')}
               </button>
-            )}
-            <button
-              type="submit"
-              className={`btn ${editingId ? 'btn-cyan' : 'btn-emerald'}`}
-              style={{ padding: '0.55rem 1.5rem', fontWeight: 700 }}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? 'Memproses...' : (editingId ? 'Simpan Perubahan Supplier' : '+ Simpan Supplier Baru')}
-            </button>
+            </div>
           </div>
         </form>
       </div>
@@ -195,14 +224,14 @@ export default function SupplierTab({
         <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
           <div>
             <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0 }}>Daftar Supplier Terdaftar ({filteredList.length})</h3>
-            <span className="text-muted" style={{ fontSize: '0.78rem' }}>Master data supplier yang tersedia dalam dropdown pencatatan pembelian.</span>
+            <span className="text-muted" style={{ fontSize: '0.78rem' }}>Master data supplier beserta Kode unik dalam dropdown pencatatan pembelian.</span>
           </div>
 
           <div className="search-box" style={{ maxWidth: '280px' }}>
             <Search size={16} />
             <input
               type="text"
-              placeholder="Cari Supplier, Kontak, Kota..."
+              placeholder="Cari Kode, Supplier, Kota..."
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
@@ -212,6 +241,7 @@ export default function SupplierTab({
         <table className="custom-table">
           <thead>
             <tr>
+              <th>KODE</th>
               <th>NAMA SUPPLIER / VENDOR</th>
               <th>KONTAK SALES</th>
               <th>ALAMAT KOTA</th>
@@ -222,13 +252,16 @@ export default function SupplierTab({
           <tbody>
             {filteredList.length === 0 ? (
               <tr>
-                <td colSpan={5} style={{ textAlign: 'center', padding: '2.5rem' }} className="text-muted">
+                <td colSpan={6} style={{ textAlign: 'center', padding: '2.5rem' }} className="text-muted">
                   Belum ada supplier yang sesuai dengan kata kunci pencarian.
                 </td>
               </tr>
             ) : (
               filteredList.map(s => (
                 <tr key={s.id || s._id || s.nama}>
+                  <td>
+                    <span className="badge badge-cyan" style={{ fontWeight: 800 }}>{s.kode || 'SUP'}</span>
+                  </td>
                   <td>
                     <div style={{ fontWeight: 800, color: '#fff', fontSize: '0.95rem' }}>{s.nama}</div>
                   </td>

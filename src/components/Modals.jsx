@@ -1190,7 +1190,9 @@ export function ModalTambahUtangSupplier({ isOpen, onClose, bahanList = [], supp
                   >
                     <option value="">-- Pilih Supplier --</option>
                     {suppliersList.map(s => (
-                      <option key={s.id || s._id || s.nama} value={s.nama}>{s.nama}</option>
+                      <option key={s.id || s._id || s.nama} value={s.nama}>
+                        {s.kode ? `[${s.kode}] ${s.nama}` : s.nama}
+                      </option>
                     ))}
                   </select>
                 ) : (
