@@ -124,35 +124,6 @@ export default function PemakaianKemasanTab({
             </p>
           </div>
         </div>
-
-        {canUse && (
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-            <button
-              className="btn btn-amber btn-sm"
-              onClick={() => {
-                const stkBarcode = bahanBaku.find(b => (b.nama || '').toLowerCase().includes('barcode'));
-                if (stkBarcode) {
-                  setSelectedBahanForModal(stkBarcode);
-                  setIsModalOpen(true);
-                }
-              }}
-            >
-              🏷️ Catat Sticker Barcode ({formatNumber(totalVacumbagUsedToday)} pcs)
-            </button>
-            <button
-              className="btn btn-primary btn-sm"
-              onClick={() => {
-                const stkProduk = bahanBaku.find(b => (b.nama || '').toLowerCase() === 'sticker produk' || ((b.nama || '').toLowerCase().includes('sticker') && !(b.nama || '').toLowerCase().includes('barcode')));
-                if (stkProduk) {
-                  setSelectedBahanForModal(stkProduk);
-                  setIsModalOpen(true);
-                }
-              }}
-            >
-              🏷️ Catat Sticker Produk ({formatNumber(totalVacumbagUsedToday)} pcs)
-            </button>
-          </div>
-        )}
       </div>
 
       {/* Header & Controls for Carousel */}
