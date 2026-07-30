@@ -994,6 +994,8 @@ export function ModalPemakaianKemasan({ isOpen, onClose, onUseKemasan, bahanList
     setIsSubmitting(true);
     await onUseKemasan({
       bahanId: selectedBahan.id || selectedBahan._id || selectedBahan.sku,
+      sku: selectedBahan.sku,
+      nama: selectedBahan.nama,
       jumlah: useQty,
       keterangan
     });
