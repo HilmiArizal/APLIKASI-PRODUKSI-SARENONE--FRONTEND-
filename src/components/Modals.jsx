@@ -1227,15 +1227,8 @@ export function ModalTambahUtangSupplier({ isOpen, onClose, bahanList = [], onSu
               </div>
             </div>
 
-            <div style={{ background: 'rgba(59, 130, 246, 0.08)', border: '1px solid rgba(59, 130, 246, 0.3)', borderRadius: 'var(--radius-sm)', padding: '0.75rem 1rem', marginTop: '0.25rem' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '0.82rem', cursor: 'pointer', fontWeight: 600, color: '#fff' }}>
-                <input
-                  type="checkbox"
-                  checked={autoAddStok}
-                  onChange={e => setAutoAddStok(e.target.checked)}
-                />
-                ☑️ Otomatis tambahkan +{jumlah} {selectedBahan?.satuan} {selectedBahan?.nama} ke stok gudang
-              </label>
+            <div style={{ background: 'rgba(251, 191, 36, 0.08)', border: '1px solid rgba(251, 191, 36, 0.3)', borderRadius: 'var(--radius-sm)', padding: '0.75rem 1rem', marginTop: '0.25rem', fontSize: '0.8rem', color: 'var(--amber)', fontWeight: 600 }}>
+              💡 <strong>INFO PEMBELIAN:</strong> Pencatatan faktur utang ini <strong>TIDAK MENGUBAH STOK BARANG</strong>. Stok fisik gudang baru akan bertambah saat barang dikirim &amp; diverifikasi di menu <strong>Penerimaan Bahan Baku</strong>.
             </div>
           </div>
 

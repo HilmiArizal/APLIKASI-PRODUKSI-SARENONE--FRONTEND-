@@ -186,9 +186,9 @@ export default function PenerimaanBahanTab({
                             className="btn btn-emerald btn-sm"
                             style={{ padding: '0.35rem 0.75rem', fontSize: '0.78rem' }}
                             onClick={() => setSelectedUtangForReceive(item)}
-                            title="Verifikasi Penerimaan Fisik Barang Baku"
+                            title="Restock &amp; Verifikasi Penerimaan Fisik Barang Baku"
                           >
-                            <PackageCheck size={14} /> Terima Barang
+                            <PackageCheck size={14} /> Restock / Terima
                           </button>
                         )}
                         <button
