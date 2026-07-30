@@ -944,7 +944,7 @@ export function ModalPengolahanEmulsi({ isOpen, onClose, onProcess, bahanList = 
   );
 }
 
-export function ModalPemakaianKemasan({ isOpen, onClose, onUseKemasan, bahanList = [], showAlert }) {
+export function ModalPemakaianKemasan({ isOpen, onClose, onUseKemasan, bahanList = [], selectedBahan: selectedBahanProp = null, showAlert }) {
   const [bahanId, setBahanId] = useState('');
   const [jumlah, setJumlah] = useState(1);
   const [keterangan, setKeterangan] = useState('');
@@ -960,14 +960,16 @@ export function ModalPemakaianKemasan({ isOpen, onClose, onUseKemasan, bahanList
 
   useEffect(() => {
     if (isOpen) {
-      if (displayList.length > 0 && !bahanId) {
+      if (selectedBahanProp && selectedBahanProp.id) {
+        setBahanId(selectedBahanProp.id);
+      } else if (displayList.length > 0) {
         setBahanId(displayList[0].id);
       }
       setJumlah(1);
       setKeterangan('');
       setIsSubmitting(false);
     }
-  }, [isOpen, bahanList]);
+  }, [isOpen, selectedBahanProp, bahanList]);
 
   if (!isOpen) return null;
 

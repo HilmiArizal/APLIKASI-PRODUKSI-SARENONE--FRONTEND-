@@ -334,6 +334,7 @@ export default function PemakaianKemasanTab({
         onClose={() => setIsModalOpen(false)}
         onUseKemasan={onUseKemasan}
         bahanList={bahanBaku}
+        selectedBahan={selectedBahanForModal}
         showAlert={showAlert}
       />
     </div>
