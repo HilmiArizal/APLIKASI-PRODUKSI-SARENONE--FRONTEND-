@@ -944,7 +944,7 @@ export function ModalPengolahanEmulsi({ isOpen, onClose, onProcess, bahanList = 
   );
 }
 
-export function ModalPemakaianKemasan({ isOpen, onClose, onUseKemasan, bahanList = [], selectedBahan: selectedBahanProp = null, showAlert }) {
+export function ModalPemakaianKemasan({ isOpen, onClose, onUseKemasan, bahanList = [], selectedBahan: selectedBahanProp = null, totalVacumbagSuggestQty = 0, showAlert }) {
   const [bahanId, setBahanId] = useState('');
   const [jumlah, setJumlah] = useState(1);
   const [keterangan, setKeterangan] = useState('');
@@ -953,7 +953,7 @@ export function ModalPemakaianKemasan({ isOpen, onClose, onUseKemasan, bahanList
   const kemasanList = bahanList.filter(b => {
     const kat = (b.kategori || '').toLowerCase();
     const name = (b.nama || '').toLowerCase();
-    return kat.includes('kemasan') || name.includes('casing') || name.includes('plastik') || name.includes('pouch') || name.includes('box') || name.includes('label');
+    return kat.includes('kemasan') || name.includes('casing') || name.includes('plastik') || name.includes('pouch') || name.includes('box') || name.includes('label') || name.includes('sticker') || name.includes('stiker') || name.includes('vacum');
   });
 
   const displayList = kemasanList.length > 0 ? kemasanList : bahanList;
@@ -975,7 +975,7 @@ export function ModalPemakaianKemasan({ isOpen, onClose, onUseKemasan, bahanList
 
   if (!isOpen) return null;
 
-  const selectedBahan = displayList.find(b => b.id === bahanId) || displayList[0];
+  const selectedBahan = displayList.find(b => b.id === bahanId || b._id === bahanId || b.sku === bahanId) || displayList[0];
   const currentStok = selectedBahan ? selectedBahan.stok : 0;
   const useQty = parseFloat(jumlah) || 0;
   const isInsufficient = selectedBahan ? (currentStok < useQty) : true;
@@ -1007,7 +1007,7 @@ export function ModalPemakaianKemasan({ isOpen, onClose, onUseKemasan, bahanList
     <div className="modal-overlay">
       <div className="modal-card" style={{ maxWidth: '580px' }}>
         <div className="modal-header">
-          <h3>📦 Catat Pemakaian Bahan Kemasan (Casing / Plastik / Box)</h3>
+          <h3>📦 Catat Pemakaian Bahan Kemasan (Casing / Plastik / Box / Sticker)</h3>
           <button className="btn btn-outline btn-sm" onClick={onClose}><X size={16} /></button>
         </div>
         <form onSubmit={handleSubmit}>
@@ -1030,6 +1030,19 @@ export function ModalPemakaianKemasan({ isOpen, onClose, onUseKemasan, bahanList
               <div className="form-group">
                 <label>Jumlah Pemakaian ({selectedBahan?.satuan || 'satuan'}) *</label>
                 <input type="number" step="any" min="0.1" className="form-control" value={jumlah} onChange={e => setJumlah(e.target.value)} required />
+                {totalVacumbagSuggestQty > 0 && (selectedBahan?.nama || '').toLowerCase().includes('sticker') && (
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-amber btn-sm"
+                    style={{ marginTop: '0.45rem', fontSize: '0.74rem', width: '100%', borderRadius: 'var(--radius-sm)' }}
+                    onClick={() => {
+                      setJumlah(totalVacumbagSuggestQty);
+                      setKeterangan(`Pemakaian Sticker Sesuai Total Vacumbag Hari Ini (${totalVacumbagSuggestQty} pcs)`);
+                    }}
+                  >
+                    ⚡ Auto-Isi Sesuai Vacumbag Hari Ini ({totalVacumbagSuggestQty} pcs)
+                  </button>
+                )}
               </div>
               <div className="form-group">
                 <label>Stok Saat Ini</label>

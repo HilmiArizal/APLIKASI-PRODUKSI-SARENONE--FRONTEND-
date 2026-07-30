@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Package, MinusCircle, CheckCircle, Search, Calendar, History, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Package, MinusCircle, CheckCircle, Search, Calendar, History, Clock, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import { formatNumber } from '../data/initialData';
 import { ModalPemakaianKemasan } from './Modals';
 
@@ -85,6 +85,11 @@ export default function PemakaianKemasanTab({
     return totalUsed;
   };
 
+  // Calculate total Vacumbag used on target date (or today)
+  const targetDateForVacum = selectedDateFilter || todayStr;
+  const vacumbagItems = bahanBaku.filter(b => (b.nama || '').toLowerCase().includes('vacum'));
+  const totalVacumbagUsedToday = vacumbagItems.reduce((acc, b) => acc + getItemDateUsage(b, targetDateForVacum), 0);
+
   return (
     <div className="tab-pane active">
       <div className="toolbar" style={{ marginBottom: '1.5rem', justifyContent: 'space-between' }}>
@@ -93,14 +98,60 @@ export default function PemakaianKemasanTab({
             <Package size={22} style={{ color: 'var(--amber)' }} /> Pemakaian Bahan Kemasan
           </h2>
           <p className="text-muted" style={{ fontSize: '0.82rem', marginTop: '0.2rem' }}>
-            Kelola &amp; catat pemakaian Casing Sosis, Plastik Vacuum, Standing Pouch, Label Expired, dan Box Karton.
+            Kelola &amp; catat pemakaian Casing Sosis, Plastik Vacuum, Standing Pouch, Sticker Barcode &amp; Sticker Produk, dan Box Karton.
           </p>
         </div>
 
         {canUse && (
-          <button className="btn btn-amber" onClick={() => setIsModalOpen(true)}>
+          <button className="btn btn-amber" onClick={() => { setSelectedBahanForModal(null); setIsModalOpen(true); }}>
             <MinusCircle size={16} /> Catat Pemakaian Kemasan
           </button>
+        )}
+      </div>
+
+      {/* Auto Calculator Widget Card for Sticker Barcode & Sticker Produk based on Daily Vacumbag Usage */}
+      <div style={{ background: 'linear-gradient(135deg, rgba(249, 115, 22, 0.14), rgba(251, 191, 36, 0.09))', border: '1px solid rgba(249, 115, 22, 0.35)', borderRadius: 'var(--radius-md)', padding: '1.25rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ background: 'var(--primary)', color: '#fff', padding: '0.85rem', borderRadius: 'var(--radius-sm)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Sparkles size={24} />
+          </div>
+          <div>
+            <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#fff', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              ⚡ Auto-Kalkulator Sticker ({selectedDateFilter === todayStr ? 'Hari Ini' : (selectedDateFilter || 'Semua Tanggal')})
+            </h4>
+            <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+              Total Pemakaian Vacumbag: <strong style={{ color: 'var(--primary)', fontSize: '1rem' }}>{formatNumber(totalVacumbagUsedToday)} pcs</strong>. Membutuhkan presisi <strong style={{ color: '#fff' }}>{formatNumber(totalVacumbagUsedToday)} pcs Sticker Barcode</strong> &amp; <strong style={{ color: '#fff' }}>{formatNumber(totalVacumbagUsedToday)} pcs Sticker Produk</strong>.
+            </p>
+          </div>
+        </div>
+
+        {canUse && (
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <button
+              className="btn btn-amber btn-sm"
+              onClick={() => {
+                const stkBarcode = bahanBaku.find(b => (b.nama || '').toLowerCase().includes('barcode'));
+                if (stkBarcode) {
+                  setSelectedBahanForModal(stkBarcode);
+                  setIsModalOpen(true);
+                }
+              }}
+            >
+              🏷️ Catat Sticker Barcode ({formatNumber(totalVacumbagUsedToday)} pcs)
+            </button>
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={() => {
+                const stkProduk = bahanBaku.find(b => (b.nama || '').toLowerCase() === 'sticker produk' || ((b.nama || '').toLowerCase().includes('sticker') && !(b.nama || '').toLowerCase().includes('barcode')));
+                if (stkProduk) {
+                  setSelectedBahanForModal(stkProduk);
+                  setIsModalOpen(true);
+                }
+              }}
+            >
+              🏷️ Catat Sticker Produk ({formatNumber(totalVacumbagUsedToday)} pcs)
+            </button>
+          </div>
         )}
       </div>
 
@@ -109,71 +160,84 @@ export default function PemakaianKemasanTab({
         <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--amber)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
           📦 Kartu Ringkasan Kemasan ({displayMaterials.length} Item)
         </span>
-        {displayMaterials.length > 1 && (
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button className="btn btn-outline btn-sm" onClick={() => scrollCarousel('left')} title="Geser Kiri" style={{ padding: '0.3rem 0.6rem' }}>
-              <ChevronLeft size={16} />
-            </button>
-            <button className="btn btn-outline btn-sm" onClick={() => scrollCarousel('right')} title="Geser Kanan" style={{ padding: '0.3rem 0.6rem' }}>
-              <ChevronRight size={16} />
-            </button>
-          </div>
-        )}
+        <div style={{ display: 'flex', gap: '0.35rem' }}>
+          <button
+            className="btn btn-outline btn-sm"
+            onClick={() => scrollCarousel('left')}
+            title="Geser Kiri Carousel"
+            style={{ padding: '0.35rem 0.6rem', borderRadius: 'var(--radius-sm)' }}
+          >
+            <ChevronLeft size={16} />
+          </button>
+          <button
+            className="btn btn-outline btn-sm"
+            onClick={() => scrollCarousel('right')}
+            title="Geser Kanan Carousel"
+            style={{ padding: '0.35rem 0.6rem', borderRadius: 'var(--radius-sm)' }}
+          >
+            <ChevronRight size={16} />
+          </button>
+        </div>
       </div>
 
-      {/* Single-Row Horizontal Carousel Container */}
+      {/* Overview Cards Carousel (1 Row Horizontal Scrollable) */}
       <div
         ref={carouselRef}
         style={{
-          display: 'flex',
+          display: 'grid',
+          gridAutoFlow: 'column',
+          gridAutoColumns: 'minmax(250px, 1fr)',
           gap: '1rem',
           overflowX: 'auto',
-          paddingBottom: '0.75rem',
-          marginBottom: '1.5rem',
-          scrollBehavior: 'smooth'
+          scrollBehavior: 'smooth',
+          paddingBottom: '0.5rem',
+          marginBottom: '1.75rem',
+          WebkitOverflowScrolling: 'touch'
         }}
       >
         {displayMaterials.map(b => {
-          const usedToday = getItemDateUsage(b, todayStr);
-          const usedSelected = selectedDateFilter ? getItemDateUsage(b, selectedDateFilter) : usedToday;
+          const isStokThin = b.stok <= b.minStok && b.stok > 0;
+          const isStokEmpty = b.stok === 0;
+
+          // Compute usage metrics for selected date
+          const dateUsedQty = getItemDateUsage(b, selectedDateFilter);
+          const todayUsedQty = getItemDateUsage(b, todayStr);
 
           return (
             <div
-              key={b.id}
+              key={b.id || b._id || b.sku}
               style={{
-                flex: '0 0 240px',
-                minWidth: '240px',
                 background: 'var(--bg-card)',
                 border: '1px solid var(--border-color)',
                 borderRadius: 'var(--radius-md)',
-                padding: '1.25rem'
+                padding: '1.15rem',
+                position: 'relative',
+                display: 'flex',
+                flexDirection: 'column',
+                justify: 'space-between',
+                minWidth: '240px'
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <span className="badge badge-amber">{b.kategori || 'Bahan Kemasan'}</span>
-                {usedToday > 0 && (
-                  <span className="badge badge-rose" style={{ fontSize: '0.68rem', padding: '0.15rem 0.4rem' }}>
-                    🔻 -{formatNumber(usedToday)} {b.satuan}
-                  </span>
-                )}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <span className="badge badge-amber">Bahan Kemasan</span>
+                </div>
+                <h3 style={{ fontSize: '1rem', fontWeight: 800, marginTop: '0.5rem', color: '#fff', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }} title={b.nama}>
+                  {b.nama}
+                </h3>
+                <span className="text-muted" style={{ fontSize: '0.72rem' }}>SKU: {b.sku}</span>
               </div>
 
-              <h4 style={{ fontSize: '1rem', fontWeight: 700, marginTop: '0.4rem', marginBottom: '0.2rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={b.nama}>
-                {b.nama}
-              </h4>
-              <span className="text-muted" style={{ fontSize: '0.75rem' }}>SKU: {b.sku}</span>
-
-              <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.35rem' }}>
-                  <span style={{ fontSize: '1.8rem', fontWeight: 800, color: b.stok <= b.minStok ? 'var(--rose)' : 'var(--emerald)' }}>
+              <div style={{ marginTop: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem' }}>
+                  <span style={{ fontSize: '1.8rem', fontWeight: 800, color: isStokEmpty ? 'var(--rose)' : isStokThin ? 'var(--amber)' : 'var(--emerald)' }}>
                     {formatNumber(b.stok)}
                   </span>
-                  <span className="text-muted" style={{ fontSize: '0.85rem', fontWeight: 600 }}>{b.satuan} (Sisa)</span>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{b.satuan} (Sisa)</span>
                 </div>
 
-                <div style={{ fontSize: '0.78rem', color: usedSelected > 0 ? 'var(--rose)' : 'var(--text-muted)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.3rem', marginTop: '0.2rem' }}>
-                  <span>🔻 Terpakai ({selectedDateFilter === todayStr ? 'Hari Ini' : (selectedDateFilter || 'Hari Ini')}):</span>
-                  <strong>{formatNumber(usedSelected)} {b.satuan}</strong>
+                <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.3rem', color: dateUsedQty > 0 ? 'var(--rose)' : 'var(--text-muted)' }}>
+                  🔻 Terpakai ({selectedDateFilter === todayStr ? 'Hari Ini' : (selectedDateFilter || 'Semua')}): <strong>{formatNumber(dateUsedQty)} {b.satuan}</strong>
                 </div>
               </div>
             </div>
@@ -181,18 +245,21 @@ export default function PemakaianKemasanTab({
         })}
       </div>
 
-      {/* Main Table for Packaging Material Stock */}
-      <div className="table-container" style={{ marginBottom: '2rem' }}>
-        <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>Inventaris Persediaan Bahan Kemasan</h3>
-          <div className="search-box" style={{ maxWidth: '280px' }}>
-            <Search size={16} className="search-icon" />
+      {/* Main Table: Bahan Kemasan Inventory & Today Usage */}
+      <div className="table-container">
+        <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+          <div>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 700 }}>Inventaris Persediaan Bahan Kemasan</h3>
+            <span className="text-muted" style={{ fontSize: '0.78rem' }}>Menampilkan stok sisa kemasan sosis &amp; plastik vacuum.</span>
+          </div>
+
+          <div className="search-box" style={{ maxWidth: '300px' }}>
+            <Search size={16} />
             <input
               type="text"
-              className="form-control search-input"
               placeholder="Cari SKU atau Nama Kemasan..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={e => setSearch(e.target.value)}
             />
           </div>
         </div>
@@ -213,61 +280,67 @@ export default function PemakaianKemasanTab({
             {displayMaterials.length === 0 ? (
               <tr>
                 <td colSpan={canUse ? 7 : 6} style={{ textAlign: 'center', padding: '2rem' }} className="text-muted">
-                  Belum ada bahan kemasan terdaftar. Silakan tambahkan bahan baku baru dengan kategori "Bahan Kemasan".
+                  Tidak ada bahan kemasan yang ditemukan.
                 </td>
               </tr>
             ) : (
-              displayMaterials.map(b => (
-                <tr key={b.id}>
-                  <td style={{ fontWeight: 700, color: 'var(--amber)' }}>{b.sku}</td>
-                  <td style={{ fontWeight: 600 }}>{b.nama}</td>
-                  <td><span className="badge badge-amber">{b.kategori}</span></td>
-                  <td>
-                    <strong style={{ fontSize: '1.05rem', color: b.stok <= b.minStok ? 'var(--rose)' : 'var(--emerald)' }}>
+              displayMaterials.map(b => {
+                const isThin = b.stok <= b.minStok && b.stok > 0;
+                const isEmpty = b.stok === 0;
+
+                return (
+                  <tr key={b.id || b._id || b.sku}>
+                    <td style={{ fontWeight: 700, color: 'var(--amber)' }}>{b.sku}</td>
+                    <td style={{ fontWeight: 600 }}>{b.nama}</td>
+                    <td><span className="badge badge-amber">{b.kategori || 'Bahan Kemasan'}</span></td>
+                    <td style={{ fontWeight: 700, fontSize: '1rem', color: isEmpty ? 'var(--rose)' : isThin ? 'var(--amber)' : 'var(--emerald)' }}>
                       {formatNumber(b.stok)} {b.satuan}
-                    </strong>
-                  </td>
-                  <td>{b.minStok} {b.satuan}</td>
-                  <td>
-                    {b.stok === 0 ? (
-                      <span className="badge badge-rose">Habis (Restock!)</span>
-                    ) : b.stok <= b.minStok ? (
-                      <span className="badge badge-amber">Menipis</span>
-                    ) : (
-                      <span className="badge badge-emerald">Aman</span>
-                    )}
-                  </td>
-                  {canUse && (
-                    <td style={{ textAlign: 'center' }}>
-                      <button
-                        className="btn btn-outline btn-sm"
-                        onClick={() => { setSelectedBahanForModal(b); setIsModalOpen(true); }}
-                      >
-                        <MinusCircle size={14} /> Pemakaian
-                      </button>
                     </td>
-                  )}
-                </tr>
-              ))
+                    <td>{formatNumber(b.minStok)} {b.satuan}</td>
+                    <td>
+                      {isEmpty ? (
+                        <span className="badge badge-danger">Habis (Restock!)</span>
+                      ) : isThin ? (
+                        <span className="badge badge-amber">Stok Menipis</span>
+                      ) : (
+                        <span className="badge badge-emerald">Aman</span>
+                      )}
+                    </td>
+                    {canUse && (
+                      <td style={{ textAlign: 'center' }}>
+                        <button
+                          className="btn btn-outline btn-sm"
+                          onClick={() => {
+                            setSelectedBahanForModal(b);
+                            setIsModalOpen(true);
+                          }}
+                          style={{ fontSize: '0.75rem' }}
+                        >
+                          <MinusCircle size={14} /> Pemakaian
+                        </button>
+                      </td>
+                    )}
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
       </div>
 
-      {/* Riwayat & Log Pemakaian Kemasan Per Tanggal */}
-      <div className="table-container">
+      {/* Usage History Log Table with Date Filter */}
+      <div className="table-container" style={{ marginTop: '2rem' }}>
         <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
           <div>
             <h3 style={{ fontSize: '1.05rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <History size={18} style={{ color: 'var(--amber)' }} /> Riwayat &amp; Log Pemakaian Kemasan Per Tanggal
+              <History size={18} style={{ color: 'var(--amber)' }} /> Riwayat &amp; Log Pemakaian Kemasan Per-Tanggal
             </h3>
             <span className="text-muted" style={{ fontSize: '0.78rem' }}>
-              Menampilkan {filteredHistoryLogs.length} transaksi pemakaian kemasan.
+              Menampilkan {filteredHistoryLogs.length} transaksi pemakaian bahan kemasan.
             </span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)' }}>Filter Tanggal:</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
             <input
               type="date"
               className="form-control"
@@ -294,8 +367,7 @@ export default function PemakaianKemasanTab({
           <thead>
             <tr>
               <th>WAKTU / TANGGAL</th>
-              <th>HARI</th>
-              <th>RINCIAN PEMAKAIAN KEMASAN</th>
+              <th>TRANSAKSI PEMAKAIAN KEMASAN</th>
               <th>OPERATOR</th>
               <th>STATUS</th>
             </tr>
@@ -303,23 +375,19 @@ export default function PemakaianKemasanTab({
           <tbody>
             {filteredHistoryLogs.length === 0 ? (
               <tr>
-                <td colSpan="5" style={{ textAlign: 'center', padding: '2rem' }} className="text-muted">
+                <td colSpan="4" style={{ textAlign: 'center', padding: '2rem' }} className="text-muted">
                   {selectedDateFilter ? `Tidak ada riwayat pemakaian kemasan pada tanggal ${selectedDateFilter}.` : 'Belum ada riwayat pemakaian kemasan.'}
                 </td>
               </tr>
             ) : (
               filteredHistoryLogs.map(log => {
                 const isToday = (log.timestamp || '').startsWith(todayStr);
+
                 return (
                   <tr key={log.id}>
                     <td style={{ fontWeight: 700, color: 'var(--amber)' }}>
                       <Clock size={13} style={{ marginRight: '0.35rem' }} />
                       {log.timestamp}
-                    </td>
-                    <td>
-                      <span className="badge badge-outline" style={{ fontSize: '0.72rem' }}>
-                        {log.timestamp ? log.timestamp.split(' ')[0] : '-'}
-                      </span>
                     </td>
                     <td style={{ fontWeight: 600 }}>{log.detail}</td>
                     <td>
@@ -347,6 +415,7 @@ export default function PemakaianKemasanTab({
         onUseKemasan={onUseKemasan}
         bahanList={bahanBaku}
         selectedBahan={selectedBahanForModal}
+        totalVacumbagSuggestQty={totalVacumbagUsedToday}
         showAlert={showAlert}
       />
     </div>
