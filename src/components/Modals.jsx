@@ -1093,7 +1093,7 @@ export function ModalPemakaianKemasan({ isOpen, onClose, onUseKemasan, bahanList
 // ----------------------------------------------------
 // MODAL TAMBAH UTANG / FAKTUR SUPPLIER BARU
 // ----------------------------------------------------
-export function ModalTambahUtangSupplier({ isOpen, onClose, bahanList = [], onSubmit, showAlert }) {
+export function ModalTambahUtangSupplier({ isOpen, onClose, bahanList = [], suppliersList = [], onSubmit, onOpenKelolaSupplier, showAlert }) {
   const [noFaktur, setNoFaktur] = useState('');
   const [supplier, setSupplier] = useState('');
   const [bahanId, setBahanId] = useState('');
@@ -1102,14 +1102,13 @@ export function ModalTambahUtangSupplier({ isOpen, onClose, bahanList = [], onSu
   const [dp, setDp] = useState(0);
   const [jatuhTempo, setJatuhTempo] = useState('');
   const [catatan, setCatatan] = useState('');
-  const [autoAddStok, setAutoAddStok] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       const autoFaktur = 'INV-SUP-' + new Date().toISOString().slice(0,7).replace('-','') + '-' + String(Math.floor(Math.random()*900)+100);
       setNoFaktur(autoFaktur);
-      setSupplier('');
+      setSupplier(suppliersList.length > 0 ? suppliersList[0].nama : '');
       if (bahanList.length > 0) {
         setBahanId(bahanList[0].id || bahanList[0]._id || bahanList[0].sku);
       }
@@ -1119,10 +1118,9 @@ export function ModalTambahUtangSupplier({ isOpen, onClose, bahanList = [], onSu
       const in14Days = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
       setJatuhTempo(in14Days);
       setCatatan('');
-      setAutoAddStok(true);
       setIsSubmitting(false);
     }
-  }, [isOpen, bahanList]);
+  }, [isOpen, bahanList, suppliersList]);
 
   if (!isOpen) return null;
 
@@ -1148,8 +1146,7 @@ export function ModalTambahUtangSupplier({ isOpen, onClose, bahanList = [], onSu
       hargaSatuan: parseFloat(hargaSatuan),
       dp: parseFloat(dp) || 0,
       jatuhTempo,
-      catatan,
-      autoAddStok
+      catatan
     });
     setIsSubmitting(false);
     onClose();
@@ -1170,8 +1167,42 @@ export function ModalTambahUtangSupplier({ isOpen, onClose, bahanList = [], onSu
                 <input type="text" className="form-control" value={noFaktur} onChange={e => setNoFaktur(e.target.value)} required />
               </div>
               <div className="form-group">
-                <label>Nama Supplier / Vendor *</label>
-                <input type="text" className="form-control" placeholder="Misal: PT Marksoy Indonesia" value={supplier} onChange={e => setSupplier(e.target.value)} required />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                  <label style={{ marginBottom: 0 }}>Pilih Supplier / Vendor *</label>
+                  {onOpenKelolaSupplier && (
+                    <button
+                      type="button"
+                      className="btn btn-link btn-sm"
+                      style={{ padding: 0, fontSize: '0.75rem', color: 'var(--amber)', textDecoration: 'underline', border: 'none', background: 'none', cursor: 'pointer' }}
+                      onClick={onOpenKelolaSupplier}
+                    >
+                      + Kelola Supplier
+                    </button>
+                  )}
+                </div>
+                {suppliersList.length > 0 ? (
+                  <select
+                    className="select-input"
+                    value={supplier}
+                    onChange={e => setSupplier(e.target.value)}
+                    required
+                    style={{ width: '100%' }}
+                  >
+                    <option value="">-- Pilih Supplier --</option>
+                    {suppliersList.map(s => (
+                      <option key={s.id || s._id || s.nama} value={s.nama}>{s.nama}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Misal: PT Marksoy Indonesia"
+                    value={supplier}
+                    onChange={e => setSupplier(e.target.value)}
+                    required
+                  />
+                )}
               </div>
             </div>
 
@@ -1594,6 +1625,153 @@ export function ModalRiwayatTerimaSupplier({ isOpen, onClose, utangRecord }) {
         </div>
         <div className="modal-footer">
           <button type="button" className="btn btn-secondary" onClick={onClose}>Tutup</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ----------------------------------------------------
+// MODAL KELOLA MASTER DATA SUPPLIER
+// ----------------------------------------------------
+export function ModalKelolaSupplier({ isOpen, onClose, suppliersList = [], onCreateSupplier, onUpdateSupplier, onDeleteSupplier, showAlert }) {
+  const [nama, setNama] = useState('');
+  const [kontak, setKontak] = useState('');
+  const [alamat, setAlamat] = useState('');
+  const [catatan, setCatatan] = useState('');
+  const [editingId, setEditingId] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      resetForm();
+    }
+  }, [isOpen]);
+
+  const resetForm = () => {
+    setNama('');
+    setKontak('');
+    setAlamat('');
+    setCatatan('');
+    setEditingId(null);
+    setIsSubmitting(false);
+  };
+
+  if (!isOpen) return null;
+
+  const handleEditClick = (s) => {
+    setEditingId(s.id || s._id);
+    setNama(s.nama || '');
+    setKontak(s.kontak || '');
+    setAlamat(s.alamat || '');
+    setCatatan(s.catatan || '');
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!nama.trim()) {
+      if (showAlert) showAlert('Nama supplier wajib diisi.', 'error', 'Validasi Gagal');
+      return;
+    }
+
+    setIsSubmitting(true);
+    if (editingId) {
+      await onUpdateSupplier(editingId, { nama: nama.trim(), kontak, alamat, catatan });
+    } else {
+      await onCreateSupplier({ nama: nama.trim(), kontak, alamat, catatan });
+    }
+    setIsSubmitting(false);
+    resetForm();
+  };
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-card" style={{ maxWidth: '680px' }}>
+        <div className="modal-header">
+          <h3>🏢 Master Data &amp; Kelola Supplier / Vendor</h3>
+          <button className="btn btn-outline btn-sm" onClick={onClose}><X size={16} /></button>
+        </div>
+        <div className="modal-body">
+          {/* Form Create / Edit Supplier */}
+          <form onSubmit={handleSubmit} style={{ background: 'var(--bg-darker)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '1rem', marginBottom: '1.25rem' }}>
+            <h4 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.75rem', color: editingId ? 'var(--cyan)' : 'var(--emerald)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              {editingId ? <Edit3 size={15} /> : <Plus size={15} />}
+              {editingId ? 'Edit Supplier' : 'Tambah Supplier Baru'}
+            </h4>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <div className="form-group">
+                <label style={{ fontSize: '0.78rem' }}>Nama Supplier / Perusahaan *</label>
+                <input type="text" className="form-control" placeholder="Misal: PT Marksoy Indonesia" value={nama} onChange={e => setNama(e.target.value)} required />
+              </div>
+              <div className="form-group">
+                <label style={{ fontSize: '0.78rem' }}>Kontak / No HP Sales</label>
+                <input type="text" className="form-control" placeholder="0812-xxxx-xxxx" value={kontak} onChange={e => setKontak(e.target.value)} />
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <div className="form-group">
+                <label style={{ fontSize: '0.78rem' }}>Alamat Kota / Wilayah</label>
+                <input type="text" className="form-control" placeholder="Jakarta" value={alamat} onChange={e => setAlamat(e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label style={{ fontSize: '0.78rem' }}>Catatan</label>
+                <input type="text" className="form-control" placeholder="Keterangan bumbu / bahan baku" value={catatan} onChange={e => setCatatan(e.target.value)} />
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+              {editingId && (
+                <button type="button" className="btn btn-secondary btn-sm" onClick={resetForm}>Batal Edit</button>
+              )}
+              <button type="submit" className={`btn btn-sm ${editingId ? 'btn-cyan' : 'btn-emerald'}`} disabled={isSubmitting}>
+                {isSubmitting ? 'Memproses...' : (editingId ? 'Simpan Perubahan' : '+ Tambah Supplier')}
+              </button>
+            </div>
+          </form>
+
+          {/* Table Daftar Supplier */}
+          <h4 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.5rem' }}>Daftar Opsi Supplier ({suppliersList.length})</h4>
+          <div className="table-container" style={{ maxHeight: '250px', overflowY: 'auto' }}>
+            <table className="custom-table">
+              <thead>
+                <tr>
+                  <th>NAMA SUPPLIER</th>
+                  <th>KONTAK</th>
+                  <th>ALAMAT</th>
+                  <th style={{ textAlign: 'right' }}>AKSI</th>
+                </tr>
+              </thead>
+              <tbody>
+                {suppliersList.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} style={{ textAlign: 'center', padding: '1.5rem' }} className="text-muted">
+                      Belum ada data supplier. Tambahkan supplier pertama Anda di atas.
+                    </td>
+                  </tr>
+                ) : (
+                  suppliersList.map(s => (
+                    <tr key={s.id || s._id || s.nama}>
+                      <td style={{ fontWeight: 700, color: '#fff' }}>{s.nama}</td>
+                      <td style={{ fontSize: '0.8rem' }}>{s.kontak || '-'}</td>
+                      <td style={{ fontSize: '0.8rem' }}>{s.alamat || '-'}</td>
+                      <td style={{ textAlign: 'right' }}>
+                        <div className="btn-group">
+                          <button className="btn btn-sm btn-outline" title="Edit Supplier" onClick={() => handleEditClick(s)}>
+                            <Edit3 size={13} />
+                          </button>
+                          <button className="btn btn-sm btn-outline btn-danger" title="Hapus Supplier" onClick={() => onDeleteSupplier(s.id || s._id)}>
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div className="modal-footer">
+          <button type="button" className="btn btn-secondary" onClick={onClose}>Selesai &amp; Tutup</button>
         </div>
       </div>
     </div>

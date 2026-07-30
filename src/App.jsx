@@ -86,7 +86,11 @@ import {
   createUtangSupplierApi,
   payUtangSupplierApi,
   receiveUtangSupplierApi,
-  deleteUtangSupplierApi
+  deleteUtangSupplierApi,
+  getSuppliersApi,
+  createSupplierApi,
+  updateSupplierApi,
+  deleteSupplierApi
 } from './services/api';
 
 const STORAGE_KEYS = {
@@ -165,6 +169,7 @@ export default function App() {
   });
 
   const [utangList, setUtangList] = useState([]);
+  const [suppliersList, setSuppliersList] = useState([]);
 
   // Modal Control States
   const [isModalBahanOpen, setIsModalBahanOpen] = useState(false);
@@ -178,6 +183,7 @@ export default function App() {
 
   const [isModalProduksiOpen, setIsModalProduksiOpen] = useState(false);
   const [selectedProduksiId, setSelectedProduksiId] = useState(null);
+  const [selectedBahanId, setSelectedBahanId] = useState(null);
 
   const [isModalResepItemOpen, setIsModalResepItemOpen] = useState(false);
   const [resepProdukId, setResepProdukId] = useState(null);
@@ -226,7 +232,7 @@ export default function App() {
   // Sync Data from Backend API on Initial Mount
   const fetchAllDataFromBackend = async () => {
     try {
-      const [uRes, kpRes, kbRes, bRes, pRes, rRes, prodRes, logRes, utgRes] = await Promise.all([
+      const [uRes, kpRes, kbRes, bRes, pRes, rRes, prodRes, logRes, utgRes, supRes] = await Promise.all([
         getUsersApi(),
         getKategoriProdukApi(),
         getKategoriBahanBakuApi(),
@@ -235,7 +241,8 @@ export default function App() {
         getResepApi(),
         getRiwayatProduksiApi(),
         getAuditLogApi(),
-        getUtangSupplierApi()
+        getUtangSupplierApi(),
+        getSuppliersApi()
       ]);
 
       if (uRes?.success) setUsers(uRes.data);
@@ -247,6 +254,7 @@ export default function App() {
       if (prodRes?.success) setRiwayatProduksi(prodRes.data);
       if (logRes?.success) setAuditLog(logRes.data);
       if (utgRes?.success) setUtangList(utgRes.data);
+      if (supRes?.success) setSuppliersList(supRes.data);
 
       setBackendConnected(true);
     } catch (err) {
@@ -968,6 +976,48 @@ export default function App() {
     }
   };
 
+  const handleCreateSupplier = async (data) => {
+    try {
+      const res = await createSupplierApi(data, activeUser);
+      if (res?.success) {
+        showAlert(res.message, 'success', 'Supplier Berhasil Ditambah');
+        fetchAllDataFromBackend();
+        return;
+      }
+      showAlert(res?.message || 'Gagal menambah supplier.', 'error', 'Gagal Simpan');
+    } catch (err) {
+      showAlert('Error: ' + err.message, 'error', 'Gagal Simpan');
+    }
+  };
+
+  const handleUpdateSupplier = async (id, data) => {
+    try {
+      const res = await updateSupplierApi(id, data, activeUser);
+      if (res?.success) {
+        showAlert(res.message, 'success', 'Supplier Berhasil Diupdate');
+        fetchAllDataFromBackend();
+        return;
+      }
+      showAlert(res?.message || 'Gagal update supplier.', 'error', 'Gagal Edit');
+    } catch (err) {
+      showAlert('Error: ' + err.message, 'error', 'Gagal Edit');
+    }
+  };
+
+  const handleDeleteSupplier = async (id) => {
+    try {
+      const res = await deleteSupplierApi(id, activeUser);
+      if (res?.success) {
+        showAlert(res.message, 'success', 'Supplier Berhasil Dihapus');
+        fetchAllDataFromBackend();
+        return;
+      }
+      showAlert(res?.message || 'Gagal menghapus supplier.', 'error', 'Gagal Hapus');
+    } catch (err) {
+      showAlert('Error: ' + err.message, 'error', 'Gagal Hapus');
+    }
+  };
+
   if (!activeUser) {
     return (
       <>
@@ -1103,10 +1153,14 @@ export default function App() {
             <UtangSupplierTab
               utangList={utangList}
               bahanBaku={bahanBaku}
+              suppliersList={suppliersList}
               activeRoleView={activeRoleView}
               onCreateUtang={handleCreateUtang}
               onPayUtang={handlePayUtang}
               onDeleteUtang={handleDeleteUtang}
+              onCreateSupplier={handleCreateSupplier}
+              onUpdateSupplier={handleUpdateSupplier}
+              onDeleteSupplier={handleDeleteSupplier}
               showAlert={showAlert}
             />
           )}

@@ -322,3 +322,29 @@ export async function deleteUtangSupplierApi(id, activeUser) {
     body: JSON.stringify({ user: activeUser })
   });
 }
+
+// 10. SUPPLIER MASTER DATA ENDPOINTS
+export async function getSuppliersApi() {
+  return request('/suppliers');
+}
+
+export async function createSupplierApi(data, activeUser) {
+  return request('/suppliers', {
+    method: 'POST',
+    body: JSON.stringify({ ...data, user: activeUser })
+  });
+}
+
+export async function updateSupplierApi(id, data, activeUser) {
+  return request(`/suppliers/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ ...data, user: activeUser })
+  });
+}
+
+export async function deleteSupplierApi(id, activeUser) {
+  return request(`/suppliers/${id}`, {
+    method: 'DELETE',
+    body: JSON.stringify({ user: activeUser })
+  });
+}

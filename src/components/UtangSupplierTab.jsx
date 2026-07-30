@@ -1,20 +1,25 @@
 import React, { useState } from 'react';
-import { CreditCard, Plus, Search, Calendar, History, CheckCircle, AlertTriangle, ArrowUpRight, DollarSign, Eye, Trash2 } from 'lucide-react';
+import { CreditCard, Plus, Search, Calendar, History, CheckCircle, AlertTriangle, ArrowUpRight, DollarSign, Eye, Trash2, Building2 } from 'lucide-react';
 import { formatNumber } from '../data/initialData';
-import { ModalTambahUtangSupplier, ModalBayarUtangSupplier, ModalRiwayatBayarSupplier } from './Modals';
+import { ModalTambahUtangSupplier, ModalBayarUtangSupplier, ModalRiwayatBayarSupplier, ModalKelolaSupplier } from './Modals';
 
 export default function UtangSupplierTab({
   utangList = [],
   bahanBaku = [],
+  suppliersList = [],
   activeRoleView,
   onCreateUtang,
   onPayUtang,
   onDeleteUtang,
+  onCreateSupplier,
+  onUpdateSupplier,
+  onDeleteSupplier,
   showAlert
 }) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('semua');
   const [isTambahOpen, setIsTambahOpen] = useState(false);
+  const [isKelolaSupplierOpen, setIsKelolaSupplierOpen] = useState(false);
   const [selectedUtangForPay, setSelectedUtangForPay] = useState(null);
   const [selectedUtangForHistory, setSelectedUtangForHistory] = useState(null);
 
@@ -57,9 +62,14 @@ export default function UtangSupplierTab({
         </div>
 
         {canManage && (
-          <button className="btn btn-primary" onClick={() => setIsTambahOpen(true)}>
-            <Plus size={16} /> Tambah Faktur &amp; Utang Baru
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button className="btn btn-outline" onClick={() => setIsKelolaSupplierOpen(true)}>
+              <Building2 size={16} style={{ color: 'var(--amber)' }} /> Kelola Supplier
+            </button>
+            <button className="btn btn-primary" onClick={() => setIsTambahOpen(true)}>
+              <Plus size={16} /> Tambah Faktur &amp; Utang Baru
+            </button>
+          </div>
         )}
       </div>
 
@@ -115,7 +125,7 @@ export default function UtangSupplierTab({
               onChange={e => setStatusFilter(e.target.value)}
             >
               <option value="semua">Semua Status</option>
-              <option value="belum_lunas">Belum Lunas / Cicilan</option>
+              <option value="belum_lunas">Belum Lunas / Partial</option>
               <option value="lunas">Sudah Lunas</option>
             </select>
 
@@ -141,26 +151,25 @@ export default function UtangSupplierTab({
               <th>SISA UTANG</th>
               <th>JATUH TEMPO</th>
               <th>STATUS</th>
-              {canManage && <th style={{ textAlign: 'center' }}>AKSI</th>}
+              <th style={{ textAlign: 'center' }}>AKSI</th>
             </tr>
           </thead>
           <tbody>
             {filteredList.length === 0 ? (
               <tr>
-                <td colSpan={canManage ? 8 : 7} style={{ textAlign: 'center', padding: '2.5rem' }} className="text-muted">
+                <td colSpan={8} style={{ textAlign: 'center', padding: '2.5rem' }} className="text-muted">
                   Belum ada catatan tagihan utang supplier.
                 </td>
               </tr>
             ) : (
               filteredList.map(item => {
-                const isLunas = item.status === 'LUNAS';
-                const isSebagian = item.status === 'SEBAGIAN';
+                const isLunas = item.status === 'LUNAS' || item.sisaUtang === 0;
 
                 return (
                   <tr key={item.id}>
                     <td>
                       <div style={{ fontWeight: 700, color: 'var(--primary)' }}>{item.noFaktur}</div>
-                      <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#fff' }}>{item.supplier}</div>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#fff' }}>{item.supplier}</div>
                       <div className="text-muted" style={{ fontSize: '0.72rem' }}>Tgl Beli: {item.tanggalBeli}</div>
                     </td>
                     <td>
@@ -169,72 +178,65 @@ export default function UtangSupplierTab({
                         {formatNumber(item.jumlah)} {item.satuan} @ Rp {formatNumber(item.hargaSatuan)}
                       </div>
                     </td>
-                    <td style={{ fontWeight: 700, fontSize: '0.95rem' }}>
-                      Rp {formatNumber(item.totalTagihan)}
-                    </td>
-                    <td style={{ color: 'var(--emerald)', fontWeight: 600 }}>
-                      Rp {formatNumber(item.jumlahDibayar)}
-                    </td>
-                    <td style={{ fontWeight: 800, fontSize: '1rem', color: isLunas ? 'var(--emerald)' : 'var(--rose)' }}>
-                      Rp {formatNumber(item.sisaUtang)}
+                    <td>
+                      <strong style={{ fontSize: '0.95rem' }}>Rp {formatNumber(item.totalTagihan)}</strong>
                     </td>
                     <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.82rem' }}>
-                        <Calendar size={13} style={{ color: 'var(--amber)' }} />
-                        {item.jatuhTempo}
+                      <span style={{ color: 'var(--emerald)', fontWeight: 600 }}>
+                        Rp {formatNumber(item.jumlahDibayar)}
+                      </span>
+                    </td>
+                    <td>
+                      <strong style={{ fontSize: '1rem', color: isLunas ? 'var(--emerald)' : 'var(--rose)' }}>
+                        Rp {formatNumber(item.sisaUtang)}
+                      </strong>
+                    </td>
+                    <td>
+                      <div style={{ fontSize: '0.82rem', fontWeight: 600, color: isLunas ? 'var(--text-muted)' : 'var(--amber)' }}>
+                        📅 {item.jatuhTempo}
                       </div>
                     </td>
                     <td>
                       {isLunas ? (
                         <span className="badge badge-emerald">✓ LUNAS</span>
-                      ) : isSebagian ? (
+                      ) : item.jumlahDibayar > 0 ? (
                         <span className="badge badge-amber">CICILAN</span>
                       ) : (
-                        <span className="badge badge-danger">BELUM LUNAS</span>
+                        <span className="badge badge-rose">BELUM LUNAS</span>
                       )}
                     </td>
-                    {canManage && (
-                      <td style={{ textAlign: 'center' }}>
-                        <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'center' }}>
-                          {!isLunas && (
-                            <button
-                              className="btn btn-emerald btn-sm"
-                              style={{ padding: '0.3rem 0.65rem', fontSize: '0.75rem' }}
-                              onClick={() => setSelectedUtangForPay(item)}
-                              title="Bayar / Cicil Utang Supplier"
-                            >
-                              <DollarSign size={13} /> Bayar
-                            </button>
-                          )}
+                    <td style={{ textAlign: 'center' }}>
+                      <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'center' }}>
+                        {canManage && !isLunas && (
                           <button
-                            className="btn btn-outline btn-sm"
-                            style={{ padding: '0.3rem 0.55rem', fontSize: '0.75rem' }}
-                            onClick={() => setSelectedUtangForHistory(item)}
-                            title="Lihat Riwayat Pembayaran"
+                            className="btn btn-emerald btn-sm"
+                            style={{ padding: '0.35rem 0.65rem', fontSize: '0.75rem' }}
+                            onClick={() => setSelectedUtangForPay(item)}
+                            title="Bayar / Cicil Utang"
                           >
-                            <History size={13} />
+                            <DollarSign size={13} /> Bayar
                           </button>
+                        )}
+                        <button
+                          className="btn btn-outline btn-sm"
+                          style={{ padding: '0.35rem 0.6rem', fontSize: '0.75rem' }}
+                          onClick={() => setSelectedUtangForHistory(item)}
+                          title="Lihat Riwayat Pembayaran"
+                        >
+                          <History size={13} /> Riwayat
+                        </button>
+                        {canManage && activeRoleView === 'ADMIN' && (
                           <button
-                            className="btn btn-outline btn-sm text-rose"
-                            style={{ padding: '0.3rem 0.55rem', fontSize: '0.75rem' }}
-                            onClick={() => {
-                              showAlert(
-                                `Hapus faktur tagihan ${item.noFaktur} dari ${item.supplier}?`,
-                                'danger',
-                                'Hapus Utang Supplier',
-                                () => onDeleteUtang(item.id),
-                                true,
-                                'Hapus',
-                                'Batal'
-                              );
-                            }}
-                            title="Hapus Faktur Utang"
+                            className="btn btn-outline btn-danger btn-sm"
+                            style={{ padding: '0.35rem 0.5rem' }}
+                            onClick={() => onDeleteUtang(item.id)}
+                            title="Hapus Faktur"
                           >
                             <Trash2 size={13} />
                           </button>
-                        </div>
-                      </td>
-                    )}
+                        )}
+                      </div>
+                    </td>
                   </tr>
                 );
               })
@@ -248,7 +250,9 @@ export default function UtangSupplierTab({
         isOpen={isTambahOpen}
         onClose={() => setIsTambahOpen(false)}
         bahanList={bahanBaku}
+        suppliersList={suppliersList}
         onSubmit={onCreateUtang}
+        onOpenKelolaSupplier={() => setIsKelolaSupplierOpen(true)}
         showAlert={showAlert}
       />
 
@@ -264,6 +268,16 @@ export default function UtangSupplierTab({
         isOpen={!!selectedUtangForHistory}
         onClose={() => setSelectedUtangForHistory(null)}
         utangRecord={selectedUtangForHistory}
+      />
+
+      <ModalKelolaSupplier
+        isOpen={isKelolaSupplierOpen}
+        onClose={() => setIsKelolaSupplierOpen(false)}
+        suppliersList={suppliersList}
+        onCreateSupplier={onCreateSupplier}
+        onUpdateSupplier={onUpdateSupplier}
+        onDeleteSupplier={onDeleteSupplier}
+        showAlert={showAlert}
       />
     </div>
   );
