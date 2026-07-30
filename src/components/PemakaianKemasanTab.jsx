@@ -31,7 +31,7 @@ export default function PemakaianKemasanTab({
   const kemasanMaterials = bahanBaku.filter(b => {
     const kat = (b.kategori || '').toLowerCase();
     const name = (b.nama || '').toLowerCase();
-    return kat.includes('kemasan') || name.includes('casing') || name.includes('plastik') || name.includes('pouch') || name.includes('box') || name.includes('label');
+    return kat.includes('kemasan') || name.includes('casing') || name.includes('plastik') || name.includes('pouch') || name.includes('box') || name.includes('label') || name.includes('sticker') || name.includes('stiker') || name.includes('barcode') || name.includes('vacum');
   });
 
   const displayMaterials = (kemasanMaterials.length > 0 ? kemasanMaterials : bahanBaku)
