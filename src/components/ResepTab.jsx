@@ -19,11 +19,41 @@ export default function ResepTab({
   const [selectedProdukId, setSelectedProdukId] = useState(sortedProduk[0]?.id || '');
   const canEdit = (activeRoleView === 'ADMIN' || activeRoleView === 'BAHAN_BAKU');
 
+  const getRecipeForProduk = (p) => {
+    if (!p || !resep) return [];
+    if (resep[p.id]) return resep[p.id];
+    if (p.sku && resep[p.sku]) return resep[p.sku];
+    if (p._id && resep[p._id]) return resep[p._id];
+
+    const pId = String(p.id || '').trim().toLowerCase();
+    const pSku = String(p.sku || '').trim().toLowerCase();
+    const pMongoId = String(p._id || '').trim().toLowerCase();
+
+    for (let key of Object.keys(resep)) {
+      const k = key.trim().toLowerCase();
+      if (k && (k === pId || k === pSku || k === pMongoId)) {
+        return resep[key] || [];
+      }
+    }
+    return [];
+  };
+
+  const getBahanItem = (bId) => {
+    if (!bId) return null;
+    const s = String(bId).trim().toLowerCase();
+    return bahanBaku.find(x =>
+      String(x.id || '').trim().toLowerCase() === s ||
+      String(x.sku || '').trim().toLowerCase() === s ||
+      String(x._id || '').trim().toLowerCase() === s ||
+      String(x.nama || '').trim().toLowerCase() === s
+    );
+  };
+
   const selectedProduk = sortedProduk.find(p => p.id === selectedProdukId) || sortedProduk[0];
-  const currentFormula = selectedProduk ? (resep[selectedProduk.id] || []) : [];
+  const currentFormula = selectedProduk ? getRecipeForProduk(selectedProduk) : [];
   const sortedFormula = [...currentFormula].sort((a, b) => {
-    const bA = bahanBaku.find(x => x.id === a.bahanId);
-    const bB = bahanBaku.find(x => x.id === b.bahanId);
+    const bA = getBahanItem(a.bahanId);
+    const bB = getBahanItem(b.bahanId);
     return (bA?.sku || '').localeCompare(bB?.sku || '', undefined, { numeric: true, sensitivity: 'base' });
   });
 
@@ -39,7 +69,7 @@ export default function ResepTab({
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             {sortedProduk.map(p => {
               const isSelected = p.id === (selectedProduk?.id);
-              const itemsCount = (resep[p.id] || []).length;
+              const itemsCount = getRecipeForProduk(p).length;
 
               return (
                 <button
@@ -112,7 +142,7 @@ export default function ResepTab({
                     </tr>
                   ) : (
                     sortedFormula.map((item, idx) => {
-                      const b = bahanBaku.find(x => x.id === item.bahanId);
+                      const b = getBahanItem(item.bahanId);
 
                       return (
                         <tr key={idx}>
