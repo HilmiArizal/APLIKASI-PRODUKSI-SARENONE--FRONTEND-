@@ -15,6 +15,7 @@ import AuditLogTab from './components/AuditLogTab';
 import KategoriTab from './components/KategoriTab';
 import UtangSupplierTab from './components/UtangSupplierTab';
 import PenerimaanBahanTab from './components/PenerimaanBahanTab';
+import SupplierTab from './components/SupplierTab';
 import PendingApprovalView from './components/PendingApprovalView';
 
 import {
@@ -1171,6 +1172,17 @@ export default function App() {
               bahanBaku={bahanBaku}
               activeRoleView={activeRoleView}
               onReceiveBahan={handleReceiveBahan}
+              showAlert={showAlert}
+            />
+          )}
+
+          {activeTab === 'supplier' && (
+            <SupplierTab
+              suppliersList={suppliersList}
+              activeRoleView={activeRoleView}
+              onCreateSupplier={handleCreateSupplier}
+              onUpdateSupplier={handleUpdateSupplier}
+              onDeleteSupplier={handleDeleteSupplier}
               showAlert={showAlert}
             />
           )}

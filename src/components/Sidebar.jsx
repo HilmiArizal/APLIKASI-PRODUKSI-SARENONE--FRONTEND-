@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Boxes, Package, BookOpen, ChefHat, History, UserCheck, LogOut, X, Layers, FlaskConical, CreditCard, PackageCheck } from 'lucide-react';
+import { LayoutDashboard, Boxes, Package, BookOpen, ChefHat, History, UserCheck, LogOut, X, Layers, FlaskConical, CreditCard, PackageCheck, Building2 } from 'lucide-react';
 import logoImg from '../assets/logo.png';
 
 export default function Sidebar({
@@ -148,13 +148,23 @@ export default function Sidebar({
           )}
 
           {activeRoleView === 'ADMIN' && (
-            <a
-              href="#kategori"
-              className={`menu-item ${activeTab === 'kategori' ? 'active' : ''}`}
-              onClick={(e) => { e.preventDefault(); handleNavClick('kategori'); }}
-            >
-              <Layers size={18} /> <span>Kelola Kategori</span>
-            </a>
+            <>
+              <a
+                href="#supplier"
+                className={`menu-item ${activeTab === 'supplier' ? 'active' : ''}`}
+                onClick={(e) => { e.preventDefault(); handleNavClick('supplier'); }}
+              >
+                <Building2 size={18} /> <span>Kelola Supplier</span>
+              </a>
+
+              <a
+                href="#kategori"
+                className={`menu-item ${activeTab === 'kategori' ? 'active' : ''}`}
+                onClick={(e) => { e.preventDefault(); handleNavClick('kategori'); }}
+              >
+                <Layers size={18} /> <span>Kelola Kategori</span>
+              </a>
+            </>
           )}
 
           {showAudit && (

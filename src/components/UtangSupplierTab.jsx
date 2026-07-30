@@ -62,14 +62,9 @@ export default function UtangSupplierTab({
         </div>
 
         {canManage && (
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button className="btn btn-outline" onClick={() => setIsKelolaSupplierOpen(true)}>
-              <Building2 size={16} style={{ color: 'var(--amber)' }} /> Kelola Supplier
-            </button>
-            <button className="btn btn-primary" onClick={() => setIsTambahOpen(true)}>
-              <Plus size={16} /> Tambah Faktur &amp; Utang Baru
-            </button>
-          </div>
+          <button className="btn btn-primary" onClick={() => setIsTambahOpen(true)}>
+            <Plus size={16} /> Tambah Faktur &amp; Utang Baru
+          </button>
         )}
       </div>
 
