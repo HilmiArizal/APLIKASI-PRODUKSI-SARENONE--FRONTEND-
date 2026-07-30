@@ -34,8 +34,20 @@ export default function PemakaianKemasanTab({
     return kat.includes('kemasan') || name.includes('casing') || name.includes('plastik') || name.includes('pouch') || name.includes('box') || name.includes('label') || name.includes('sticker') || name.includes('stiker') || name.includes('barcode') || name.includes('vacum');
   });
 
-  const displayMaterials = (kemasanMaterials.length > 0 ? kemasanMaterials : bahanBaku)
+  const rawMaterials = (kemasanMaterials.length > 0 ? kemasanMaterials : bahanBaku)
     .filter(b => b.nama.toLowerCase().includes(search.toLowerCase()) || b.sku.toLowerCase().includes(search.toLowerCase()));
+
+  // Sort so that Sticker Barcode & Sticker Produk are ALWAYS at the VERY BOTTOM
+  const displayMaterials = [...rawMaterials].sort((a, b) => {
+    const nameA = (a.nama || '').toLowerCase();
+    const nameB = (b.nama || '').toLowerCase();
+    const isASticker = nameA.includes('sticker') || nameA.includes('stiker') || nameA.includes('label');
+    const isBSticker = nameB.includes('sticker') || nameB.includes('stiker') || nameB.includes('label');
+
+    if (isASticker && !isBSticker) return 1;
+    if (!isASticker && isBSticker) return -1;
+    return (a.sku || '').localeCompare(b.sku || '', undefined, { numeric: true, sensitivity: 'base' });
+  });
 
   // Filter packaging usage logs from auditLog
   const allKemasanLogs = auditLog.filter(log => {
