@@ -79,7 +79,7 @@ export default function EmulsiTab({
       </div>
 
       {/* Overview Stock Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.5rem' }}>
+      <div className="emulsi-cards-grid">
         {/* ISP Emulsion Card */}
         <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1.5rem', position: 'relative' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>

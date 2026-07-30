@@ -59,7 +59,7 @@ export default function ResepTab({
 
   return (
     <div className="tab-pane active">
-      <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '1.5rem' }}>
+      <div className="resep-grid-layout">
         {/* Left Side: Select Product */}
         <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1.25rem' }}>
           <h4 style={{ fontSize: '0.95rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
