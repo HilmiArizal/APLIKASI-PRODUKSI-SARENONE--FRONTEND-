@@ -199,10 +199,9 @@ export default function App() {
   const [marketingList, setMarketingList] = useState([]);
   const [produkSalesList, setProdukSalesList] = useState([]);
   const [brandList, setBrandList] = useState([
-    { id: 'brand_1', nama: 'Saren One Original', deskripsi: 'Produk utama Saren One' },
-    { id: 'brand_2', nama: 'Saren Bakery', deskripsi: 'Lini varian olahan roti & pastry' },
-    { id: 'brand_3', nama: 'Saren Frozen', deskripsi: 'Produk beku siap masak' },
-    { id: 'brand_4', nama: 'Dapur Saren', deskripsi: 'Produk bumbu & pelengkap dapur' }
+    { id: 'brand_1', nama: 'SAREN ONE', deskripsi: 'Lini Brand Utama Saren One' },
+    { id: 'brand_2', nama: 'EAT GOW', deskripsi: 'Lini Brand Produk Siap Saji Eat Gow' },
+    { id: 'brand_3', nama: 'BEULEUM', deskripsi: 'Lini Brand Olahan Pemanggangan & Bakaran Beuleum' }
   ]);
   const [kategoriSalesList, setKategoriSalesList] = useState([
     { id: 'kps_1', nama: 'Sosis', deskripsi: 'Kategori berbagai varian sosis' },

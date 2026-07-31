@@ -72,7 +72,7 @@ export default function KatalogProdukSalesTab({
     varian: '',
     gramasi: '',
     kategori: availableCategories[0]?.nama || 'Sosis',
-    brand: 'Saren One Original',
+    brand: 'SAREN ONE',
     hargaJual: 0,
     stokReady: 0,
     deskripsi: '',
@@ -101,7 +101,7 @@ export default function KatalogProdukSalesTab({
       ...emptyForm,
       sku: 'SLS-' + String(Math.floor(100 + Math.random() * 900)),
       kategori: availableCategories[0]?.nama || 'Sosis',
-      brand: brandList[0]?.nama || 'Saren One Original'
+      brand: brandList[0]?.nama || 'SAREN ONE'
     });
     setShowModal(true);
   };
@@ -114,7 +114,7 @@ export default function KatalogProdukSalesTab({
       varian: p.varian || '',
       gramasi: p.gramasi || '',
       kategori: p.kategori || availableCategories[0]?.nama || 'Sosis',
-      brand: p.brand || (brandList[0]?.nama || 'Saren One Original'),
+      brand: p.brand || (brandList[0]?.nama || 'SAREN ONE'),
       hargaJual: p.hargaJual || 0,
       stokReady: p.stokReady || 0,
       deskripsi: p.deskripsi || '',
@@ -209,13 +209,13 @@ export default function KatalogProdukSalesTab({
   // Export handlers
   const handleExportExcel = () => {
     const headers = ['SKU', 'Nama Produk', 'Brand', 'Kategori', 'Varian', 'Gramasi / Ukuran', 'Harga Jual (Rp)', 'Stok Ready (Pcs)', 'Status'];
-    const rows = filtered.map(p => [p.sku, p.namaProduk, p.brand || 'Saren One Original', p.kategori, p.varian || '-', p.gramasi || '-', p.hargaJual, p.stokReady, p.status]);
+    const rows = filtered.map(p => [p.sku, p.namaProduk, p.brand || 'SAREN ONE', p.kategori, p.varian || '-', p.gramasi || '-', p.hargaJual, p.stokReady, p.status]);
     exportToExcel('Katalog_Produk_Penjualan', headers, rows);
   };
 
   const handleExportPDF = () => {
     const headers = ['SKU', 'Nama Produk & Brand', 'Varian & Gramasi', 'Kategori', 'Harga Jual', 'Stok Ready'];
-    const rows = filtered.map(p => [p.sku, `${p.namaProduk}\nBrand: ${p.brand || 'Saren One Original'}`, `${p.varian || '-'} (${p.gramasi || '-'})`, p.kategori, formatRp(p.hargaJual), `${p.stokReady} Pcs`]);
+    const rows = filtered.map(p => [p.sku, `${p.namaProduk}\nBrand: ${p.brand || 'SAREN ONE'}`, `${p.varian || '-'} (${p.gramasi || '-'})`, p.kategori, formatRp(p.hargaJual), `${p.stokReady} Pcs`]);
     const config = {
       title: 'Katalog Produk Penjualan & Brand',
       subtitle: `Daftar varian produk, brand, gramasi, dan stok siap jual Saren One.`,
@@ -247,7 +247,7 @@ export default function KatalogProdukSalesTab({
         'Kode SKU': 'SLS-102',
         'Nama Produk': 'Nugget Ayam Crispy',
         'Kategori': 'Nugget',
-        'Brand': 'Saren One Original',
+        'Brand': 'SAREN ONE',
         'Varian Rasa': 'Keju Crispy',
         'Gramasi / Ukuran': '250 gram',
         'Harga Jual (Rp)': 28000,
@@ -288,7 +288,7 @@ export default function KatalogProdukSalesTab({
           const sku = row['Kode SKU'] || row['SKU'] || `SLS-${Math.floor(100 + Math.random() * 900)}`;
           const namaProduk = row['Nama Produk'] || row['Nama'] || '';
           const kategori = row['Kategori'] || 'Sosis';
-          const brand = row['Brand'] || 'Saren One Original';
+          const brand = row['Brand'] || 'SAREN ONE';
           const varian = row['Varian Rasa'] || row['Varian'] || '';
           const gramasi = row['Gramasi / Ukuran'] || row['Gramasi'] || '';
           const hargaJual = Number(row['Harga Jual (Rp)'] || row['Harga Jual'] || 0);
@@ -455,7 +455,7 @@ export default function KatalogProdukSalesTab({
 
                 {/* Brand & Varian & Gramasi Badge Row */}
                 <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', margin: '0.6rem 0' }}>
-                  <span style={{ background: 'rgba(245,158,11,0.12)', color: '#f59e0b', padding: '2px 8px', borderRadius: 6, fontSize: '0.78rem', fontWeight: 600, border: '1px solid rgba(245,158,11,0.3)' }}>🏷️ {p.brand || 'Saren One Original'}</span>
+                  <span style={{ background: 'rgba(245,158,11,0.12)', color: '#f59e0b', padding: '2px 8px', borderRadius: 6, fontSize: '0.78rem', fontWeight: 600, border: '1px solid rgba(245,158,11,0.3)' }}>🏷️ {p.brand || 'SAREN ONE'}</span>
                   {p.varian && <span style={{ background: 'var(--bg-secondary)', color: 'var(--accent-primary)', padding: '2px 8px', borderRadius: 6, fontSize: '0.78rem', fontWeight: 600 }}>✨ Varian: {p.varian}</span>}
                   {p.gramasi && <span style={{ background: 'var(--bg-secondary)', color: 'var(--emerald)', padding: '2px 8px', borderRadius: 6, fontSize: '0.78rem', fontWeight: 600 }}>⚖️ {p.gramasi}</span>}
                 </div>
@@ -756,7 +756,7 @@ export default function KatalogProdukSalesTab({
             <div className="modal-body">
               {[
                 ['Nama Produk', showDetail.namaProduk],
-                ['Brand Produk', showDetail.brand || 'Saren One Original'],
+                ['Brand Produk', showDetail.brand || 'SAREN ONE'],
                 ['Varian Rasa', showDetail.varian || '-'],
                 ['Gramasi / Ukuran', showDetail.gramasi || '-'],
                 ['Kategori', showDetail.kategori],
