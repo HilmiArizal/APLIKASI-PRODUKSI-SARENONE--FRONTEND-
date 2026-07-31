@@ -230,8 +230,8 @@ export default function App() {
     setAlertState(prev => ({ ...prev, isOpen: false }));
   };
 
-  // Sync Data from Backend API on Initial Mount
-  const fetchAllDataFromBackend = async () => {
+  // Sync Data from Backend API (Realtime Sync & Mount)
+  const fetchAllDataFromBackend = async (silent = false) => {
     try {
       const [uRes, kpRes, kbRes, bRes, pRes, rRes, prodRes, logRes, utgRes, supRes] = await Promise.all([
         getUsersApi(),
@@ -263,13 +263,18 @@ export default function App() {
 
       setBackendConnected(true);
     } catch (err) {
-      console.warn('Backend API Offline, menggunakan LocalStorage:', err);
+      if (!silent) console.warn('Backend API Offline, menggunakan LocalStorage:', err);
       setBackendConnected(false);
     }
   };
 
   useEffect(() => {
     fetchAllDataFromBackend();
+    // Realtime 5-second background polling auto-sync (Tanpa reload!)
+    const syncTimer = setInterval(() => {
+      fetchAllDataFromBackend(true);
+    }, 5000);
+    return () => clearInterval(syncTimer);
   }, []);
 
   // Save to LocalStorage Backup
