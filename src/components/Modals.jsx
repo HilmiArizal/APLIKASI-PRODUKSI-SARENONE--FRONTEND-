@@ -1327,7 +1327,8 @@ export function ModalBayarUtangSupplier({ isOpen, onClose, utangRecord, onSubmit
     }
 
     setIsSubmitting(true);
-    await onSubmitPay(utangRecord.id, {
+    const targetId = utangRecord.id || utangRecord._id || utangRecord.noFaktur;
+    await onSubmitPay(targetId, {
       jumlahBayar: payVal,
       metode,
       keterangan
