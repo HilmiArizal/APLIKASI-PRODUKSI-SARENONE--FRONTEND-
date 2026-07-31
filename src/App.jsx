@@ -107,7 +107,11 @@ import {
   getProdukSalesApi,
   createProdukSalesApi,
   updateProdukSalesApi,
-  deleteProdukSalesApi
+  deleteProdukSalesApi,
+  getBrandProdukApi,
+  createBrandProdukApi,
+  updateBrandProdukApi,
+  deleteBrandProdukApi
 } from './services/api';
 
 const STORAGE_KEYS = {
@@ -190,6 +194,12 @@ export default function App() {
   const [penjualanList, setPenjualanList] = useState([]);
   const [marketingList, setMarketingList] = useState([]);
   const [produkSalesList, setProdukSalesList] = useState([]);
+  const [brandList, setBrandList] = useState([
+    { id: 'brand_1', nama: 'Saren One Original', deskripsi: 'Produk utama Saren One' },
+    { id: 'brand_2', nama: 'Saren Bakery', deskripsi: 'Lini varian olahan roti & pastry' },
+    { id: 'brand_3', nama: 'Saren Frozen', deskripsi: 'Produk beku siap masak' },
+    { id: 'brand_4', nama: 'Dapur Saren', deskripsi: 'Produk bumbu & pelengkap dapur' }
+  ]);
 
   // Modal Control States
   const [isModalBahanOpen, setIsModalBahanOpen] = useState(false);
@@ -299,10 +309,11 @@ export default function App() {
 
       // Fetch domain produk data
       try {
-        const [pjRes, mktRes, psRes] = await Promise.all([getPenjualanApi(), getMarketingApi(), getProdukSalesApi()]);
+        const [pjRes, mktRes, psRes, brRes] = await Promise.all([getPenjualanApi(), getMarketingApi(), getProdukSalesApi(), getBrandProdukApi()]);
         if (pjRes?.success) setPenjualanList(pjRes.data || []);
         if (mktRes?.success) setMarketingList(mktRes.data || []);
         if (psRes?.success) setProdukSalesList(psRes.data || []);
+        if (brRes?.success && (brRes.data || []).length > 0) setBrandList(brRes.data);
       } catch (e) { /* ignore produk domain fetch errors */ }
 
       setBackendConnected(true);
@@ -1327,6 +1338,56 @@ export default function App() {
     }
   };
 
+  const handleCreateBrand = async (brandData) => {
+    try {
+      const res = await createBrandProdukApi(brandData, activeUser);
+      if (res?.success) {
+        showAlert(res.message, 'success', 'Tambah Brand');
+        fetchAllDataFromBackend(true);
+        return;
+      }
+      const newBrand = { id: `brand_${Date.now()}`, ...brandData };
+      setBrandList(prev => [newBrand, ...prev]);
+      showAlert('Brand berhasil ditambahkan!', 'success', 'Tambah Brand');
+    } catch (err) {
+      const newBrand = { id: `brand_${Date.now()}`, ...brandData };
+      setBrandList(prev => [newBrand, ...prev]);
+      showAlert('Brand berhasil ditambahkan!', 'success', 'Tambah Brand');
+    }
+  };
+
+  const handleUpdateBrand = async (id, brandData) => {
+    try {
+      const res = await updateBrandProdukApi(id, brandData, activeUser);
+      if (res?.success) {
+        showAlert(res.message, 'success', 'Edit Brand');
+        fetchAllDataFromBackend(true);
+        return;
+      }
+      setBrandList(prev => prev.map(b => (b.id === id || b._id === id) ? { ...b, ...brandData } : b));
+      showAlert('Brand berhasil diperbarui!', 'success', 'Edit Brand');
+    } catch (err) {
+      setBrandList(prev => prev.map(b => (b.id === id || b._id === id) ? { ...b, ...brandData } : b));
+      showAlert('Brand berhasil diperbarui!', 'success', 'Edit Brand');
+    }
+  };
+
+  const handleDeleteBrand = async (id) => {
+    try {
+      const res = await deleteBrandProdukApi(id, activeUser);
+      if (res?.success) {
+        showAlert(res.message, 'success', 'Hapus Brand');
+        setBrandList(prev => prev.filter(b => b.id !== id && b._id !== id));
+        return;
+      }
+      setBrandList(prev => prev.filter(b => b.id !== id && b._id !== id));
+      showAlert('Brand berhasil dihapus.', 'info', 'Hapus Brand');
+    } catch (err) {
+      setBrandList(prev => prev.filter(b => b.id !== id && b._id !== id));
+      showAlert('Brand berhasil dihapus.', 'info', 'Hapus Brand');
+    }
+  };
+
   if (!activeUser) {
     return (
       <>
@@ -1587,11 +1648,15 @@ export default function App() {
             <KatalogProdukSalesTab
               produkSalesList={produkSalesList}
               kategoriList={kategoriProduk}
+              brandList={brandList}
               activeRoleView={activeRoleView}
               activeUser={activeUser}
               onCreateProdukSales={handleCreateProdukSales}
               onUpdateProdukSales={handleUpdateProdukSales}
               onDeleteProdukSales={handleDeleteProdukSales}
+              onCreateBrand={handleCreateBrand}
+              onUpdateBrand={handleUpdateBrand}
+              onDeleteBrand={handleDeleteBrand}
               onOpenPdfPreview={handleOpenPdfPreview}
               showAlert={showAlert}
             />

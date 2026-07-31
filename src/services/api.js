@@ -427,3 +427,29 @@ export async function deleteProdukSalesApi(id, activeUser) {
   });
 }
 
+// 13. BRAND PRODUK (Domain Produk)
+export async function getBrandProdukApi() {
+  return request('/brand-produk');
+}
+
+export async function createBrandProdukApi(data, activeUser) {
+  return request('/brand-produk', {
+    method: 'POST',
+    body: JSON.stringify({ ...data, user: activeUser })
+  });
+}
+
+export async function updateBrandProdukApi(id, data, activeUser) {
+  return request(`/brand-produk/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ ...data, user: activeUser })
+  });
+}
+
+export async function deleteBrandProdukApi(id, activeUser) {
+  return request(`/brand-produk/${id}`, {
+    method: 'DELETE',
+    body: JSON.stringify({ user: activeUser })
+  });
+}
+
