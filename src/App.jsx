@@ -14,6 +14,7 @@ import UserApprovalTab from './components/UserApprovalTab';
 import AuditLogTab from './components/AuditLogTab';
 import KategoriTab from './components/KategoriTab';
 import UtangSupplierTab from './components/UtangSupplierTab';
+import PembelianBahanTab from './components/PembelianBahanTab';
 import PenerimaanBahanTab from './components/PenerimaanBahanTab';
 import SupplierTab from './components/SupplierTab';
 import PendingApprovalView from './components/PendingApprovalView';
@@ -1222,18 +1223,26 @@ export default function App() {
             />
           )}
 
-          {activeTab === 'utang-supplier' && (
-            <UtangSupplierTab
+          {activeTab === 'pembelian-bahan' && (
+            <PembelianBahanTab
               utangList={utangList}
               bahanBaku={bahanBaku}
               suppliersList={suppliersList}
               activeRoleView={activeRoleView}
               onCreateUtang={handleCreateUtang}
-              onPayUtang={handlePayUtang}
-              onDeleteUtang={handleDeleteUtang}
               onCreateSupplier={handleCreateSupplier}
               onUpdateSupplier={handleUpdateSupplier}
               onDeleteSupplier={handleDeleteSupplier}
+              showAlert={showAlert}
+            />
+          )}
+
+          {activeTab === 'utang-supplier' && (
+            <UtangSupplierTab
+              utangList={utangList}
+              activeRoleView={activeRoleView}
+              onPayUtang={handlePayUtang}
+              onDeleteUtang={handleDeleteUtang}
               showAlert={showAlert}
             />
           )}

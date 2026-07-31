@@ -1,25 +1,17 @@
 import React, { useState } from 'react';
-import { CreditCard, Plus, Search, Calendar, History, CheckCircle, AlertTriangle, ArrowUpRight, DollarSign, Eye, Trash2, Building2 } from 'lucide-react';
+import { CreditCard, Search, History, CheckCircle, AlertTriangle, DollarSign, Trash2 } from 'lucide-react';
 import { formatNumber } from '../data/initialData';
-import { ModalTambahUtangSupplier, ModalBayarUtangSupplier, ModalRiwayatBayarSupplier, ModalKelolaSupplier } from './Modals';
+import { ModalBayarUtangSupplier, ModalRiwayatBayarSupplier } from './Modals';
 
 export default function UtangSupplierTab({
   utangList = [],
-  bahanBaku = [],
-  suppliersList = [],
   activeRoleView,
-  onCreateUtang,
   onPayUtang,
   onDeleteUtang,
-  onCreateSupplier,
-  onUpdateSupplier,
-  onDeleteSupplier,
   showAlert
 }) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('semua');
-  const [isTambahOpen, setIsTambahOpen] = useState(false);
-  const [isKelolaSupplierOpen, setIsKelolaSupplierOpen] = useState(false);
   const [selectedUtangForPay, setSelectedUtangForPay] = useState(null);
   const [selectedUtangForHistory, setSelectedUtangForHistory] = useState(null);
 
@@ -71,18 +63,12 @@ export default function UtangSupplierTab({
       <div className="toolbar" style={{ marginBottom: '1.5rem', justifyContent: 'space-between' }}>
         <div>
           <h2 style={{ fontSize: '1.3rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <CreditCard size={22} style={{ color: 'var(--primary)' }} /> Utang Supplier &amp; Pembelian Bahan Baku
+            <CreditCard size={22} style={{ color: 'var(--primary)' }} /> Utang Supplier
           </h2>
           <p className="text-muted" style={{ fontSize: '0.82rem', marginTop: '0.2rem' }}>
-            Manajemen faktur tagihan pembelian bahan mentah, pembayaran cicilan, dan sisa utang supplier.
+            Pantau saldo utang, bayar cicilan, dan lihat riwayat pembayaran faktur supplier.
           </p>
         </div>
-
-        {canManage && (
-          <button className="btn btn-primary" onClick={() => setIsTambahOpen(true)}>
-            <Plus size={16} /> Tambah Faktur &amp; Utang Baru
-          </button>
-        )}
       </div>
 
       {/* Summary Cards */}
@@ -258,16 +244,6 @@ export default function UtangSupplierTab({
       </div>
 
       {/* Modals */}
-      <ModalTambahUtangSupplier
-        isOpen={isTambahOpen}
-        onClose={() => setIsTambahOpen(false)}
-        bahanList={bahanBaku}
-        suppliersList={suppliersList}
-        onSubmit={onCreateUtang}
-        onOpenKelolaSupplier={() => setIsKelolaSupplierOpen(true)}
-        showAlert={showAlert}
-      />
-
       <ModalBayarUtangSupplier
         isOpen={!!selectedUtangForPay}
         onClose={() => setSelectedUtangForPay(null)}
@@ -280,16 +256,6 @@ export default function UtangSupplierTab({
         isOpen={!!selectedUtangForHistory}
         onClose={() => setSelectedUtangForHistory(null)}
         utangRecord={selectedUtangForHistory}
-      />
-
-      <ModalKelolaSupplier
-        isOpen={isKelolaSupplierOpen}
-        onClose={() => setIsKelolaSupplierOpen(false)}
-        suppliersList={suppliersList}
-        onCreateSupplier={onCreateSupplier}
-        onUpdateSupplier={onUpdateSupplier}
-        onDeleteSupplier={onDeleteSupplier}
-        showAlert={showAlert}
       />
     </div>
   );

@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Boxes, Package, BookOpen, ChefHat, History, UserCheck, LogOut, X, Layers, FlaskConical, CreditCard, PackageCheck, Building2 } from 'lucide-react';
+import { LayoutDashboard, Boxes, Package, BookOpen, ChefHat, History, UserCheck, LogOut, X, Layers, FlaskConical, CreditCard, PackageCheck, Building2, ShoppingCart, Receipt } from 'lucide-react';
 import logoImg from '../assets/logo.png';
 
 export default function Sidebar({
@@ -102,13 +102,23 @@ export default function Sidebar({
           )}
 
           {showPembelian && (
-            <a
-              href="#utang-supplier"
-              className={`menu-item ${activeTab === 'utang-supplier' ? 'active' : ''}`}
-              onClick={(e) => { e.preventDefault(); handleNavClick('utang-supplier'); }}
-            >
-              <CreditCard size={18} /> <span>Utang Supplier &amp; Pembelian</span>
-            </a>
+            <>
+              <a
+                href="#pembelian-bahan"
+                className={`menu-item ${activeTab === 'pembelian-bahan' ? 'active' : ''}`}
+                onClick={(e) => { e.preventDefault(); handleNavClick('pembelian-bahan'); }}
+              >
+                <ShoppingCart size={18} /> <span>Pembelian Bahan Baku</span>
+              </a>
+
+              <a
+                href="#utang-supplier"
+                className={`menu-item ${activeTab === 'utang-supplier' ? 'active' : ''}`}
+                onClick={(e) => { e.preventDefault(); handleNavClick('utang-supplier'); }}
+              >
+                <CreditCard size={18} /> <span>Utang Supplier</span>
+              </a>
+            </>
           )}
 
           {showProduk && (
