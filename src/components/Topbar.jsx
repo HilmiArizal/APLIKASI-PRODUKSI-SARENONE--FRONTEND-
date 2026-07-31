@@ -6,6 +6,7 @@ export default function Topbar({ activeUser, activeRoleView, onChangeRoleView, a
     'dashboard': { title: 'Dashboard Ringkasan', sub: 'Pantau kesehatan persediaan dan statistik produksi secara real-time.' },
     'dashboard-produk': { title: 'Dashboard Produk & Penjualan', sub: 'Ringkasan performa omzet, transaksi penjualan, dan program marketing.' },
     'katalog-produk': { title: 'Katalog Produk', sub: 'Daftar produk jadi, varian, dan stok yang tersedia untuk dijual.' },
+    'stok-produk': { title: 'Stok & Persediaan Produk Jual', sub: 'Pantau stok ready, mutasi persediaan, dan penyesuaian stok produk siap jual.' },
     'kategori-produk-sales': { title: 'Kelola Brand Produk', sub: 'Master data brand & merk resmi Saren One (SAREN ONE, EAT GOW, BEULEUM).' },
     'penjualan': { title: 'Data Penjualan Produk', sub: 'Catat transaksi penjualan, pantau invoice, dan kelola histori pelanggan.' },
     'marketing': { title: 'Program Marketing & Campaign', sub: 'Kelola program promo, diskon, anggaran marketing, dan saluran penjualan.' },

@@ -21,6 +21,7 @@ import PendingApprovalView from './components/PendingApprovalView';
 import PenjualanTab from './components/PenjualanTab';
 import MarketingTab from './components/MarketingTab';
 import KatalogProdukSalesTab from './components/KatalogProdukSalesTab';
+import StokProdukSalesTab from './components/StokProdukSalesTab';
 import KategoriSalesBrandTab from './components/KategoriSalesBrandTab';
 
 import {
@@ -385,17 +386,17 @@ export default function App() {
         setActiveTab('bahan-baku');
       }
     } else if (activeRoleView === 'ADMIN_PRODUK') {
-      const allowed = ['dashboard-produk', 'katalog-produk', 'kategori-produk-sales', 'penjualan', 'marketing', 'user-approval-produk', 'audit-log-produk'];
+      const allowed = ['dashboard-produk', 'katalog-produk', 'stok-produk', 'kategori-produk-sales', 'penjualan', 'marketing', 'user-approval-produk', 'audit-log-produk'];
       if (!allowed.includes(activeTab)) {
         setActiveTab('dashboard-produk');
       }
     } else if (activeRoleView === 'TIM_PENJUALAN') {
-      const allowed = ['dashboard-produk', 'katalog-produk', 'kategori-produk-sales', 'penjualan'];
+      const allowed = ['dashboard-produk', 'katalog-produk', 'stok-produk', 'kategori-produk-sales', 'penjualan'];
       if (!allowed.includes(activeTab)) {
         setActiveTab('dashboard-produk');
       }
     } else if (activeRoleView === 'TIM_MARKETING') {
-      const allowed = ['dashboard-produk', 'katalog-produk', 'kategori-produk-sales', 'marketing'];
+      const allowed = ['dashboard-produk', 'katalog-produk', 'stok-produk', 'kategori-produk-sales', 'marketing'];
       if (!allowed.includes(activeTab)) {
         setActiveTab('dashboard-produk');
       }
@@ -1701,6 +1702,16 @@ export default function App() {
               onUpdateBrand={handleUpdateBrand}
               onDeleteBrand={handleDeleteBrand}
               onOpenPdfPreview={handleOpenPdfPreview}
+              showAlert={showAlert}
+            />
+          )}
+
+          {activeTab === 'stok-produk' && (
+            <StokProdukSalesTab
+              produkSalesList={produkSalesList}
+              brandList={brandList}
+              activeRoleView={activeRoleView}
+              onUpdateProdukSales={handleUpdateProdukSales}
               showAlert={showAlert}
             />
           )}
