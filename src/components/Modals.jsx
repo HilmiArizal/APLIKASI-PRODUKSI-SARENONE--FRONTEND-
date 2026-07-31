@@ -1097,7 +1097,7 @@ export function ModalTambahUtangSupplier({ isOpen, onClose, bahanList = [], supp
   const [noFaktur, setNoFaktur] = useState('');
   const [supplier, setSupplier] = useState('');
   const [bahanId, setBahanId] = useState('');
-  const [jumlah, setJumlah] = useState(1);
+  const [jumlah, setJumlah] = useState(0);
   const [hargaSatuan, setHargaSatuan] = useState(0);
   const [dp, setDp] = useState(0);
   const [jatuhTempo, setJatuhTempo] = useState('');
@@ -1122,7 +1122,7 @@ export function ModalTambahUtangSupplier({ isOpen, onClose, bahanList = [], supp
         setBahanId(firstB.id || firstB._id || firstB.sku);
         if (firstB.harga) setHargaSatuan(firstB.harga);
       }
-      setJumlah(100);
+      setJumlah(0);
       setHargaSatuan(0);
       setDp(0);
       const in14Days = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
