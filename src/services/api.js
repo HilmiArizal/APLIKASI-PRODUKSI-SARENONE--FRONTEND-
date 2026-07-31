@@ -453,3 +453,29 @@ export async function deleteBrandProdukApi(id, activeUser) {
   });
 }
 
+// 14. KATEGORI PRODUK SALES (Domain Produk)
+export async function getKategoriProdukSalesApi() {
+  return request('/kategori-produk-sales');
+}
+
+export async function createKategoriProdukSalesApi(data, activeUser) {
+  return request('/kategori-produk-sales', {
+    method: 'POST',
+    body: JSON.stringify({ ...data, user: activeUser })
+  });
+}
+
+export async function updateKategoriProdukSalesApi(id, data, activeUser) {
+  return request(`/kategori-produk-sales/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ ...data, user: activeUser })
+  });
+}
+
+export async function deleteKategoriProdukSalesApi(id, activeUser) {
+  return request(`/kategori-produk-sales/${id}`, {
+    method: 'DELETE',
+    body: JSON.stringify({ user: activeUser })
+  });
+}
+

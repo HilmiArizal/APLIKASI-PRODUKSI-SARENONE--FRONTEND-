@@ -107,11 +107,14 @@ import {
   getProdukSalesApi,
   createProdukSalesApi,
   updateProdukSalesApi,
-  deleteProdukSalesApi,
   getBrandProdukApi,
   createBrandProdukApi,
   updateBrandProdukApi,
-  deleteBrandProdukApi
+  deleteBrandProdukApi,
+  getKategoriProdukSalesApi,
+  createKategoriProdukSalesApi,
+  updateKategoriProdukSalesApi,
+  deleteKategoriProdukSalesApi
 } from './services/api';
 
 const STORAGE_KEYS = {
@@ -199,6 +202,15 @@ export default function App() {
     { id: 'brand_2', nama: 'Saren Bakery', deskripsi: 'Lini varian olahan roti & pastry' },
     { id: 'brand_3', nama: 'Saren Frozen', deskripsi: 'Produk beku siap masak' },
     { id: 'brand_4', nama: 'Dapur Saren', deskripsi: 'Produk bumbu & pelengkap dapur' }
+  ]);
+  const [kategoriSalesList, setKategoriSalesList] = useState([
+    { id: 'kps_1', nama: 'Sosis', deskripsi: 'Kategori berbagai varian sosis' },
+    { id: 'kps_2', nama: 'Nugget', deskripsi: 'Kategori berbagai produk nugget' },
+    { id: 'kps_3', nama: 'Baso', deskripsi: 'Kategori baso sapi & olahan daging' },
+    { id: 'kps_4', nama: 'Roti & Pastry', deskripsi: 'Kategori olahan roti dan kue' },
+    { id: 'kps_5', nama: 'Daging Olahan', deskripsi: 'Kategori olahan daging lain' },
+    { id: 'kps_6', nama: 'Bumbu & Rempah', deskripsi: 'Kategori bumbu siap pakai' },
+    { id: 'kps_7', nama: 'Lainnya', deskripsi: 'Kategori produk umum' }
   ]);
 
   // Modal Control States
@@ -309,11 +321,12 @@ export default function App() {
 
       // Fetch domain produk data
       try {
-        const [pjRes, mktRes, psRes, brRes] = await Promise.all([getPenjualanApi(), getMarketingApi(), getProdukSalesApi(), getBrandProdukApi()]);
+        const [pjRes, mktRes, psRes, brRes, kpsRes] = await Promise.all([getPenjualanApi(), getMarketingApi(), getProdukSalesApi(), getBrandProdukApi(), getKategoriProdukSalesApi()]);
         if (pjRes?.success) setPenjualanList(pjRes.data || []);
         if (mktRes?.success) setMarketingList(mktRes.data || []);
         if (psRes?.success) setProdukSalesList(psRes.data || []);
         if (brRes?.success && (brRes.data || []).length > 0) setBrandList(brRes.data);
+        if (kpsRes?.success && (kpsRes.data || []).length > 0) setKategoriSalesList(kpsRes.data);
       } catch (e) { /* ignore produk domain fetch errors */ }
 
       setBackendConnected(true);
@@ -1388,6 +1401,56 @@ export default function App() {
     }
   };
 
+  const handleCreateKategoriSales = async (data) => {
+    try {
+      const res = await createKategoriProdukSalesApi(data, activeUser);
+      if (res?.success) {
+        showAlert(res.message, 'success', 'Tambah Kategori');
+        fetchAllDataFromBackend(true);
+        return;
+      }
+      const newItem = { id: `kps_${Date.now()}`, ...data };
+      setKategoriSalesList(prev => [newItem, ...prev]);
+      showAlert('Kategori berhasil ditambahkan!', 'success', 'Tambah Kategori');
+    } catch (err) {
+      const newItem = { id: `kps_${Date.now()}`, ...data };
+      setKategoriSalesList(prev => [newItem, ...prev]);
+      showAlert('Kategori berhasil ditambahkan!', 'success', 'Tambah Kategori');
+    }
+  };
+
+  const handleUpdateKategoriSales = async (id, data) => {
+    try {
+      const res = await updateKategoriProdukSalesApi(id, data, activeUser);
+      if (res?.success) {
+        showAlert(res.message, 'success', 'Edit Kategori');
+        fetchAllDataFromBackend(true);
+        return;
+      }
+      setKategoriSalesList(prev => prev.map(k => (k.id === id || k._id === id) ? { ...k, ...data } : k));
+      showAlert('Kategori berhasil diperbarui!', 'success', 'Edit Kategori');
+    } catch (err) {
+      setKategoriSalesList(prev => prev.map(k => (k.id === id || k._id === id) ? { ...k, ...data } : k));
+      showAlert('Kategori berhasil diperbarui!', 'success', 'Edit Kategori');
+    }
+  };
+
+  const handleDeleteKategoriSales = async (id) => {
+    try {
+      const res = await deleteKategoriProdukSalesApi(id, activeUser);
+      if (res?.success) {
+        showAlert(res.message, 'success', 'Hapus Kategori');
+        setKategoriSalesList(prev => prev.filter(k => k.id !== id && k._id !== id));
+        return;
+      }
+      setKategoriSalesList(prev => prev.filter(k => k.id !== id && k._id !== id));
+      showAlert('Kategori berhasil dihapus.', 'info', 'Hapus Kategori');
+    } catch (err) {
+      setKategoriSalesList(prev => prev.filter(k => k.id !== id && k._id !== id));
+      showAlert('Kategori berhasil dihapus.', 'info', 'Hapus Kategori');
+    }
+  };
+
   if (!activeUser) {
     return (
       <>
@@ -1648,6 +1711,7 @@ export default function App() {
             <KatalogProdukSalesTab
               produkSalesList={produkSalesList}
               kategoriList={kategoriProduk}
+              kategoriSalesList={kategoriSalesList}
               brandList={brandList}
               activeRoleView={activeRoleView}
               activeUser={activeUser}
@@ -1657,6 +1721,9 @@ export default function App() {
               onCreateBrand={handleCreateBrand}
               onUpdateBrand={handleUpdateBrand}
               onDeleteBrand={handleDeleteBrand}
+              onCreateKategoriSales={handleCreateKategoriSales}
+              onUpdateKategoriSales={handleUpdateKategoriSales}
+              onDeleteKategoriSales={handleDeleteKategoriSales}
               onOpenPdfPreview={handleOpenPdfPreview}
               showAlert={showAlert}
             />

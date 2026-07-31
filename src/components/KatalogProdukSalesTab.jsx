@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Package, Plus, Search, Edit3, Trash2, FileSpreadsheet, FileText, X, Eye, Boxes, DollarSign, Upload, Download, Tag, Check, AlertCircle } from 'lucide-react';
+import { Package, Plus, Search, Edit3, Trash2, FileSpreadsheet, FileText, X, Eye, Boxes, DollarSign, Upload, Download, Tag, Check, AlertCircle, Layers } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { exportToExcel, exportToPDF } from '../utils/exportUtils';
 
@@ -9,6 +9,7 @@ const STATUS_OPTIONS = ['Tersedia', 'Pre-Order', 'Stok Habis'];
 export default function KatalogProdukSalesTab({
   produkSalesList = [],
   kategoriList = [],
+  kategoriSalesList = [],
   brandList = [],
   activeRoleView,
   activeUser,
@@ -18,6 +19,9 @@ export default function KatalogProdukSalesTab({
   onCreateBrand,
   onUpdateBrand,
   onDeleteBrand,
+  onCreateKategoriSales,
+  onUpdateKategoriSales,
+  onDeleteKategoriSales,
   onOpenPdfPreview,
   showAlert
 }) {
@@ -35,6 +39,11 @@ export default function KatalogProdukSalesTab({
   const [editBrandData, setEditBrandData] = useState(null);
   const [brandForm, setBrandForm] = useState({ nama: '', deskripsi: '' });
 
+  // Kategori Sales Manager Modal State
+  const [showKategoriModal, setShowKategoriModal] = useState(false);
+  const [editKategoriData, setEditKategoriData] = useState(null);
+  const [kategoriForm, setKategoriForm] = useState({ nama: '', deskripsi: '' });
+
   // Excel Import Modal State
   const [showImportModal, setShowImportModal] = useState(false);
   const [importedRows, setImportedRows] = useState([]);
@@ -42,12 +51,27 @@ export default function KatalogProdukSalesTab({
 
   const canEdit = ['ADMIN_PRODUK', 'TIM_PENJUALAN'].includes(activeRoleView);
 
+  // Computed available category options (merge sales specific categories with global list)
+  const availableCategories = useMemo(() => {
+    if (kategoriSalesList && kategoriSalesList.length > 0) return kategoriSalesList;
+    if (kategoriList && kategoriList.length > 0) return kategoriList;
+    return [
+      { id: 'k1', nama: 'Sosis' },
+      { id: 'k2', nama: 'Nugget' },
+      { id: 'k3', nama: 'Baso' },
+      { id: 'k4', nama: 'Roti & Pastry' },
+      { id: 'k5', nama: 'Daging Olahan' },
+      { id: 'k6', nama: 'Bumbu & Rempah' },
+      { id: 'k7', nama: 'Lainnya' }
+    ];
+  }, [kategoriSalesList, kategoriList]);
+
   const emptyForm = {
     sku: '',
     namaProduk: '',
     varian: '',
     gramasi: '',
-    kategori: 'Roti Manis',
+    kategori: availableCategories[0]?.nama || 'Sosis',
     brand: 'Saren One Original',
     hargaJual: 0,
     stokReady: 0,
@@ -73,7 +97,12 @@ export default function KatalogProdukSalesTab({
   // Product CRUD
   const openAdd = () => {
     setEditData(null);
-    setForm({ ...emptyForm, sku: 'SLS-' + String(Math.floor(100 + Math.random() * 900)), brand: brandList[0]?.nama || 'Saren One Original' });
+    setForm({
+      ...emptyForm,
+      sku: 'SLS-' + String(Math.floor(100 + Math.random() * 900)),
+      kategori: availableCategories[0]?.nama || 'Sosis',
+      brand: brandList[0]?.nama || 'Saren One Original'
+    });
     setShowModal(true);
   };
 
@@ -84,7 +113,7 @@ export default function KatalogProdukSalesTab({
       namaProduk: p.namaProduk || '',
       varian: p.varian || '',
       gramasi: p.gramasi || '',
-      kategori: p.kategori || 'Roti Manis',
+      kategori: p.kategori || availableCategories[0]?.nama || 'Sosis',
       brand: p.brand || (brandList[0]?.nama || 'Saren One Original'),
       hargaJual: p.hargaJual || 0,
       stokReady: p.stokReady || 0,
@@ -144,6 +173,39 @@ export default function KatalogProdukSalesTab({
     if (onDeleteBrand) await onDeleteBrand(b.id || b._id);
   };
 
+  // Kategori Sales CRUD
+  const handleOpenKategoriModal = () => {
+    setEditKategoriData(null);
+    setKategoriForm({ nama: '', deskripsi: '' });
+    setShowKategoriModal(true);
+  };
+
+  const handleSaveKategori = async (e) => {
+    e.preventDefault();
+    if (!kategoriForm.nama.trim()) {
+      if (showAlert) showAlert('Nama kategori wajib diisi!', 'error');
+      return;
+    }
+
+    if (editKategoriData && onUpdateKategoriSales) {
+      await onUpdateKategoriSales(editKategoriData.id || editKategoriData._id, kategoriForm);
+    } else if (onCreateKategoriSales) {
+      await onCreateKategoriSales(kategoriForm);
+    }
+    setEditKategoriData(null);
+    setKategoriForm({ nama: '', deskripsi: '' });
+  };
+
+  const handleEditKategori = (k) => {
+    setEditKategoriData(k);
+    setKategoriForm({ nama: k.nama || '', deskripsi: k.deskripsi || '' });
+  };
+
+  const handleDeleteKategoriItem = async (k) => {
+    if (!confirm(`Hapus kategori produk "${k.nama}"?`)) return;
+    if (onDeleteKategoriSales) await onDeleteKategoriSales(k.id || k._id);
+  };
+
   // Export handlers
   const handleExportExcel = () => {
     const headers = ['SKU', 'Nama Produk', 'Brand', 'Kategori', 'Varian', 'Gramasi / Ukuran', 'Harga Jual (Rp)', 'Stok Ready (Pcs)', 'Status'];
@@ -171,27 +233,27 @@ export default function KatalogProdukSalesTab({
     const templateData = [
       {
         'Kode SKU': 'SLS-101',
-        'Nama Produk': 'Roti Keju Spesial',
-        'Kategori': 'Roti Manis',
-        'Brand': 'Saren Bakery',
-        'Varian Rasa': 'Keju Lumer',
-        'Gramasi / Ukuran': '250 gram',
-        'Harga Jual (Rp)': 18000,
-        'Stok Siap Jual': 50,
+        'Nama Produk': 'Sosis Sapi Premium',
+        'Kategori': 'Sosis',
+        'Brand': 'Saren Frozen',
+        'Varian Rasa': 'Original Smoked',
+        'Gramasi / Ukuran': '500 gram (12 Pcs)',
+        'Harga Jual (Rp)': 45000,
+        'Stok Siap Jual': 100,
         'Status': 'Tersedia',
-        'Deskripsi': 'Roti manis lembut isi keju cheddar lumer.'
+        'Deskripsi': 'Sosis daging sapi pilihan berkualitas tinggi.'
       },
       {
         'Kode SKU': 'SLS-102',
-        'Nama Produk': 'Croissant Butter Original',
-        'Kategori': 'Pastry & Danish',
+        'Nama Produk': 'Nugget Ayam Crispy',
+        'Kategori': 'Nugget',
         'Brand': 'Saren One Original',
-        'Varian Rasa': 'Butter Original',
-        'Gramasi / Ukuran': '150 gram',
-        'Harga Jual (Rp)': 22000,
-        'Stok Siap Jual': 30,
+        'Varian Rasa': 'Keju Crispy',
+        'Gramasi / Ukuran': '250 gram',
+        'Harga Jual (Rp)': 28000,
+        'Stok Siap Jual': 80,
         'Status': 'Tersedia',
-        'Deskripsi': 'Croissant butter renyah & gurih.'
+        'Deskripsi': 'Nugget ayam renyah isi keju lumer.'
       }
     ];
 
@@ -199,10 +261,9 @@ export default function KatalogProdukSalesTab({
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Template_Katalog');
 
-    // Auto-width columns
     worksheet['!cols'] = [
       { wch: 12 }, { wch: 28 }, { wch: 18 }, { wch: 20 },
-      { wch: 18 }, { wch: 18 }, { wch: 16 }, { wch: 14 },
+      { wch: 18 }, { wch: 20 }, { wch: 16 }, { wch: 14 },
       { wch: 12 }, { wch: 35 }
     ];
 
@@ -226,7 +287,7 @@ export default function KatalogProdukSalesTab({
         const parsed = rawJson.map((row, idx) => {
           const sku = row['Kode SKU'] || row['SKU'] || `SLS-${Math.floor(100 + Math.random() * 900)}`;
           const namaProduk = row['Nama Produk'] || row['Nama'] || '';
-          const kategori = row['Kategori'] || 'Roti Manis';
+          const kategori = row['Kategori'] || 'Sosis';
           const brand = row['Brand'] || 'Saren One Original';
           const varian = row['Varian Rasa'] || row['Varian'] || '';
           const gramasi = row['Gramasi / Ukuran'] || row['Gramasi'] || '';
@@ -306,6 +367,9 @@ export default function KatalogProdukSalesTab({
         </div>
         {canEdit && (
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <button className="btn btn-outline" onClick={handleOpenKategoriModal}>
+              <Layers size={16} style={{ color: 'var(--cyan)' }} /> Kelola Kategori
+            </button>
             <button className="btn btn-outline" onClick={handleOpenBrandModal}>
               <Tag size={16} style={{ color: 'var(--amber)' }} /> Kelola Brand
             </button>
@@ -330,16 +394,16 @@ export default function KatalogProdukSalesTab({
           <div className="stat-info"><p className="stat-label">Total Varian Produk</p><h3 className="stat-value">{totalVarian}</h3></div>
         </div>
         <div className="stat-card">
+          <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#06b6d4,#0891b2)' }}><Layers size={20} /></div>
+          <div className="stat-info"><p className="stat-label">Total Kategori Sales</p><h3 className="stat-value">{availableCategories.length}</h3></div>
+        </div>
+        <div className="stat-card">
           <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#f59e0b,#d97706)' }}><Tag size={20} /></div>
           <div className="stat-info"><p className="stat-label">Total Brand Aktif</p><h3 className="stat-value">{brandList.length}</h3></div>
         </div>
         <div className="stat-card">
           <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#10b981,#059669)' }}><Boxes size={20} /></div>
           <div className="stat-info"><p className="stat-label">Total Stok Siap Jual</p><h3 className="stat-value">{totalStokReady} Pcs</h3></div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#0ea5e9,#0284c7)' }}><DollarSign size={20} /></div>
-          <div className="stat-info"><p className="stat-label">Nilai Persediaan Produk</p><h3 className="stat-value" style={{ fontSize: '1.05rem' }}>{formatRp(totalNilaiPersediaan)}</h3></div>
         </div>
       </div>
 
@@ -357,7 +421,7 @@ export default function KatalogProdukSalesTab({
 
         <select value={kategoriFilter} onChange={e => setKategoriFilter(e.target.value)} className="select-input" style={{ maxWidth: '170px' }}>
           <option value="">Semua Kategori</option>
-          {kategoriList.map(k => <option key={k.id || k.nama} value={k.nama}>{k.nama}</option>)}
+          {availableCategories.map(k => <option key={k.id || k.nama} value={k.nama}>{k.nama}</option>)}
         </select>
 
         <div className="toolbar-actions">
@@ -449,20 +513,16 @@ export default function KatalogProdukSalesTab({
                 <div className="form-group">
                   <label className="form-label">Kategori Produk *</label>
                   <select className="form-select" value={form.kategori} onChange={e => setForm(f => ({ ...f, kategori: e.target.value }))}>
-                    <option value="Roti Manis">Roti Manis</option>
-                    <option value="Kue & Cake">Kue & Cake</option>
-                    <option value="Pastry & Danish">Pastry & Danish</option>
-                    <option value="Roti Tawar">Roti Tawar</option>
-                    <option value="Lainnya">Lainnya</option>
+                    {availableCategories.map(k => <option key={k.id || k.nama} value={k.nama}>{k.nama}</option>)}
                   </select>
-                </div>
-                <div className="form-group" style={{ gridColumn: '1/-1' }}>
-                  <label className="form-label">Nama Produk Jual *</label>
-                  <input className="form-input" value={form.namaProduk} onChange={e => setForm(f => ({ ...f, namaProduk: e.target.value }))} placeholder="Contoh: Roti Keju Spesial, Croissant Butter" />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Varian Rasa / Jenis</label>
-                  <input className="form-input" value={form.varian} onChange={e => setForm(f => ({ ...f, varian: e.target.value }))} placeholder="Contoh: Keju Cheddar, Cokelat Lumer, Matcha" />
+                  <input className="form-input" value={form.varian} onChange={e => setForm(f => ({ ...f, varian: e.target.value }))} placeholder="Contoh: Keju Cheddar, Original Smoked" />
+                </div>
+                <div className="form-group" style={{ gridColumn: '1/-1' }}>
+                  <label className="form-label">Nama Produk Jual *</label>
+                  <input className="form-input" value={form.namaProduk} onChange={e => setForm(f => ({ ...f, namaProduk: e.target.value }))} placeholder="Contoh: Sosis Sapi Premium, Nugget Ayam Crispy" />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Gramasi / Ukuran Berat</label>
@@ -476,7 +536,7 @@ export default function KatalogProdukSalesTab({
                   <label className="form-label">Stok Siap Jual (Pcs)</label>
                   <input className="form-input" type="number" min={0} value={form.stokReady} onChange={e => setForm(f => ({ ...f, stokReady: e.target.value }))} placeholder="50" />
                 </div>
-                <div className="form-group" style={{ gridColumn: '1/-1' }}>
+                <div className="form-group">
                   <label className="form-label">Status Ketersediaan</label>
                   <select className="form-select" value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
                     {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
@@ -505,7 +565,6 @@ export default function KatalogProdukSalesTab({
               <button className="modal-close" onClick={() => setShowBrandModal(false)}><X size={18} /></button>
             </div>
             <div className="modal-body">
-              {/* Form Tambah / Edit Brand */}
               <form onSubmit={handleSaveBrand} style={{ background: 'var(--bg-secondary)', padding: '1rem', borderRadius: 12, marginBottom: '1.25rem', border: '1px solid var(--border-color)' }}>
                 <h5 style={{ margin: '0 0 0.75rem', color: '#fff', fontSize: '0.95rem' }}>{editBrandData ? '✏️ Edit Brand' : '➕ Tambah Brand Baru'}</h5>
                 <div className="form-grid">
@@ -524,7 +583,6 @@ export default function KatalogProdukSalesTab({
                 </div>
               </form>
 
-              {/* List Table Brand */}
               <div className="table-responsive">
                 <table className="table">
                   <thead>
@@ -562,7 +620,71 @@ export default function KatalogProdukSalesTab({
         </div>
       )}
 
-      {/* MODAL 3: IMPORT EXCEL / CSV PREVIEW MODAL */}
+      {/* MODAL 3: KELOLA KATEGORI PRODUK SALES */}
+      {showKategoriModal && (
+        <div className="modal-overlay" onClick={() => setShowKategoriModal(false)}>
+          <div className="modal-card modal-lg" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3><Layers size={20} style={{ color: 'var(--cyan)' }} /> Kelola Kategori Produk Jual</h3>
+              <button className="modal-close" onClick={() => setShowKategoriModal(false)}><X size={18} /></button>
+            </div>
+            <div className="modal-body">
+              <form onSubmit={handleSaveKategori} style={{ background: 'var(--bg-secondary)', padding: '1rem', borderRadius: 12, marginBottom: '1.25rem', border: '1px solid var(--border-color)' }}>
+                <h5 style={{ margin: '0 0 0.75rem', color: '#fff', fontSize: '0.95rem' }}>{editKategoriData ? '✏️ Edit Kategori' : '➕ Tambah Kategori Baru'}</h5>
+                <div className="form-grid">
+                  <div className="form-group">
+                    <label className="form-label">Nama Kategori *</label>
+                    <input className="form-input" placeholder="Contoh: Sosis, Nugget, Baso, Minuman..." value={kategoriForm.nama} onChange={e => setKategoriForm(f => ({ ...f, nama: e.target.value }))} required />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Deskripsi Keterangan</label>
+                    <input className="form-input" placeholder="Keterangan kategori..." value={kategoriForm.deskripsi} onChange={e => setKategoriForm(f => ({ ...f, deskripsi: e.target.value }))} />
+                  </div>
+                </div>
+                <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                  {editKategoriData && <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setEditKategoriData(null); setKategoriForm({ nama: '', deskripsi: '' }); }}>Batal Edit</button>}
+                  <button type="submit" className="btn btn-primary btn-sm"><Check size={14} /> {editKategoriData ? 'Simpan Edit Kategori' : 'Tambah Kategori'}</button>
+                </div>
+              </form>
+
+              <div className="table-responsive">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Nama Kategori</th>
+                      <th>Deskripsi</th>
+                      <th style={{ textAlign: 'right' }}>Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {availableCategories.length === 0 ? (
+                      <tr><td colSpan={3} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '1.5rem' }}>Belum ada data kategori. Tambahkan kategori baru di atas.</td></tr>
+                    ) : (
+                      availableCategories.map(k => (
+                        <tr key={k.id || k._id}>
+                          <td><strong style={{ color: 'var(--text-primary)' }}>📂 {k.nama}</strong></td>
+                          <td style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{k.deskripsi || '-'}</td>
+                          <td style={{ textAlign: 'right' }}>
+                            <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'flex-end' }}>
+                              <button className="btn btn-sm btn-outline" onClick={() => handleEditKategori(k)} title="Edit Kategori"><Edit3 size={14} /></button>
+                              <button className="btn btn-sm btn-danger" onClick={() => handleDeleteKategoriItem(k)} title="Hapus Kategori"><Trash2 size={14} /></button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setShowKategoriModal(false)}>Selesai</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 4: IMPORT EXCEL / CSV PREVIEW MODAL */}
       {showImportModal && (
         <div className="modal-overlay" onClick={() => setShowImportModal(false)}>
           <div className="modal-card modal-lg" onClick={e => e.stopPropagation()}>
