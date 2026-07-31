@@ -1104,12 +1104,23 @@ export function ModalTambahUtangSupplier({ isOpen, onClose, bahanList = [], supp
   const [catatan, setCatatan] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const sortedBahanList = React.useMemo(() => {
+    return [...bahanList].sort((a, b) => {
+      const numA = parseInt((a.sku || '').replace(/\D/g, '') || '0', 10);
+      const numB = parseInt((b.sku || '').replace(/\D/g, '') || '0', 10);
+      if (numA !== numB) return numA - numB;
+      return (a.sku || '').localeCompare(b.sku || '', undefined, { numeric: true, sensitivity: 'base' });
+    });
+  }, [bahanList]);
+
   useEffect(() => {
     if (isOpen) {
       setNoFaktur('');
       setSupplier(suppliersList.length > 0 ? suppliersList[0].nama : '');
-      if (bahanList.length > 0) {
-        setBahanId(bahanList[0].id || bahanList[0]._id || bahanList[0].sku);
+      if (sortedBahanList.length > 0) {
+        const firstB = sortedBahanList[0];
+        setBahanId(firstB.id || firstB._id || firstB.sku);
+        if (firstB.harga) setHargaSatuan(firstB.harga);
       }
       setJumlah(100);
       setHargaSatuan(0);
@@ -1119,11 +1130,11 @@ export function ModalTambahUtangSupplier({ isOpen, onClose, bahanList = [], supp
       setCatatan('');
       setIsSubmitting(false);
     }
-  }, [isOpen, bahanList, suppliersList]);
+  }, [isOpen, sortedBahanList, suppliersList]);
 
   if (!isOpen) return null;
 
-  const selectedBahan = bahanList.find(b => b.id === bahanId || b._id === bahanId || b.sku === bahanId) || bahanList[0];
+  const selectedBahan = sortedBahanList.find(b => b.id === bahanId || b._id === bahanId || b.sku === bahanId) || sortedBahanList[0];
   const totalTagihan = (parseFloat(jumlah) || 0) * (parseFloat(hargaSatuan) || 0);
   const sisaUtang = Math.max(0, totalTagihan - (parseFloat(dp) || 0));
 
@@ -1217,10 +1228,10 @@ export function ModalTambahUtangSupplier({ isOpen, onClose, bahanList = [], supp
               <label>Pilih Bahan Baku Yang Dibeli</label>
               <select className="select-input" value={bahanId} onChange={e => {
                 setBahanId(e.target.value);
-                const b = bahanList.find(x => (x.id || x._id || x.sku) === e.target.value);
+                const b = sortedBahanList.find(x => (x.id || x._id || x.sku) === e.target.value);
                 if (b && b.harga) setHargaSatuan(b.harga);
               }}>
-                {bahanList.map(b => (
+                {sortedBahanList.map(b => (
                   <option key={b.id || b._id || b.sku} value={b.id || b._id || b.sku}>
                     {b.sku} - {b.nama} (Stok Saat Ini: {b.stok} {b.satuan})
                   </option>
