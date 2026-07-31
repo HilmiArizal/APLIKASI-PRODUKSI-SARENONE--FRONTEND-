@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Package, Plus, Search, Edit3, Trash2, FileSpreadsheet, FileText, X, Eye, Boxes, DollarSign, Upload, Download, Tag, Check, AlertCircle, TrendingUp } from 'lucide-react';
+import { Package, Plus, Search, Edit3, Trash2, FileSpreadsheet, FileText, X, Eye, Boxes, DollarSign, Upload, Download, Tag, Check, AlertCircle } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { exportToExcel, exportToPDF } from '../utils/exportUtils';
 
@@ -54,7 +54,6 @@ export default function KatalogProdukSalesTab({
     gramasi: '',
     brand: safeBrandList[0]?.nama || 'SAREN ONE',
     hargaPabrik: 0,
-    hargaJual: 0,
     stokReady: 0,
     deskripsi: '',
     status: 'Tersedia'
@@ -72,7 +71,7 @@ export default function KatalogProdukSalesTab({
 
   const totalProduk = produkSalesList.length;
   const totalStokReady = useMemo(() => produkSalesList.reduce((s, p) => s + (Number(p.stokReady) || 0), 0), [produkSalesList]);
-  const totalNilaiPersediaan = useMemo(() => produkSalesList.reduce((s, p) => s + ((Number(p.stokReady) || 0) * (Number(p.hargaJual) || 0)), 0), [produkSalesList]);
+  const totalNilaiPersediaanPabrik = useMemo(() => produkSalesList.reduce((s, p) => s + ((Number(p.stokReady) || 0) * (Number(p.hargaPabrik) || 0)), 0), [produkSalesList]);
 
   // Product CRUD
   const openAdd = () => {
@@ -93,7 +92,6 @@ export default function KatalogProdukSalesTab({
       gramasi: p.gramasi || '',
       brand: p.brand || (brandList[0]?.nama || 'SAREN ONE'),
       hargaPabrik: p.hargaPabrik || 0,
-      hargaJual: p.hargaJual || 0,
       stokReady: p.stokReady || 0,
       deskripsi: p.deskripsi || '',
       status: p.status || 'Tersedia'
@@ -103,7 +101,7 @@ export default function KatalogProdukSalesTab({
 
   const handleSubmit = async () => {
     if (!form.namaProduk.trim()) { showAlert('Nama produk wajib diisi!', 'error'); return; }
-    if (!form.hargaJual || form.hargaJual <= 0) { showAlert('Harga jual harus lebih dari 0!', 'error'); return; }
+    if (!form.hargaPabrik || form.hargaPabrik <= 0) { showAlert('Harga pabrik harus lebih dari 0!', 'error'); return; }
 
     if (editData) {
       await onUpdateProdukSales(editData.id || editData._id, form);
@@ -153,17 +151,17 @@ export default function KatalogProdukSalesTab({
 
   // Export handlers
   const handleExportExcel = () => {
-    const headers = ['SKU', 'Nama Produk', 'Brand', 'Gramasi / Ukuran', 'Harga Pabrik (Rp)', 'Harga Jual (Rp)', 'Stok Ready (Pcs)', 'Status'];
-    const rows = filtered.map(p => [p.sku, p.namaProduk, p.brand || 'SAREN ONE', p.gramasi || '-', p.hargaPabrik || 0, p.hargaJual, p.stokReady, p.status]);
+    const headers = ['SKU', 'Nama Produk', 'Brand', 'Gramasi / Ukuran', 'Harga Pabrik (Rp)', 'Stok Ready (Pcs)', 'Status'];
+    const rows = filtered.map(p => [p.sku, p.namaProduk, p.brand || 'SAREN ONE', p.gramasi || '-', p.hargaPabrik || 0, p.stokReady, p.status]);
     exportToExcel('Katalog_Produk_Penjualan', headers, rows);
   };
 
   const handleExportPDF = () => {
-    const headers = ['SKU', 'Nama Produk & Brand', 'Gramasi', 'Harga Pabrik', 'Harga Jual', 'Stok Ready'];
-    const rows = filtered.map(p => [p.sku, `${p.namaProduk}\nBrand: ${p.brand || 'SAREN ONE'}`, p.gramasi || '-', formatRp(p.hargaPabrik), formatRp(p.hargaJual), `${p.stokReady} Pcs`]);
+    const headers = ['SKU', 'Nama Produk & Brand', 'Gramasi', 'Harga Pabrik', 'Stok Ready'];
+    const rows = filtered.map(p => [p.sku, `${p.namaProduk}\nBrand: ${p.brand || 'SAREN ONE'}`, p.gramasi || '-', formatRp(p.hargaPabrik), `${p.stokReady} Pcs`]);
     const config = {
       title: 'Katalog Produk Penjualan & Brand',
-      subtitle: `Daftar produk, brand, harga pabrik, harga jual, dan stok siap jual Saren One.`,
+      subtitle: `Daftar produk, brand, harga pabrik, dan stok siap jual Saren One.`,
       headers,
       rows,
       summaryText: `Total Produk: ${filtered.length} | Total Stok Ready: ${filtered.reduce((a, b) => a + (b.stokReady || 0), 0)} Pcs`,
@@ -182,7 +180,6 @@ export default function KatalogProdukSalesTab({
         'Brand': 'SAREN ONE',
         'Gramasi / Ukuran': '500 gram (12 Pcs)',
         'Harga Pabrik (Rp)': 35000,
-        'Harga Jual (Rp)': 45000,
         'Stok Siap Jual': 100,
         'Status': 'Tersedia',
         'Deskripsi': 'Sosis daging sapi pilihan berkualitas tinggi.'
@@ -193,7 +190,6 @@ export default function KatalogProdukSalesTab({
         'Brand': 'EAT GOW',
         'Gramasi / Ukuran': '500 gram',
         'Harga Pabrik (Rp)': 22000,
-        'Harga Jual (Rp)': 28000,
         'Stok Siap Jual': 80,
         'Status': 'Tersedia',
         'Deskripsi': 'Sosis daging sapi pilihan berkualitas tinggi.'
@@ -206,7 +202,7 @@ export default function KatalogProdukSalesTab({
 
     worksheet['!cols'] = [
       { wch: 12 }, { wch: 28 }, { wch: 20 }, { wch: 20 },
-      { wch: 16 }, { wch: 16 }, { wch: 14 }, { wch: 12 }, { wch: 35 }
+      { wch: 16 }, { wch: 14 }, { wch: 12 }, { wch: 35 }
     ];
 
     XLSX.writeFile(workbook, 'Template_Import_Katalog_Produk_SarenOne.xlsx');
@@ -232,12 +228,11 @@ export default function KatalogProdukSalesTab({
           const brand = row['Brand'] || 'SAREN ONE';
           const gramasi = row['Gramasi / Ukuran'] || row['Gramasi'] || '';
           const hargaPabrik = Number(row['Harga Pabrik (Rp)'] || row['Harga Pabrik'] || 0);
-          const hargaJual = Number(row['Harga Jual (Rp)'] || row['Harga Jual'] || 0);
           const stokReady = Number(row['Stok Siap Jual'] || row['Stok'] || 0);
           const status = row['Status'] || 'Tersedia';
           const deskripsi = row['Deskripsi'] || '';
 
-          const isValid = !!namaProduk && hargaJual > 0;
+          const isValid = !!namaProduk && hargaPabrik > 0;
 
           return {
             id: `import_${idx}_${Date.now()}`,
@@ -246,12 +241,11 @@ export default function KatalogProdukSalesTab({
             brand,
             gramasi,
             hargaPabrik,
-            hargaJual,
             stokReady,
             status,
             deskripsi,
             isValid,
-            errorMsg: !namaProduk ? 'Nama Produk kosong' : (hargaJual <= 0 ? 'Harga Jual 0' : '')
+            errorMsg: !namaProduk ? 'Nama Produk kosong' : (hargaPabrik <= 0 ? 'Harga Pabrik 0' : '')
           };
         });
 
@@ -280,7 +274,6 @@ export default function KatalogProdukSalesTab({
         brand: r.brand,
         gramasi: r.gramasi,
         hargaPabrik: r.hargaPabrik,
-        hargaJual: r.hargaJual,
         stokReady: r.stokReady,
         status: r.status,
         deskripsi: r.deskripsi
@@ -302,7 +295,7 @@ export default function KatalogProdukSalesTab({
       <div className="tab-header">
         <div>
           <h2 className="tab-title"><Package size={24} /> Katalog Produk Penjualan</h2>
-          <p className="tab-subtitle">Kelola katalog produk jual, brand / merek (SAREN ONE, EAT GOW, BEULEUM), harga pabrik, harga jual, &amp; stok siap jual</p>
+          <p className="tab-subtitle">Kelola katalog produk jual, brand / merek (SAREN ONE, EAT GOW, BEULEUM), harga pabrik, &amp; stok siap jual</p>
         </div>
         {canEdit && (
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
@@ -332,7 +325,7 @@ export default function KatalogProdukSalesTab({
         </div>
         <div className="stat-card">
           <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#0ea5e9,#0284c7)' }}><DollarSign size={20} /></div>
-          <div className="stat-info"><p className="stat-label">Nilai Persediaan Produk</p><h3 className="stat-value" style={{ fontSize: '1.05rem' }}>{formatRp(totalNilaiPersediaan)}</h3></div>
+          <div className="stat-info"><p className="stat-label">Nilai Persediaan Modal</p><h3 className="stat-value" style={{ fontSize: '1.05rem' }}>{formatRp(totalNilaiPersediaanPabrik)}</h3></div>
         </div>
       </div>
 
@@ -387,15 +380,11 @@ export default function KatalogProdukSalesTab({
 
               <div>
                 <div style={{ background: 'var(--bg-secondary)', padding: '0.75rem', borderRadius: 10, margin: '0.6rem 0 0.8rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem', fontSize: '0.82rem' }}>
-                    <span style={{ color: 'var(--text-muted)' }}>Harga Pabrik (Modal):</span>
-                    <strong style={{ color: '#0ea5e9' }}>{formatRp(p.hargaPabrik)}</strong>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.9rem' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>Harga Pabrik:</span>
+                    <strong style={{ color: '#0ea5e9', fontSize: '1.1rem' }}>{formatRp(p.hargaPabrik)}</strong>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px dashed var(--border-color)', paddingTop: '0.4rem' }}>
-                    <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Harga Jual:</span>
-                    <strong style={{ fontSize: '1.1rem', color: '#10b981' }}>{formatRp(p.hargaJual)}</strong>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.4rem', paddingTop: '0.4rem', borderTop: '1px solid var(--border-color)', fontSize: '0.8rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.4rem', paddingTop: '0.4rem', borderTop: '1px dashed var(--border-color)', fontSize: '0.8rem' }}>
                     <span style={{ color: 'var(--text-muted)' }}>Stok Ready:</span>
                     <strong style={{ color: 'var(--text-primary)' }}>{p.stokReady} Pcs</strong>
                   </div>
@@ -445,12 +434,8 @@ export default function KatalogProdukSalesTab({
                   <input className="form-input" value={form.gramasi} onChange={e => setForm(f => ({ ...f, gramasi: e.target.value }))} placeholder="Contoh: 250 gram, 500 gram (12 Pcs)" />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Harga Pabrik / Modal per Pcs (Rp)</label>
-                  <input className="form-input" type="number" min={0} value={form.hargaPabrik} onChange={e => setForm(f => ({ ...f, hargaPabrik: e.target.value }))} placeholder="35000" />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Harga Jual per Pcs (Rp) *</label>
-                  <input className="form-input" type="number" min={0} value={form.hargaJual} onChange={e => setForm(f => ({ ...f, hargaJual: e.target.value }))} placeholder="45000" />
+                  <label className="form-label">Harga Pabrik (Rp) *</label>
+                  <input className="form-input" type="number" min={0} value={form.hargaPabrik} onChange={e => setForm(f => ({ ...f, hargaPabrik: e.target.value }))} placeholder="35000" required />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Stok Siap Jual (Pcs)</label>
@@ -555,7 +540,7 @@ export default function KatalogProdukSalesTab({
                     <Download size={36} style={{ color: 'var(--emerald)', marginBottom: '0.5rem' }} />
                     <h4 style={{ margin: '0 0 0.25rem', color: '#fff' }}>1. Unduh Template Excel</h4>
                     <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>
-                      Gunakan format template resmi agar data nama produk, brand, harga pabrik, harga jual, dan stok terisi dengan benar.
+                      Gunakan format template resmi agar data nama produk, brand, harga pabrik, dan stok terisi dengan benar.
                     </p>
                     <button className="btn btn-outline" onClick={handleDownloadTemplate} style={{ marginTop: '0.75rem' }}>
                       <Download size={16} style={{ color: 'var(--emerald)' }} /> Download Template Excel (.xlsx)
@@ -595,7 +580,6 @@ export default function KatalogProdukSalesTab({
                           <th>Nama Produk</th>
                           <th>Brand</th>
                           <th>Harga Pabrik (Rp)</th>
-                          <th>Harga Jual (Rp)</th>
                           <th>Stok Siap Jual</th>
                         </tr>
                       </thead>
@@ -612,8 +596,7 @@ export default function KatalogProdukSalesTab({
                             <td style={{ fontFamily: 'monospace' }}>{r.sku}</td>
                             <td><strong>{r.namaProduk}</strong></td>
                             <td>{r.brand}</td>
-                            <td style={{ color: '#0ea5e9' }}>{formatRp(r.hargaPabrik)}</td>
-                            <td style={{ color: '#10b981', fontWeight: 600 }}>{formatRp(r.hargaJual)}</td>
+                            <td style={{ color: '#0ea5e9', fontWeight: 600 }}>{formatRp(r.hargaPabrik)}</td>
                             <td>{r.stokReady} Pcs</td>
                           </tr>
                         ))}
@@ -649,8 +632,6 @@ export default function KatalogProdukSalesTab({
                 ['Brand Produk', showDetail.brand || 'SAREN ONE'],
                 ['Gramasi / Ukuran', showDetail.gramasi || '-'],
                 ['Harga Pabrik (Modal)', formatRp(showDetail.hargaPabrik)],
-                ['Harga Jual', formatRp(showDetail.hargaJual)],
-                ['Margin Keuntungan', formatRp((showDetail.hargaJual || 0) - (showDetail.hargaPabrik || 0))],
                 ['Stok Siap Jual', `${showDetail.stokReady} Pcs`],
                 ['Status', showDetail.status],
                 ['Dibuat Oleh', showDetail.createdBy || '-']

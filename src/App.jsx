@@ -406,17 +406,17 @@ export default function App() {
         setActiveTab('bahan-baku');
       }
     } else if (activeRoleView === 'ADMIN_PRODUK') {
-      const allowed = ['dashboard-produk', 'katalog-produk', 'stok-produk', 'kategori-produk-sales', 'penjualan', 'marketing', 'user-approval-produk', 'audit-log-produk'];
+      const allowed = ['dashboard-produk', 'katalog-produk', 'stok-produk', 'pelanggan', 'kategori-produk-sales', 'penjualan', 'marketing', 'user-approval-produk', 'audit-log-produk'];
       if (!allowed.includes(activeTab)) {
         setActiveTab('dashboard-produk');
       }
     } else if (activeRoleView === 'TIM_PENJUALAN') {
-      const allowed = ['dashboard-produk', 'katalog-produk', 'stok-produk', 'kategori-produk-sales', 'penjualan'];
+      const allowed = ['dashboard-produk', 'katalog-produk', 'stok-produk', 'pelanggan', 'kategori-produk-sales', 'penjualan'];
       if (!allowed.includes(activeTab)) {
         setActiveTab('dashboard-produk');
       }
     } else if (activeRoleView === 'TIM_MARKETING') {
-      const allowed = ['dashboard-produk', 'katalog-produk', 'stok-produk', 'kategori-produk-sales', 'marketing'];
+      const allowed = ['dashboard-produk', 'katalog-produk', 'stok-produk', 'pelanggan', 'kategori-produk-sales', 'marketing'];
       if (!allowed.includes(activeTab)) {
         setActiveTab('dashboard-produk');
       }
