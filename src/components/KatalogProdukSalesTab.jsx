@@ -382,7 +382,7 @@ export default function KatalogProdukSalesTab({
                 <div style={{ background: 'var(--bg-secondary)', padding: '0.75rem', borderRadius: 10, margin: '0.6rem 0 0.8rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.9rem' }}>
                     <span style={{ color: 'var(--text-muted)' }}>Harga Pabrik:</span>
-                    <strong style={{ color: '#0ea5e9', fontSize: '1.1rem' }}>{formatRp(p.hargaPabrik)}</strong>
+                    <strong style={{ color: '#0ea5e9', fontSize: '1.1rem' }}>{formatRp(p.hargaPabrik || p.hargaJual)}</strong>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.4rem', paddingTop: '0.4rem', borderTop: '1px dashed var(--border-color)', fontSize: '0.8rem' }}>
                     <span style={{ color: 'var(--text-muted)' }}>Stok Ready:</span>
@@ -631,7 +631,7 @@ export default function KatalogProdukSalesTab({
                 ['Nama Produk', showDetail.namaProduk],
                 ['Brand Produk', showDetail.brand || 'SAREN ONE'],
                 ['Gramasi / Ukuran', showDetail.gramasi || '-'],
-                ['Harga Pabrik (Modal)', formatRp(showDetail.hargaPabrik)],
+                ['Harga Pabrik (Modal)', formatRp(showDetail.hargaPabrik || showDetail.hargaJual)],
                 ['Stok Siap Jual', `${showDetail.stokReady} Pcs`],
                 ['Status', showDetail.status],
                 ['Dibuat Oleh', showDetail.createdBy || '-']

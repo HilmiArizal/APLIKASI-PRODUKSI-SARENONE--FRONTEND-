@@ -48,7 +48,7 @@ export default function StokProdukSalesTab({
   const totalItem = produkSalesList.length;
   const totalStokPcs = useMemo(() => produkSalesList.reduce((s, p) => s + (Number(p.stokReady) || 0), 0), [produkSalesList]);
   const lowStockItems = useMemo(() => produkSalesList.filter(p => (Number(p.stokReady) || 0) < 20), [produkSalesList]);
-  const totalNilaiModal = useMemo(() => produkSalesList.reduce((s, p) => s + ((Number(p.stokReady) || 0) * (Number(p.hargaPabrik) || 0)), 0), [produkSalesList]);
+  const totalNilaiModal = useMemo(() => produkSalesList.reduce((s, p) => s + ((Number(p.stokReady) || 0) * (Number(p.hargaPabrik || p.hargaJual) || 0)), 0), [produkSalesList]);
   const totalNilaiJual = useMemo(() => produkSalesList.reduce((s, p) => s + ((Number(p.stokReady) || 0) * (Number(p.hargaJual) || 0)), 0), [produkSalesList]);
 
   const openAdjustModal = (p, type = 'MASUK') => {
