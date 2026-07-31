@@ -1,56 +1,51 @@
 import React from 'react';
-import { LayoutDashboard, Boxes, Package, BookOpen, ChefHat, History, UserCheck, LogOut, X, Layers, FlaskConical, CreditCard, PackageCheck, Building2, ShoppingCart, Receipt } from 'lucide-react';
+import { LayoutDashboard, Boxes, Package, BookOpen, ChefHat, History, UserCheck, LogOut, X, Layers, FlaskConical, CreditCard, PackageCheck, Building2, ShoppingCart, Megaphone, TrendingUp } from 'lucide-react';
 import logoImg from '../assets/logo.png';
 
-export default function Sidebar({
-  activeUser,
-  activeRoleView,
-  activeTab,
-  onSwitchTab,
-  onLogout,
-  lowStockCount,
-  pendingUserCount,
-  isMobileOpen,
-  onCloseMobile
-}) {
+export default function Sidebar({ activeUser, activeRoleView, activeTab, onSwitchTab, onLogout, lowStockCount, pendingUserCount, isMobileOpen, onCloseMobile }) {
+
   const getRoleTitle = (role) => {
-    if (role === 'ADMIN') return 'Super Admin';
+    if (role === 'ADMIN') return 'Super Admin Bahan Baku';
+    if (role === 'ADMIN_PRODUK') return 'Super Admin Produk';
     if (role === 'BAHAN_BAKU') return 'Tim Produksi';
     if (role === 'PEMBELIAN') return 'Tim Pembelian';
+    if (role === 'TIM_PENJUALAN') return 'Tim Penjualan';
+    if (role === 'TIM_MARKETING') return 'Tim Marketing';
     if (role === 'PENDING') return 'Menunggu Approval';
     return role;
   };
 
-  const showBahan = (activeRoleView === 'ADMIN' || activeRoleView === 'BAHAN_BAKU' || activeRoleView === 'PEMBELIAN');
-  const showEmulsi = (activeRoleView === 'ADMIN' || activeRoleView === 'BAHAN_BAKU');
-  const showPembelian = (activeRoleView === 'ADMIN' || activeRoleView === 'PEMBELIAN');
-  const showProduk = (activeRoleView === 'ADMIN' || activeRoleView === 'BAHAN_BAKU');
-  const showAudit = (activeRoleView === 'ADMIN');
+  const isProdukDomain = ['ADMIN_PRODUK', 'TIM_PENJUALAN', 'TIM_MARKETING'].includes(activeRoleView);
 
-  const handleNavClick = (tabName) => {
-    onSwitchTab(tabName);
-    if (onCloseMobile) onCloseMobile();
-  };
+  // Domain Bahan Baku
+  const showBahan = !isProdukDomain && ['ADMIN', 'BAHAN_BAKU', 'PEMBELIAN'].includes(activeRoleView);
+  const showEmulsi = !isProdukDomain && ['ADMIN', 'BAHAN_BAKU'].includes(activeRoleView);
+  const showPembelian = !isProdukDomain && ['ADMIN', 'PEMBELIAN'].includes(activeRoleView);
+  const showProdukMenu = !isProdukDomain && ['ADMIN', 'BAHAN_BAKU'].includes(activeRoleView);
+  const showAudit = !isProdukDomain && activeRoleView === 'ADMIN';
+
+  // Domain Produk
+  const showKatalogProduk = isProdukDomain;
+  const showPenjualan = isProdukDomain && ['ADMIN_PRODUK', 'TIM_PENJUALAN'].includes(activeRoleView);
+  const showMarketing = isProdukDomain && ['ADMIN_PRODUK', 'TIM_MARKETING'].includes(activeRoleView);
+  const showUserApprovalProduk = isProdukDomain && activeRoleView === 'ADMIN_PRODUK';
+  const showAuditProduk = isProdukDomain && activeRoleView === 'ADMIN_PRODUK';
+
+  const nav = (tabName) => { onSwitchTab(tabName); if (onCloseMobile) onCloseMobile(); };
+  const mi = (tab) => `menu-item ${activeTab === tab ? 'active' : ''}`;
 
   return (
     <>
-      {/* MOBILE OVERLAY BACKDROP */}
-      {isMobileOpen && (
-        <div className="sidebar-mobile-backdrop" onClick={onCloseMobile}></div>
-      )}
+      {isMobileOpen && <div className="sidebar-mobile-backdrop" onClick={onCloseMobile} />}
 
       <aside className={`sidebar ${isMobileOpen ? 'mobile-open' : ''}`}>
         <div className="sidebar-brand">
           <img src={logoImg} alt="SAREN ONE" className="sidebar-logo" />
-          <button className="mobile-close-btn" onClick={onCloseMobile}>
-            <X size={20} />
-          </button>
+          <button className="mobile-close-btn" onClick={onCloseMobile}><X size={20} /></button>
         </div>
 
         <div className="user-profile-card">
-          <div className="avatar-icon">
-            {activeUser?.name ? activeUser.name.charAt(0).toUpperCase() : 'A'}
-          </div>
+          <div className="avatar-icon">{activeUser?.name ? activeUser.name.charAt(0).toUpperCase() : 'A'}</div>
           <div className="user-info">
             <h4>{activeUser?.name || 'User'}</h4>
             <span className="role-badge">{getRoleTitle(activeUser?.role)}</span>
@@ -60,143 +55,120 @@ export default function Sidebar({
         <nav className="sidebar-menu">
           <div className="menu-label">NAVIGASI UTAMA</div>
 
-          <a
-            href="#dashboard"
-            className={`menu-item ${activeTab === 'dashboard' ? 'active' : ''}`}
-            onClick={(e) => { e.preventDefault(); handleNavClick('dashboard'); }}
-          >
-            <LayoutDashboard size={18} /> <span>Dashboard Ringkasan</span>
-          </a>
-
-          {showBahan && (
+          {/* ===== DOMAIN BAHAN BAKU ===== */}
+          {!isProdukDomain && (
             <>
-              <a
-                href="#bahan-baku"
-                className={`menu-item ${activeTab === 'bahan-baku' ? 'active' : ''}`}
-                onClick={(e) => { e.preventDefault(); handleNavClick('bahan-baku'); }}
-              >
-                <Boxes size={18} /> <span>Stok Bahan Baku</span>
-                {lowStockCount > 0 && (
-                  <span className="badge badge-amber">{lowStockCount}</span>
-                )}
+              <a href="#dashboard" className={mi('dashboard')} onClick={e => { e.preventDefault(); nav('dashboard'); }}>
+                <LayoutDashboard size={18} /><span>Dashboard Ringkasan</span>
               </a>
 
-              {showEmulsi && (
-                <a
-                  href="#emulsi"
-                  className={`menu-item ${activeTab === 'emulsi' ? 'active' : ''}`}
-                  onClick={(e) => { e.preventDefault(); handleNavClick('emulsi'); }}
-                >
-                  <FlaskConical size={18} /> <span>Pengolahan Emulsi</span>
-                </a>
+              {showBahan && (
+                <>
+                  <a href="#bahan-baku" className={mi('bahan-baku')} onClick={e => { e.preventDefault(); nav('bahan-baku'); }}>
+                    <Boxes size={18} /><span>Stok Bahan Baku</span>
+                    {lowStockCount > 0 && <span className="badge badge-amber">{lowStockCount}</span>}
+                  </a>
+                  {showEmulsi && (
+                    <a href="#emulsi" className={mi('emulsi')} onClick={e => { e.preventDefault(); nav('emulsi'); }}>
+                      <FlaskConical size={18} /><span>Pengolahan Emulsi</span>
+                    </a>
+                  )}
+                </>
+              )}
+
+              {showPembelian && (
+                <>
+                  <a href="#pembelian-bahan" className={mi('pembelian-bahan')} onClick={e => { e.preventDefault(); nav('pembelian-bahan'); }}>
+                    <ShoppingCart size={18} /><span>Pembelian Bahan Baku</span>
+                  </a>
+                  <a href="#penerimaan-bahan" className={mi('penerimaan-bahan')} onClick={e => { e.preventDefault(); nav('penerimaan-bahan'); }}>
+                    <PackageCheck size={18} /><span>Penerimaan Bahan Baku</span>
+                  </a>
+                  <a href="#utang-supplier" className={mi('utang-supplier')} onClick={e => { e.preventDefault(); nav('utang-supplier'); }}>
+                    <CreditCard size={18} /><span>Utang Supplier</span>
+                  </a>
+                </>
+              )}
+
+              {showProdukMenu && (
+                <>
+                  <a href="#produk" className={mi('produk')} onClick={e => { e.preventDefault(); nav('produk'); }}>
+                    <Package size={18} /><span>Katalog &amp; Produksi</span>
+                  </a>
+                  <a href="#resep" className={mi('resep')} onClick={e => { e.preventDefault(); nav('resep'); }}>
+                    <BookOpen size={18} /><span>Manajemen Resep (BOM)</span>
+                  </a>
+                  <a href="#pemakaian-kemasan" className={mi('pemakaian-kemasan')} onClick={e => { e.preventDefault(); nav('pemakaian-kemasan'); }}>
+                    <Package size={18} /><span>Pemakaian Kemasan</span>
+                  </a>
+                  <a href="#riwayat-produksi" className={mi('riwayat-produksi')} onClick={e => { e.preventDefault(); nav('riwayat-produksi'); }}>
+                    <ChefHat size={18} /><span>Riwayat Produksi</span>
+                  </a>
+                </>
+              )}
+
+              {activeRoleView === 'ADMIN' && (
+                <>
+                  <a href="#supplier" className={mi('supplier')} onClick={e => { e.preventDefault(); nav('supplier'); }}>
+                    <Building2 size={18} /><span>Kelola Supplier</span>
+                  </a>
+                  <a href="#kategori" className={mi('kategori')} onClick={e => { e.preventDefault(); nav('kategori'); }}>
+                    <Layers size={18} /><span>Kelola Brand</span>
+                  </a>
+                </>
+              )}
+
+              {showAudit && (
+                <>
+                  <a href="#user-approval" className={mi('user-approval')} onClick={e => { e.preventDefault(); nav('user-approval'); }}>
+                    <UserCheck size={18} /><span>Verifikasi User &amp; Role</span>
+                    {pendingUserCount > 0 && <span className="badge badge-amber">{pendingUserCount}</span>}
+                  </a>
+                  <a href="#audit-log" className={mi('audit-log')} onClick={e => { e.preventDefault(); nav('audit-log'); }}>
+                    <History size={18} /><span>Jurnal Transaksi</span>
+                  </a>
+                </>
               )}
             </>
           )}
 
-          {showPembelian && (
+          {/* ===== DOMAIN PRODUK ===== */}
+          {isProdukDomain && (
             <>
-              <a
-                href="#pembelian-bahan"
-                className={`menu-item ${activeTab === 'pembelian-bahan' ? 'active' : ''}`}
-                onClick={(e) => { e.preventDefault(); handleNavClick('pembelian-bahan'); }}
-              >
-                <ShoppingCart size={18} /> <span>Pembelian Bahan Baku</span>
+              <a href="#dashboard-produk" className={mi('dashboard-produk')} onClick={e => { e.preventDefault(); nav('dashboard-produk'); }}>
+                <LayoutDashboard size={18} /><span>Dashboard Produk</span>
               </a>
 
-              <a
-                href="#penerimaan-bahan"
-                className={`menu-item ${activeTab === 'penerimaan-bahan' ? 'active' : ''}`}
-                onClick={(e) => { e.preventDefault(); handleNavClick('penerimaan-bahan'); }}
-              >
-                <PackageCheck size={18} /> <span>Penerimaan Bahan Baku</span>
-              </a>
+              {showKatalogProduk && (
+                <a href="#katalog-produk" className={mi('katalog-produk')} onClick={e => { e.preventDefault(); nav('katalog-produk'); }}>
+                  <Package size={18} /><span>Katalog Produk</span>
+                </a>
+              )}
 
-              <a
-                href="#utang-supplier"
-                className={`menu-item ${activeTab === 'utang-supplier' ? 'active' : ''}`}
-                onClick={(e) => { e.preventDefault(); handleNavClick('utang-supplier'); }}
-              >
-                <CreditCard size={18} /> <span>Utang Supplier</span>
-              </a>
-            </>
-          )}
+              {showPenjualan && (
+                <a href="#penjualan" className={mi('penjualan')} onClick={e => { e.preventDefault(); nav('penjualan'); }}>
+                  <TrendingUp size={18} /><span>Data Penjualan</span>
+                </a>
+              )}
 
-          {showProduk && (
-            <>
-              <a
-                href="#produk"
-                className={`menu-item ${activeTab === 'produk' ? 'active' : ''}`}
-                onClick={(e) => { e.preventDefault(); handleNavClick('produk'); }}
-              >
-                <Package size={18} /> <span>Katalog & Produksi</span>
-              </a>
+              {showMarketing && (
+                <a href="#marketing" className={mi('marketing')} onClick={e => { e.preventDefault(); nav('marketing'); }}>
+                  <Megaphone size={18} /><span>Program Marketing</span>
+                </a>
+              )}
 
-              <a
-                href="#resep"
-                className={`menu-item ${activeTab === 'resep' ? 'active' : ''}`}
-                onClick={(e) => { e.preventDefault(); handleNavClick('resep'); }}
-              >
-                <BookOpen size={18} /> <span>Manajemen Resep (BOM)</span>
-              </a>
+              {showUserApprovalProduk && (
+                <a href="#user-approval-produk" className={mi('user-approval-produk')} onClick={e => { e.preventDefault(); nav('user-approval-produk'); }}>
+                  <UserCheck size={18} /><span>Verifikasi User</span>
+                  {pendingUserCount > 0 && <span className="badge badge-amber">{pendingUserCount}</span>}
+                </a>
+              )}
 
-              <a
-                href="#pemakaian-kemasan"
-                className={`menu-item ${activeTab === 'pemakaian-kemasan' ? 'active' : ''}`}
-                onClick={(e) => { e.preventDefault(); handleNavClick('pemakaian-kemasan'); }}
-              >
-                <Package size={18} /> <span>Pemakaian Kemasan</span>
-              </a>
-
-              <a
-                href="#riwayat-produksi"
-                className={`menu-item ${activeTab === 'riwayat-produksi' ? 'active' : ''}`}
-                onClick={(e) => { e.preventDefault(); handleNavClick('riwayat-produksi'); }}
-              >
-                <ChefHat size={18} /> <span>Riwayat Produksi</span>
-              </a>
-            </>
-          )}
-
-          {activeRoleView === 'ADMIN' && (
-            <>
-              <a
-                href="#supplier"
-                className={`menu-item ${activeTab === 'supplier' ? 'active' : ''}`}
-                onClick={(e) => { e.preventDefault(); handleNavClick('supplier'); }}
-              >
-                <Building2 size={18} /> <span>Kelola Supplier</span>
-              </a>
-
-              <a
-                href="#kategori"
-                className={`menu-item ${activeTab === 'kategori' ? 'active' : ''}`}
-                onClick={(e) => { e.preventDefault(); handleNavClick('kategori'); }}
-              >
-                <Layers size={18} /> <span>Kelola Brand</span>
-              </a>
-            </>
-          )}
-
-          {showAudit && (
-            <>
-              <a
-                href="#user-approval"
-                className={`menu-item ${activeTab === 'user-approval' ? 'active' : ''}`}
-                onClick={(e) => { e.preventDefault(); handleNavClick('user-approval'); }}
-              >
-                <UserCheck size={18} /> <span>Verifikasi User & Role</span>
-                {pendingUserCount > 0 && (
-                  <span className="badge badge-amber">{pendingUserCount}</span>
-                )}
-              </a>
-
-              <a
-                href="#audit-log"
-                className={`menu-item ${activeTab === 'audit-log' ? 'active' : ''}`}
-                onClick={(e) => { e.preventDefault(); handleNavClick('audit-log'); }}
-              >
-                <History size={18} /> <span>Jurnal Transaksi</span>
-              </a>
+              {showAuditProduk && (
+                <a href="#audit-log-produk" className={mi('audit-log-produk')} onClick={e => { e.preventDefault(); nav('audit-log-produk'); }}>
+                  <History size={18} /><span>Jurnal Aktivitas</span>
+                </a>
+              )}
             </>
           )}
         </nav>

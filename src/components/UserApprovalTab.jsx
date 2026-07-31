@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { UserCheck, Check, X, Trash2, Clock, ShieldCheck, UserPlus, Search, Edit, KeyRound, Filter, Users, ShieldAlert, Sparkles, Eye, EyeOff } from 'lucide-react';
 import PasswordStrengthChecker from './PasswordStrengthChecker';
 
-export default function UserApprovalTab({ users, onApproveUser, onRejectUser, onDeleteUser, onSaveUser, onResetUserPassword, showAlert }) {
+export default function UserApprovalTab({ users, onApproveUser, onRejectUser, onDeleteUser, onSaveUser, onResetUserPassword, showAlert, domainRoles }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -13,12 +13,17 @@ export default function UserApprovalTab({ users, onApproveUser, onRejectUser, on
   const [isModalResetOpen, setIsModalResetOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
 
+  const ROLE_OPTIONS = domainRoles
+    ? domainRoles
+    : ['BAHAN_BAKU', 'PEMBELIAN', 'ADMIN'];
+  const defaultRole = ROLE_OPTIONS[0] || 'BAHAN_BAKU';
+
   // Form Create State
   const [createName, setCreateName] = useState('');
   const [createUsername, setCreateUsername] = useState('');
   const [createEmail, setCreateEmail] = useState('');
   const [createPass, setCreatePass] = useState('');
-  const [createRole, setCreateRole] = useState('BAHAN_BAKU');
+  const [createRole, setCreateRole] = useState(defaultRole);
   const [createStatus, setCreateStatus] = useState('VERIFIED');
   const [showCreatePass, setShowCreatePass] = useState(false);
 
@@ -342,9 +347,7 @@ export default function UserApprovalTab({ users, onApproveUser, onRejectUser, on
                   <div className="form-group">
                     <label>Penugasan Role / Divisi *</label>
                     <select className="select-input" value={createRole} onChange={(e) => setCreateRole(e.target.value)} style={{ width: '100%' }}>
-                      <option value="BAHAN_BAKU">🏭 Tim Produksi</option>
-                      <option value="PEMBELIAN">🛒 Tim Pembelian &amp; Utang Supplier</option>
-                      <option value="ADMIN">🔑 Super Admin</option>
+                      {ROLE_OPTIONS.map(r => <option key={r} value={r}>{r === 'BAHAN_BAKU' ? '🏭 Tim Produksi' : r === 'PEMBELIAN' ? '🛒 Tim Pembelian' : r === 'ADMIN' ? '🔑 Super Admin BB' : r === 'TIM_PENJUALAN' ? '🛒 Tim Penjualan' : r === 'TIM_MARKETING' ? '📣 Tim Marketing' : r}</option>)}
                     </select>
                   </div>
                   <div className="form-group">
@@ -395,9 +398,7 @@ export default function UserApprovalTab({ users, onApproveUser, onRejectUser, on
                   <div className="form-group">
                     <label>Peran / Role Aktif *</label>
                     <select className="select-input" value={editRole} onChange={(e) => setEditRole(e.target.value)} style={{ width: '100%' }}>
-                      <option value="BAHAN_BAKU">🏭 Tim Produksi</option>
-                      <option value="PEMBELIAN">🛒 Tim Pembelian &amp; Utang Supplier</option>
-                      <option value="ADMIN">🔑 Super Admin</option>
+                      {ROLE_OPTIONS.map(r => <option key={r} value={r}>{r === 'BAHAN_BAKU' ? '🏭 Tim Produksi' : r === 'PEMBELIAN' ? '🛒 Tim Pembelian' : r === 'ADMIN' ? '🔑 Super Admin BB' : r === 'TIM_PENJUALAN' ? '🛒 Tim Penjualan' : r === 'TIM_MARKETING' ? '📣 Tim Marketing' : r}</option>)}
                     </select>
                   </div>
                   <div className="form-group">

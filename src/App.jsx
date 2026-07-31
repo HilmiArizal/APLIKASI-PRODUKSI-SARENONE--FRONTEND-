@@ -18,6 +18,8 @@ import PembelianBahanTab from './components/PembelianBahanTab';
 import PenerimaanBahanTab from './components/PenerimaanBahanTab';
 import SupplierTab from './components/SupplierTab';
 import PendingApprovalView from './components/PendingApprovalView';
+import PenjualanTab from './components/PenjualanTab';
+import MarketingTab from './components/MarketingTab';
 
 import {
   ModalBahan,
@@ -92,7 +94,15 @@ import {
   getSuppliersApi,
   createSupplierApi,
   updateSupplierApi,
-  deleteSupplierApi
+  deleteSupplierApi,
+  getPenjualanApi,
+  createPenjualanApi,
+  updatePenjualanApi,
+  deletePenjualanApi,
+  getMarketingApi,
+  createMarketingApi,
+  updateMarketingApi,
+  deleteMarketingApi
 } from './services/api';
 
 const STORAGE_KEYS = {
@@ -172,6 +182,8 @@ export default function App() {
 
   const [utangList, setUtangList] = useState([]);
   const [suppliersList, setSuppliersList] = useState([]);
+  const [penjualanList, setPenjualanList] = useState([]);
+  const [marketingList, setMarketingList] = useState([]);
 
   // Modal Control States
   const [isModalBahanOpen, setIsModalBahanOpen] = useState(false);
@@ -265,6 +277,13 @@ export default function App() {
         setSuppliersList(cleaned);
       }
 
+      // Fetch domain produk data
+      try {
+        const [pjRes, mktRes] = await Promise.all([getPenjualanApi(), getMarketingApi()]);
+        if (pjRes?.success) setPenjualanList(pjRes.data || []);
+        if (mktRes?.success) setMarketingList(mktRes.data || []);
+      } catch (e) { /* ignore produk domain fetch errors */ }
+
       setBackendConnected(true);
     } catch (err) {
       if (!silent) console.warn('Backend API Offline, menggunakan LocalStorage:', err);
@@ -335,6 +354,21 @@ export default function App() {
       const allowed = ['dashboard', 'bahan-baku', 'penerimaan-bahan', 'emulsi', 'produk', 'resep', 'pemakaian-kemasan', 'riwayat-produksi'];
       if (!allowed.includes(activeTab)) {
         setActiveTab('bahan-baku');
+      }
+    } else if (activeRoleView === 'ADMIN_PRODUK') {
+      const allowed = ['dashboard-produk', 'katalog-produk', 'penjualan', 'marketing', 'user-approval-produk', 'audit-log-produk'];
+      if (!allowed.includes(activeTab)) {
+        setActiveTab('dashboard-produk');
+      }
+    } else if (activeRoleView === 'TIM_PENJUALAN') {
+      const allowed = ['dashboard-produk', 'katalog-produk', 'penjualan'];
+      if (!allowed.includes(activeTab)) {
+        setActiveTab('dashboard-produk');
+      }
+    } else if (activeRoleView === 'TIM_MARKETING') {
+      const allowed = ['dashboard-produk', 'katalog-produk', 'marketing'];
+      if (!allowed.includes(activeTab)) {
+        setActiveTab('dashboard-produk');
       }
     }
   }, [activeRoleView, activeTab]);
@@ -1100,6 +1134,96 @@ export default function App() {
     }
   };
 
+  // === PENJUALAN HANDLERS (Domain Produk) ===
+  const handleCreatePenjualan = async (data) => {
+    try {
+      const res = await createPenjualanApi(data, activeUser);
+      if (res?.success) {
+        showAlert(res.message || 'Penjualan berhasil dicatat!', 'success', 'Penjualan Dicatat! 🛒');
+        fetchAllDataFromBackend(true);
+      } else {
+        showAlert(res?.message || 'Gagal menyimpan penjualan.', 'error', 'Gagal Simpan');
+      }
+    } catch (err) {
+      showAlert('Error: ' + err.message, 'error', 'Gagal Simpan');
+    }
+  };
+
+  const handleUpdatePenjualan = async (id, data) => {
+    try {
+      const res = await updatePenjualanApi(id, data, activeUser);
+      if (res?.success) {
+        showAlert('Penjualan berhasil diperbarui!', 'success', 'Penjualan Diupdate');
+        fetchAllDataFromBackend(true);
+      } else {
+        showAlert(res?.message || 'Gagal memperbarui penjualan.', 'error', 'Gagal Update');
+      }
+    } catch (err) {
+      showAlert('Error: ' + err.message, 'error', 'Gagal Update');
+    }
+  };
+
+  const handleDeletePenjualan = async (id) => {
+    try {
+      const res = await deletePenjualanApi(id, activeUser);
+      if (res?.success) {
+        showAlert('Data penjualan berhasil dihapus!', 'success', 'Penjualan Dihapus');
+        fetchAllDataFromBackend(true);
+      } else {
+        setPenjualanList(prev => prev.filter(p => p.id !== id && p._id !== id));
+        showAlert('Data penjualan berhasil dihapus!', 'success', 'Penjualan Dihapus');
+      }
+    } catch (err) {
+      setPenjualanList(prev => prev.filter(p => p.id !== id && p._id !== id));
+      showAlert('Data penjualan berhasil dihapus!', 'success', 'Penjualan Dihapus');
+    }
+  };
+
+  // === MARKETING HANDLERS (Domain Produk) ===
+  const handleCreateMarketing = async (data) => {
+    try {
+      const res = await createMarketingApi(data, activeUser);
+      if (res?.success) {
+        showAlert(res.message || 'Program marketing berhasil dibuat!', 'success', 'Program Dibuat! 📣');
+        fetchAllDataFromBackend(true);
+      } else {
+        showAlert(res?.message || 'Gagal membuat program marketing.', 'error', 'Gagal Simpan');
+      }
+    } catch (err) {
+      showAlert('Error: ' + err.message, 'error', 'Gagal Simpan');
+    }
+  };
+
+  const handleUpdateMarketing = async (id, data) => {
+    try {
+      const res = await updateMarketingApi(id, data, activeUser);
+      if (res?.success) {
+        showAlert('Program marketing berhasil diperbarui!', 'success', 'Marketing Diupdate');
+        fetchAllDataFromBackend(true);
+      } else {
+        showAlert(res?.message || 'Gagal memperbarui program.', 'error', 'Gagal Update');
+      }
+    } catch (err) {
+      showAlert('Error: ' + err.message, 'error', 'Gagal Update');
+    }
+  };
+
+  const handleDeleteMarketing = async (id) => {
+    try {
+      const res = await deleteMarketingApi(id, activeUser);
+      if (res?.success) {
+        showAlert('Program marketing berhasil dihapus!', 'success', 'Program Dihapus');
+        fetchAllDataFromBackend(true);
+      } else {
+        setMarketingList(prev => prev.filter(m => m.id !== id && m._id !== id));
+        showAlert('Program marketing berhasil dihapus!', 'success', 'Program Dihapus');
+      }
+    } catch (err) {
+      setMarketingList(prev => prev.filter(m => m.id !== id && m._id !== id));
+      showAlert('Program marketing berhasil dihapus!', 'success', 'Program Dihapus');
+    }
+  };
+
   if (!activeUser) {
     return (
       <>
@@ -1315,6 +1439,101 @@ export default function App() {
           {activeTab === 'audit-log' && (
             <AuditLogTab
               auditLog={auditLog}
+              activeRoleView={activeRoleView}
+              onOpenPdfPreview={handleOpenPdfPreview}
+              onDeleteLog={handleDeleteAuditLog}
+              onClearAllLogs={handleClearAllAuditLogs}
+            />
+          )}
+
+          {/* ===== DOMAIN PRODUK TABS ===== */}
+          {activeTab === 'dashboard-produk' && (
+            <div className="tab-container">
+              <div className="tab-header">
+                <div>
+                  <h2 className="tab-title">📊 Dashboard Produk</h2>
+                  <p className="tab-subtitle">Ringkasan performa penjualan & marketing</p>
+                </div>
+              </div>
+              <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
+                <div className="stat-card">
+                  <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}>🛒</div>
+                  <div className="stat-info"><p className="stat-label">Total Transaksi Penjualan</p><h3 className="stat-value">{penjualanList.length}</h3></div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#10b981,#059669)' }}>💰</div>
+                  <div className="stat-info"><p className="stat-label">Total Omzet</p><h3 className="stat-value" style={{ fontSize: '1rem' }}>Rp {penjualanList.reduce((s, p) => s + (p.totalBersih || 0), 0).toLocaleString('id-ID')}</h3></div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#f59e0b,#d97706)' }}>📣</div>
+                  <div className="stat-info"><p className="stat-label">Program Marketing Aktif</p><h3 className="stat-value">{marketingList.filter(m => m.status === 'Aktif').length}</h3></div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#0ea5e9,#0284c7)' }}>👥</div>
+                  <div className="stat-info"><p className="stat-label">Total Pelanggan Unik</p><h3 className="stat-value">{new Set(penjualanList.map(p => p.namaPelanggan)).size}</h3></div>
+                </div>
+              </div>
+              <div style={{ marginTop: '2rem', padding: '2rem', background: 'var(--bg-card)', borderRadius: 14, border: '1px solid var(--border-color)', textAlign: 'center', color: 'var(--text-muted)' }}>
+                📊 Grafik & laporan mendalam akan segera hadir. Gunakan menu <strong>Data Penjualan</strong> & <strong>Program Marketing</strong> di sidebar untuk mengelola data.
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'katalog-produk' && (
+            <div className="tab-container">
+              <div className="tab-header">
+                <div>
+                  <h2 className="tab-title">📦 Katalog Produk</h2>
+                  <p className="tab-subtitle">Daftar produk yang tersedia untuk dijual</p>
+                </div>
+              </div>
+              <div style={{ padding: '2rem', background: 'var(--bg-card)', borderRadius: 14, border: '2px dashed var(--border-color)', textAlign: 'center', color: 'var(--text-muted)' }}>
+                📦 Katalog produk domain penjualan sedang dalam pengembangan.<br />
+                <small>Data ini terpisah dari katalog produksi internal dan akan dikelola oleh tim Super Admin Produk.</small>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'penjualan' && (
+            <PenjualanTab
+              penjualanList={penjualanList}
+              activeRoleView={activeRoleView}
+              activeUser={activeUser}
+              onCreatePenjualan={handleCreatePenjualan}
+              onUpdatePenjualan={handleUpdatePenjualan}
+              onDeletePenjualan={handleDeletePenjualan}
+              showAlert={showAlert}
+            />
+          )}
+
+          {activeTab === 'marketing' && (
+            <MarketingTab
+              marketingList={marketingList}
+              activeRoleView={activeRoleView}
+              activeUser={activeUser}
+              onCreateMarketing={handleCreateMarketing}
+              onUpdateMarketing={handleUpdateMarketing}
+              onDeleteMarketing={handleDeleteMarketing}
+              showAlert={showAlert}
+            />
+          )}
+
+          {activeTab === 'user-approval-produk' && (
+            <UserApprovalTab
+              users={users.filter(u => ['TIM_PENJUALAN', 'TIM_MARKETING', 'PENDING'].includes(u.role) || (u.status === 'PENDING' && ['TIM_PENJUALAN', 'TIM_MARKETING'].includes(u.requestedRole)))}
+              onApproveUser={handleApproveUser}
+              onRejectUser={handleRejectUser}
+              onDeleteUser={handleDeleteUser}
+              onSaveUser={handleSaveUser}
+              onResetUserPassword={handleResetUserPassword}
+              showAlert={showAlert}
+              domainRoles={['TIM_PENJUALAN', 'TIM_MARKETING']}
+            />
+          )}
+
+          {activeTab === 'audit-log-produk' && (
+            <AuditLogTab
+              auditLog={auditLog.filter(l => ['TIM_PENJUALAN', 'TIM_MARKETING', 'ADMIN_PRODUK'].includes(l.role))}
               activeRoleView={activeRoleView}
               onOpenPdfPreview={handleOpenPdfPreview}
               onDeleteLog={handleDeleteAuditLog}

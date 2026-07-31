@@ -348,3 +348,56 @@ export async function deleteSupplierApi(id, activeUser) {
     body: JSON.stringify({ user: activeUser })
   });
 }
+
+// 10. PENJUALAN (Domain Produk)
+export async function getPenjualanApi() {
+  return request('/penjualan');
+}
+
+export async function createPenjualanApi(data, activeUser) {
+  return request('/penjualan', {
+    method: 'POST',
+    body: JSON.stringify({ ...data, user: activeUser })
+  });
+}
+
+export async function updatePenjualanApi(id, data, activeUser) {
+  return request(`/penjualan/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ ...data, user: activeUser })
+  });
+}
+
+export async function deletePenjualanApi(id, activeUser) {
+  return request(`/penjualan/${id}`, {
+    method: 'DELETE',
+    body: JSON.stringify({ user: activeUser })
+  });
+}
+
+// 11. MARKETING (Domain Produk)
+export async function getMarketingApi() {
+  return request('/marketing');
+}
+
+export async function createMarketingApi(data, activeUser) {
+  return request('/marketing', {
+    method: 'POST',
+    body: JSON.stringify({ ...data, user: activeUser })
+  });
+}
+
+export async function updateMarketingApi(id, data, activeUser) {
+  return request(`/marketing/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ ...data, user: activeUser })
+  });
+}
+
+export async function deleteMarketingApi(id, activeUser) {
+  return request(`/marketing/${id}`, {
+    method: 'DELETE',
+    body: JSON.stringify({ user: activeUser })
+  });
+}
+
