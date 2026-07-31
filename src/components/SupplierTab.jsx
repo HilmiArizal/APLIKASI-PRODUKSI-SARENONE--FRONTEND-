@@ -253,7 +253,7 @@ export default function SupplierTab({
             {filteredList.length === 0 ? (
               <tr>
                 <td colSpan={6} style={{ textAlign: 'center', padding: '2.5rem' }} className="text-muted">
-                  Belum ada supplier yang sesuai dengan kata kunci pencarian.
+                  Belum ada data supplier. Silakan masukkan supplier pertama Anda via form di atas (Dimulai dari Kode S1).
                 </td>
               </tr>
             ) : (
