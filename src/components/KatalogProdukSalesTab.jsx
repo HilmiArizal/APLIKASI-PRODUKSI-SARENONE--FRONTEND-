@@ -177,8 +177,8 @@ export default function KatalogProdukSalesTab({
   const handleDownloadTemplate = () => {
     const templateData = [
       {
-        'Kode SKU': 'SLS-101',
-        'Nama Produk': 'Sosis Sapi Premium',
+        'Kode SKU': 'P1',
+        'Nama Produk': 'Red Cocktail Sausage500gr',
         'Brand': 'SAREN ONE',
         'Varian Rasa': 'Original Smoked',
         'Gramasi / Ukuran': '500 gram (12 Pcs)',
@@ -188,15 +188,15 @@ export default function KatalogProdukSalesTab({
         'Deskripsi': 'Sosis daging sapi pilihan berkualitas tinggi.'
       },
       {
-        'Kode SKU': 'SLS-102',
-        'Nama Produk': 'Nugget Ayam Crispy',
+        'Kode SKU': 'P2',
+        'Nama Produk': 'Sosis Cocktail Merah 500gr',
         'Brand': 'EAT GOW',
-        'Varian Rasa': 'Keju Crispy',
+        'Varian Rasa': 'Original Smoked',
         'Gramasi / Ukuran': '250 gram',
         'Harga Jual (Rp)': 28000,
         'Stok Siap Jual': 80,
         'Status': 'Tersedia',
-        'Deskripsi': 'Nugget ayam renyah isi keju lumer.'
+        'Deskripsi': 'Sosis daging sapi pilihan berkualitas tinggi.'
       }
     ];
 
