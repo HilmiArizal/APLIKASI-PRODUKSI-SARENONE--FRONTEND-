@@ -1,5 +1,4 @@
 export const DEFAULT_USERS = [
-  // SUPER ADMIN (UTAMA) - USERNAME: admin, PASSWORD: admin
   {
     id: 'u1',
     username: 'admin',
@@ -10,6 +9,17 @@ export const DEFAULT_USERS = [
     status: 'VERIFIED',
     provider: 'local',
     createdAt: '2026-07-20 08:00'
+  },
+  {
+    id: 'u_admin_produk',
+    username: 'admin_produk',
+    email: 'admin_produk@sarenone.com',
+    pass: 'Adminproduk@123',
+    name: 'Super Admin Produk',
+    role: 'ADMIN_PRODUK',
+    status: 'VERIFIED',
+    provider: 'local',
+    createdAt: '2026-07-30 00:00'
   }
 ];
 
