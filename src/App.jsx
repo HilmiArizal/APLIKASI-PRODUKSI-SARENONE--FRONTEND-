@@ -268,7 +268,21 @@ export default function App() {
         getSuppliersApi()
       ]);
 
-      if (uRes?.success) setUsers(uRes.data);
+      if (uRes?.success && Array.isArray(uRes.data)) {
+        try {
+          const savedOverrides = JSON.parse(localStorage.getItem('SAREN_USER_ROLE_OVERRIDES') || '{}');
+          const merged = uRes.data.map(u => {
+            const k = u.username || u.id;
+            if (k && savedOverrides[k]) {
+              return { ...u, role: savedOverrides[k], requestedRole: savedOverrides[k] };
+            }
+            return u;
+          });
+          setUsers(merged);
+        } catch (e) {
+          setUsers(uRes.data);
+        }
+      }
       if (kpRes?.success) setKategoriProduk(kpRes.data);
       if (kbRes?.success) setKategoriBahanBaku(kbRes.data);
       if (bRes?.success) setBahanBaku(bRes.data);
@@ -535,7 +549,21 @@ export default function App() {
 
   const handleSaveUser = async (userData) => {
     if (userData.id) {
-      setUsers(prev => prev.map(u => (u.id === userData.id || u._id === userData.id || u.username === userData.username) ? { ...u, role: userData.role, status: 'VERIFIED' } : u));
+      const key = userData.username || userData.id;
+      if (key && userData.role) {
+        try {
+          const savedOverrides = JSON.parse(localStorage.getItem('SAREN_USER_ROLE_OVERRIDES') || '{}');
+          savedOverrides[key] = userData.role;
+          localStorage.setItem('SAREN_USER_ROLE_OVERRIDES', JSON.stringify(savedOverrides));
+        } catch (e) {}
+      }
+
+      setUsers(prev => {
+        const updated = prev.map(u => (u.id === userData.id || u._id === userData.id || u.username === userData.username) ? { ...u, role: userData.role, requestedRole: userData.role, status: 'VERIFIED' } : u);
+        localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(updated));
+        return updated;
+      });
+
       const res = await updateUserApi(userData.id, userData);
       if (res?.success) {
         showAlert(res.message, 'success', 'Role Staf Berhasil Diubah! ✨');
