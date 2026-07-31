@@ -306,16 +306,9 @@ export default function KatalogProdukSalesTab({
         </div>
         {canEdit && (
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-            <button className="btn btn-outline" onClick={handleOpenBrandModal}>
-              <Tag size={16} style={{ color: 'var(--amber)' }} /> Kelola Brand
+            <button className="btn btn-outline" onClick={() => { setImportedRows([]); setShowImportModal(true); }} title="Import Produk & Download Template Excel">
+              <Upload size={16} style={{ color: 'var(--cyan)' }} /> Import Excel
             </button>
-            <button className="btn btn-outline" onClick={handleDownloadTemplate} title="Download Template Excel Import Produk">
-              <Download size={16} style={{ color: 'var(--emerald)' }} /> Download Template
-            </button>
-            <label className="btn btn-outline" style={{ cursor: 'pointer' }} title="Upload File Excel / CSV">
-              <Upload size={16} style={{ color: 'var(--cyan)' }} /> Upload Excel
-              <input type="file" accept=".xlsx, .xls, .csv" onChange={handleFileUpload} style={{ display: 'none' }} />
-            </label>
             <button className="btn btn-primary" onClick={openAdd}>
               <Plus size={16} /> Tambah Produk Jual
             </button>
@@ -544,60 +537,94 @@ export default function KatalogProdukSalesTab({
         </div>
       )}
 
-      {/* MODAL 3: IMPORT EXCEL / CSV PREVIEW MODAL */}
+      {/* MODAL 3: IMPORT EXCEL & TEMPLATE DOWNLOAD MODAL */}
       {showImportModal && (
         <div className="modal-overlay" onClick={() => setShowImportModal(false)}>
           <div className="modal-card modal-lg" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h3><Upload size={20} style={{ color: 'var(--cyan)' }} /> Preview Import Produk dari Excel</h3>
+              <h3><Upload size={20} style={{ color: 'var(--cyan)' }} /> Import Katalog Produk dari Excel</h3>
               <button className="modal-close" onClick={() => setShowImportModal(false)}><X size={18} /></button>
             </div>
             <div className="modal-body">
-              <div style={{ background: 'var(--bg-secondary)', padding: '0.75rem 1rem', borderRadius: 10, marginBottom: '1rem', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                  Total Produk Terbaca: <strong style={{ color: '#fff' }}>{importedRows.length}</strong> | Valid: <strong style={{ color: '#10b981' }}>{importedRows.filter(r => r.isValid).length}</strong>
-                </span>
-                <span style={{ fontSize: '0.8rem', color: 'var(--emerald)' }}>✓ Data siap di-import</span>
-              </div>
+              {importedRows.length === 0 ? (
+                <div style={{ padding: '1.5rem', background: 'var(--bg-secondary)', borderRadius: 12, border: '1px dashed var(--border-color)', textAlign: 'center' }}>
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <Download size={36} style={{ color: 'var(--emerald)', marginBottom: '0.5rem' }} />
+                    <h4 style={{ margin: '0 0 0.25rem', color: '#fff' }}>1. Unduh Template Excel</h4>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>
+                      Gunakan format template resmi agar data nama produk, brand, harga, dan stok terisi dengan benar.
+                    </p>
+                    <button className="btn btn-outline" onClick={handleDownloadTemplate} style={{ marginTop: '0.75rem' }}>
+                      <Download size={16} style={{ color: 'var(--emerald)' }} /> Download Template Excel (.xlsx)
+                    </button>
+                  </div>
 
-              <div className="table-responsive" style={{ maxHeight: '350px' }}>
-                <table className="table" style={{ fontSize: '0.82rem' }}>
-                  <thead>
-                    <tr>
-                      <th>Status</th>
-                      <th>SKU</th>
-                      <th>Nama Produk</th>
-                      <th>Brand</th>
-                      <th>Harga (Rp)</th>
-                      <th>Stok Siap Jual</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {importedRows.map((r, i) => (
-                      <tr key={i} style={{ opacity: r.isValid ? 1 : 0.6 }}>
-                        <td>
-                          {r.isValid ? (
-                            <span className="badge badge-emerald">✓ Valid</span>
-                          ) : (
-                            <span className="badge badge-danger" title={r.errorMsg}><AlertCircle size={12} /> {r.errorMsg}</span>
-                          )}
-                        </td>
-                        <td style={{ fontFamily: 'monospace' }}>{r.sku}</td>
-                        <td><strong>{r.namaProduk}</strong></td>
-                        <td>{r.brand}</td>
-                        <td style={{ color: '#10b981', fontWeight: 600 }}>{formatRp(r.hargaJual)}</td>
-                        <td>{r.stokReady} Pcs</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1.5rem' }}>
+                    <Upload size={36} style={{ color: 'var(--cyan)', marginBottom: '0.5rem' }} />
+                    <h4 style={{ margin: '0 0 0.25rem', color: '#fff' }}>2. Upload File Excel Yang Sudah Diisi</h4>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+                      Pilih file .xlsx, .xls, atau .csv dari komputer Anda.
+                    </p>
+                    <label className="btn btn-primary" style={{ cursor: 'pointer', display: 'inline-flex' }}>
+                      <Upload size={16} /> Pilih File Excel...
+                      <input type="file" accept=".xlsx, .xls, .csv" onChange={handleFileUpload} style={{ display: 'none' }} />
+                    </label>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div style={{ background: 'var(--bg-secondary)', padding: '0.75rem 1rem', borderRadius: 10, marginBottom: '1rem', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                      Total Produk Terbaca: <strong style={{ color: '#fff' }}>{importedRows.length}</strong> | Valid: <strong style={{ color: '#10b981' }}>{importedRows.filter(r => r.isValid).length}</strong>
+                    </span>
+                    <label className="btn btn-sm btn-outline" style={{ cursor: 'pointer' }}>
+                      🔄 Pilih File Lain
+                      <input type="file" accept=".xlsx, .xls, .csv" onChange={handleFileUpload} style={{ display: 'none' }} />
+                    </label>
+                  </div>
+
+                  <div className="table-responsive" style={{ maxHeight: '350px' }}>
+                    <table className="table" style={{ fontSize: '0.82rem' }}>
+                      <thead>
+                        <tr>
+                          <th>Status</th>
+                          <th>SKU</th>
+                          <th>Nama Produk</th>
+                          <th>Brand</th>
+                          <th>Harga (Rp)</th>
+                          <th>Stok Siap Jual</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {importedRows.map((r, i) => (
+                          <tr key={i} style={{ opacity: r.isValid ? 1 : 0.6 }}>
+                            <td>
+                              {r.isValid ? (
+                                <span className="badge badge-emerald">✓ Valid</span>
+                              ) : (
+                                <span className="badge badge-danger" title={r.errorMsg}><AlertCircle size={12} /> {r.errorMsg}</span>
+                              )}
+                            </td>
+                            <td style={{ fontFamily: 'monospace' }}>{r.sku}</td>
+                            <td><strong>{r.namaProduk}</strong></td>
+                            <td>{r.brand}</td>
+                            <td style={{ color: '#10b981', fontWeight: 600 }}>{formatRp(r.hargaJual)}</td>
+                            <td>{r.stokReady} Pcs</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
             </div>
             <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setShowImportModal(false)}>Batal</button>
-              <button className="btn btn-primary" onClick={handleConfirmImport} disabled={isImporting || importedRows.filter(r => r.isValid).length === 0}>
-                <Check size={16} /> {isImporting ? 'Meng-import...' : `Konfirmasi Import (${importedRows.filter(r => r.isValid).length} Produk)`}
-              </button>
+              <button className="btn btn-secondary" onClick={() => { setShowImportModal(false); setImportedRows([]); }}>Batal</button>
+              {importedRows.length > 0 && (
+                <button className="btn btn-primary" onClick={handleConfirmImport} disabled={isImporting || importedRows.filter(r => r.isValid).length === 0}>
+                  <Check size={16} /> {isImporting ? 'Meng-import...' : `Konfirmasi Import (${importedRows.filter(r => r.isValid).length} Produk)`}
+                </button>
+              )}
             </div>
           </div>
         </div>
