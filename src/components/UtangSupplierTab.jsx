@@ -48,6 +48,23 @@ export default function UtangSupplierTab({
 
   const totalFakturBelumLunas = utangList.filter(x => x.status !== 'LUNAS').length;
 
+  const handleDeleteClick = (item) => {
+    const targetId = item.id || item._id || item.noFaktur;
+    if (showAlert) {
+      showAlert(
+        `Hapus faktur utang "${item.noFaktur}" (${item.supplier}) dari daftar?`,
+        'danger',
+        'Hapus Faktur Pembelian',
+        () => onDeleteUtang(targetId),
+        true,
+        'Hapus',
+        'Batal'
+      );
+    } else {
+      onDeleteUtang(targetId);
+    }
+  };
+
   return (
     <div className="tab-pane active">
       {/* Header Toolbar */}
@@ -224,7 +241,7 @@ export default function UtangSupplierTab({
                           <button
                             className="btn btn-outline btn-danger btn-sm"
                             style={{ padding: '0.35rem 0.5rem' }}
-                            onClick={() => onDeleteUtang(item.id)}
+                            onClick={() => handleDeleteClick(item)}
                             title="Hapus Faktur"
                           >
                             <Trash2 size={13} />

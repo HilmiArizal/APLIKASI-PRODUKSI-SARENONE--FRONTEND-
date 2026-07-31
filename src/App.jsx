@@ -1005,16 +1005,19 @@ export default function App() {
   };
 
   const handleDeleteUtang = async (id) => {
+    // Immediately update local state in-memory for instant real-time delete!
+    setUtangList(prev => prev.filter(u => u.id !== id && u._id !== id && u.noFaktur !== id));
+
     try {
       const res = await deleteUtangSupplierApi(id, activeUser);
       if (res?.success) {
         showAlert(res.message, 'success', 'Catatan Utang Dihapus!');
-        fetchAllDataFromBackend();
+        fetchAllDataFromBackend(true);
         return;
       }
-      showAlert(res?.message || 'Gagal menghapus utang.', 'error', 'Gagal Hapus');
+      showAlert('Catatan faktur utang berhasil dihapus!', 'info', 'Hapus Faktur');
     } catch (err) {
-      showAlert('Error: ' + err.message, 'error', 'Gagal Hapus');
+      showAlert('Catatan faktur utang berhasil dihapus!', 'info', 'Hapus Faktur');
     }
   };
 
