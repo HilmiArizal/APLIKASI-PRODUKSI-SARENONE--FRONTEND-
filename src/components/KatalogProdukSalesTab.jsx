@@ -221,10 +221,10 @@ export default function KatalogProdukSalesTab({
       {/* MODAL FORM */}
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal-container" style={{ maxWidth: 640, maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+          <div className="modal-card modal-lg" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>{editData ? 'Edit Produk Katalog Jual' : 'Tambah Produk Jual Baru'}</h3>
-              <button className="modal-close" onClick={() => setShowModal(false)}><X size={20} /></button>
+              <h3><Package size={20} style={{ color: 'var(--accent-primary)' }} /> {editData ? 'Edit Produk Katalog Jual' : 'Tambah Produk Jual Baru'}</h3>
+              <button className="modal-close" onClick={() => setShowModal(false)}><X size={18} /></button>
             </div>
             <div className="modal-body">
               <div className="form-grid">
