@@ -401,3 +401,29 @@ export async function deleteMarketingApi(id, activeUser) {
   });
 }
 
+// 12. PRODUK SALES / KATALOG PENJUALAN (Domain Produk)
+export async function getProdukSalesApi() {
+  return request('/produk-sales');
+}
+
+export async function createProdukSalesApi(data, activeUser) {
+  return request('/produk-sales', {
+    method: 'POST',
+    body: JSON.stringify({ ...data, user: activeUser })
+  });
+}
+
+export async function updateProdukSalesApi(id, data, activeUser) {
+  return request(`/produk-sales/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ ...data, user: activeUser })
+  });
+}
+
+export async function deleteProdukSalesApi(id, activeUser) {
+  return request(`/produk-sales/${id}`, {
+    method: 'DELETE',
+    body: JSON.stringify({ user: activeUser })
+  });
+}
+

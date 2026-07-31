@@ -20,6 +20,7 @@ import SupplierTab from './components/SupplierTab';
 import PendingApprovalView from './components/PendingApprovalView';
 import PenjualanTab from './components/PenjualanTab';
 import MarketingTab from './components/MarketingTab';
+import KatalogProdukSalesTab from './components/KatalogProdukSalesTab';
 
 import {
   ModalBahan,
@@ -102,7 +103,11 @@ import {
   getMarketingApi,
   createMarketingApi,
   updateMarketingApi,
-  deleteMarketingApi
+  deleteMarketingApi,
+  getProdukSalesApi,
+  createProdukSalesApi,
+  updateProdukSalesApi,
+  deleteProdukSalesApi
 } from './services/api';
 
 const STORAGE_KEYS = {
@@ -184,6 +189,7 @@ export default function App() {
   const [suppliersList, setSuppliersList] = useState([]);
   const [penjualanList, setPenjualanList] = useState([]);
   const [marketingList, setMarketingList] = useState([]);
+  const [produkSalesList, setProdukSalesList] = useState([]);
 
   // Modal Control States
   const [isModalBahanOpen, setIsModalBahanOpen] = useState(false);
@@ -279,9 +285,10 @@ export default function App() {
 
       // Fetch domain produk data
       try {
-        const [pjRes, mktRes] = await Promise.all([getPenjualanApi(), getMarketingApi()]);
+        const [pjRes, mktRes, psRes] = await Promise.all([getPenjualanApi(), getMarketingApi(), getProdukSalesApi()]);
         if (pjRes?.success) setPenjualanList(pjRes.data || []);
         if (mktRes?.success) setMarketingList(mktRes.data || []);
+        if (psRes?.success) setProdukSalesList(psRes.data || []);
       } catch (e) { /* ignore produk domain fetch errors */ }
 
       setBackendConnected(true);
@@ -1224,6 +1231,51 @@ export default function App() {
     }
   };
 
+  // === PRODUK SALES HANDLERS (Domain Produk) ===
+  const handleCreateProdukSales = async (data) => {
+    try {
+      const res = await createProdukSalesApi(data, activeUser);
+      if (res?.success) {
+        showAlert(res.message || 'Produk katalog berhasil ditambahkan!', 'success', 'Produk Ditambah! 📦');
+        fetchAllDataFromBackend(true);
+      } else {
+        showAlert(res?.message || 'Gagal menambahkan produk.', 'error', 'Gagal Simpan');
+      }
+    } catch (err) {
+      showAlert('Error: ' + err.message, 'error', 'Gagal Simpan');
+    }
+  };
+
+  const handleUpdateProdukSales = async (id, data) => {
+    try {
+      const res = await updateProdukSalesApi(id, data, activeUser);
+      if (res?.success) {
+        showAlert('Produk katalog berhasil diperbarui!', 'success', 'Produk Diupdate');
+        fetchAllDataFromBackend(true);
+      } else {
+        showAlert(res?.message || 'Gagal memperbarui produk.', 'error', 'Gagal Update');
+      }
+    } catch (err) {
+      showAlert('Error: ' + err.message, 'error', 'Gagal Update');
+    }
+  };
+
+  const handleDeleteProdukSales = async (id) => {
+    try {
+      const res = await deleteProdukSalesApi(id, activeUser);
+      if (res?.success) {
+        showAlert('Produk katalog berhasil dihapus!', 'success', 'Produk Dihapus');
+        fetchAllDataFromBackend(true);
+      } else {
+        setProdukSalesList(prev => prev.filter(p => p.id !== id && p._id !== id));
+        showAlert('Produk katalog berhasil dihapus!', 'success', 'Produk Dihapus');
+      }
+    } catch (err) {
+      setProdukSalesList(prev => prev.filter(p => p.id !== id && p._id !== id));
+      showAlert('Produk katalog berhasil dihapus!', 'success', 'Produk Dihapus');
+    }
+  };
+
   if (!activeUser) {
     return (
       <>
@@ -1480,17 +1532,16 @@ export default function App() {
           )}
 
           {activeTab === 'katalog-produk' && (
-            <ProdukTab
-              produk={produk}
-              resep={resep}
+            <KatalogProdukSalesTab
+              produkSalesList={produkSalesList}
               kategoriList={kategoriProduk}
               activeRoleView={activeRoleView}
-              onOpenTambahProduk={() => { setEditingProduk(null); setIsModalProdukOpen(true); }}
-              onOpenEditProduk={(p) => { setEditingProduk(p); setIsModalProdukOpen(true); }}
-              onOpenProduksiSpesifik={(pId) => { setSelectedProduksiId(pId); setIsModalProduksiOpen(true); }}
-              onOpenKelolaKategori={() => setIsModalKelolaKategoriOpen(true)}
+              activeUser={activeUser}
+              onCreateProdukSales={handleCreateProdukSales}
+              onUpdateProdukSales={handleUpdateProdukSales}
+              onDeleteProdukSales={handleDeleteProdukSales}
               onOpenPdfPreview={handleOpenPdfPreview}
-              onDeleteProduk={handleDeleteProduk}
+              showAlert={showAlert}
             />
           )}
 
