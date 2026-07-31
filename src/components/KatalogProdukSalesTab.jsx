@@ -362,14 +362,11 @@ export default function KatalogProdukSalesTab({
       {/* HEADER */}
       <div className="tab-header">
         <div>
-          <h2 className="tab-title"><Package size={24} /> Katalog Produk Penjualan & Brand</h2>
-          <p className="tab-subtitle">Kelola katalog produk jual, brand / merek, varian rasa, gramasi, harga, & stok siap jual</p>
+          <h2 className="tab-title"><Package size={24} /> Katalog Produk Penjualan</h2>
+          <p className="tab-subtitle">Kelola katalog produk jual, brand / merek (SAREN ONE, EAT GOW, BEULEUM), harga, &amp; stok siap jual</p>
         </div>
         {canEdit && (
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-            <button className="btn btn-outline" onClick={handleOpenKategoriModal}>
-              <Layers size={16} style={{ color: 'var(--cyan)' }} /> Kelola Kategori
-            </button>
             <button className="btn btn-outline" onClick={handleOpenBrandModal}>
               <Tag size={16} style={{ color: 'var(--amber)' }} /> Kelola Brand
             </button>
@@ -394,16 +391,16 @@ export default function KatalogProdukSalesTab({
           <div className="stat-info"><p className="stat-label">Total Varian Produk</p><h3 className="stat-value">{totalVarian}</h3></div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#06b6d4,#0891b2)' }}><Layers size={20} /></div>
-          <div className="stat-info"><p className="stat-label">Total Kategori Sales</p><h3 className="stat-value">{availableCategories.length}</h3></div>
-        </div>
-        <div className="stat-card">
           <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#f59e0b,#d97706)' }}><Tag size={20} /></div>
           <div className="stat-info"><p className="stat-label">Total Brand Aktif</p><h3 className="stat-value">{brandList.length}</h3></div>
         </div>
         <div className="stat-card">
           <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#10b981,#059669)' }}><Boxes size={20} /></div>
           <div className="stat-info"><p className="stat-label">Total Stok Siap Jual</p><h3 className="stat-value">{totalStokReady} Pcs</h3></div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#0ea5e9,#0284c7)' }}><DollarSign size={20} /></div>
+          <div className="stat-info"><p className="stat-label">Nilai Persediaan Produk</p><h3 className="stat-value" style={{ fontSize: '1.05rem' }}>{formatRp(totalNilaiPersediaan)}</h3></div>
         </div>
       </div>
 
@@ -414,14 +411,9 @@ export default function KatalogProdukSalesTab({
           <input placeholder="Cari nama produk, brand, varian, atau SKU..." value={search} onChange={e => setSearch(e.target.value)} />
         </div>
 
-        <select value={brandFilter} onChange={e => setBrandFilter(e.target.value)} className="select-input" style={{ maxWidth: '170px' }}>
+        <select value={brandFilter} onChange={e => setBrandFilter(e.target.value)} className="select-input" style={{ maxWidth: '180px' }}>
           <option value="">Semua Brand</option>
           {brandList.map(b => <option key={b.id || b.nama} value={b.nama}>{b.nama}</option>)}
-        </select>
-
-        <select value={kategoriFilter} onChange={e => setKategoriFilter(e.target.value)} className="select-input" style={{ maxWidth: '170px' }}>
-          <option value="">Semua Kategori</option>
-          {availableCategories.map(k => <option key={k.id || k.nama} value={k.nama}>{k.nama}</option>)}
         </select>
 
         <div className="toolbar-actions">

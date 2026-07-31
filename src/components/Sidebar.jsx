@@ -145,7 +145,7 @@ export default function Sidebar({ activeUser, activeRoleView, activeTab, onSwitc
                     <Package size={18} /><span>Katalog Produk</span>
                   </a>
                   <a href="#kategori-produk-sales" className={mi('kategori-produk-sales')} onClick={e => { e.preventDefault(); nav('kategori-produk-sales'); }}>
-                    <Layers size={18} /><span>Kelola Brand &amp; Kategori</span>
+                    <Tag size={18} /><span>Kelola Brand</span>
                   </a>
                 </>
               )}

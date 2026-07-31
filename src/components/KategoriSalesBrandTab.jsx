@@ -1,26 +1,14 @@
 import React, { useState } from 'react';
-import { Layers, Tag, Plus, Edit3, Trash2, Check, Search, Boxes } from 'lucide-react';
+import { Tag, Plus, Edit3, Trash2, Check, Search, X } from 'lucide-react';
 
 export default function KategoriSalesBrandTab({
-  kategoriSalesList = [],
   brandList = [],
   activeRoleView,
-  onCreateKategoriSales,
-  onUpdateKategoriSales,
-  onDeleteKategoriSales,
   onCreateBrand,
   onUpdateBrand,
   onDeleteBrand,
   showAlert
 }) {
-  const [activeSubTab, setActiveSubTab] = useState('kategori'); // 'kategori' | 'brand'
-
-  // Kategori state
-  const [searchKategori, setSearchKategori] = useState('');
-  const [showKatModal, setShowKatModal] = useState(false);
-  const [editKatData, setEditKatData] = useState(null);
-  const [katForm, setKatForm] = useState({ nama: '', deskripsi: '' });
-
   // Brand state
   const [searchBrand, setSearchBrand] = useState('');
   const [showBrandModal, setShowBrandModal] = useState(false);
@@ -29,44 +17,13 @@ export default function KategoriSalesBrandTab({
 
   const canEdit = ['ADMIN_PRODUK', 'TIM_PENJUALAN', 'TIM_MARKETING'].includes(activeRoleView);
 
-  // Filtered lists
-  const filteredKategori = kategoriSalesList.filter(k => !searchKategori || k.nama?.toLowerCase().includes(searchKategori.toLowerCase()) || k.deskripsi?.toLowerCase().includes(searchKategori.toLowerCase()));
+  // Filtered list
   const filteredBrand = brandList.filter(b => !searchBrand || b.nama?.toLowerCase().includes(searchBrand.toLowerCase()) || b.deskripsi?.toLowerCase().includes(searchBrand.toLowerCase()));
-
-  // Handlers Kategori
-  const openAddKategori = () => {
-    setEditKatData(null);
-    setKatForm({ nama: '', deskripsi: '' });
-    setShowKatModal(true);
-  };
-
-  const openEditKategori = (k) => {
-    setEditKatData(k);
-    setKatForm({ nama: k.nama || '', deskripsi: k.deskripsi || '' });
-    setShowKatModal(true);
-  };
-
-  const handleSaveKategori = async (e) => {
-    e.preventDefault();
-    if (!katForm.nama.trim()) { showAlert('Nama kategori wajib diisi!', 'error'); return; }
-
-    if (editKatData) {
-      await onUpdateKategoriSales(editKatData.id || editKatData._id, katForm);
-    } else {
-      await onCreateKategoriSales(katForm);
-    }
-    setShowKatModal(false);
-  };
-
-  const handleDeleteKategori = async (k) => {
-    if (!confirm(`Hapus kategori produk "${k.nama}"?`)) return;
-    await onDeleteKategoriSales(k.id || k._id);
-  };
 
   // Handlers Brand
   const openAddBrand = () => {
     setEditBrandData(null);
-    setBrandForm({ nama: '', deskripsi: '' });
+    setBrandForm({ nama: '', deskripsi: 'Daging olahan makanan beku' });
     setShowBrandModal(true);
   };
 
@@ -98,166 +55,62 @@ export default function KategoriSalesBrandTab({
       {/* HEADER */}
       <div className="tab-header">
         <div>
-          <h2 className="tab-title"><Layers size={24} /> Kelola Kategori & Brand Produk</h2>
-          <p className="tab-subtitle">Master data kategori produk penjualan (Sosis, Nugget, Baso, dll) & brand merek Saren One</p>
+          <h2 className="tab-title"><Tag size={24} /> Kelola Brand / Merk Produk</h2>
+          <p className="tab-subtitle">Master data brand &amp; merk produk (SAREN ONE, EAT GOW, BEULEUM)</p>
         </div>
       </div>
 
-      {/* SUB TAB SELECTOR */}
-      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem' }}>
-        <button
-          className={`btn ${activeSubTab === 'kategori' ? 'btn-primary' : 'btn-outline'}`}
-          onClick={() => setActiveSubTab('kategori')}
-          style={{ borderRadius: 10 }}
-        >
-          <Layers size={16} /> Kelola Kategori Produk ({kategoriSalesList.length})
-        </button>
-        <button
-          className={`btn ${activeSubTab === 'brand' ? 'btn-primary' : 'btn-outline'}`}
-          onClick={() => setActiveSubTab('brand')}
-          style={{ borderRadius: 10 }}
-        >
-          <Tag size={16} /> Kelola Brand Merek ({brandList.length})
-        </button>
+      {/* TOOLBAR */}
+      <div className="toolbar" style={{ marginBottom: '1.25rem' }}>
+        <div className="search-box">
+          <Search size={16} />
+          <input placeholder="Cari nama brand / merek..." value={searchBrand} onChange={e => setSearchBrand(e.target.value)} />
+        </div>
+        {canEdit && (
+          <button className="btn btn-primary" onClick={openAddBrand}>
+            <Plus size={16} /> Tambah Brand Produk
+          </button>
+        )}
       </div>
 
-      {/* VIEW 1: KELOLA KATEGORI PRODUK SALES */}
-      {activeSubTab === 'kategori' && (
-        <>
-          <div className="toolbar" style={{ marginBottom: '1.25rem' }}>
-            <div className="search-box">
-              <Search size={16} />
-              <input placeholder="Cari nama kategori..." value={searchKategori} onChange={e => setSearchKategori(e.target.value)} />
-            </div>
-            {canEdit && (
-              <button className="btn btn-primary" onClick={openAddKategori}>
-                <Plus size={16} /> Tambah Kategori Produk
-              </button>
-            )}
-          </div>
-
-          <div className="table-responsive">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>No</th>
-                  <th>Nama Kategori Produk</th>
-                  <th>Deskripsi / Keterangan</th>
-                  {canEdit && <th style={{ textAlign: 'right' }}>Aksi</th>}
-                </tr>
-              </thead>
-              <tbody>
-                {filteredKategori.length === 0 ? (
-                  <tr>
-                    <td colSpan={canEdit ? 4 : 3} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
-                      Belum ada data kategori produk. Klik "+ Tambah Kategori Produk" untuk menambahkan.
+      {/* BRAND TABLE */}
+      <div className="table-responsive">
+        <table className="table">
+          <thead>
+            <tr>
+              <th>No</th>
+              <th>Nama Brand / Merk</th>
+              <th>Deskripsi &amp; Keterangan</th>
+              {canEdit && <th style={{ textAlign: 'right' }}>Aksi</th>}
+            </tr>
+          </thead>
+          <tbody>
+            {filteredBrand.length === 0 ? (
+              <tr>
+                <td colSpan={canEdit ? 4 : 3} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
+                  Belum ada data brand. Klik "+ Tambah Brand Produk" untuk menambahkan.
+                </td>
+              </tr>
+            ) : (
+              filteredBrand.map((b, i) => (
+                <tr key={b.id || b._id || i}>
+                  <td style={{ color: 'var(--text-muted)' }}>{i + 1}</td>
+                  <td><strong style={{ color: '#f59e0b', fontSize: '0.95rem' }}>🏷️ {b.nama}</strong></td>
+                  <td style={{ color: 'var(--text-muted)' }}>{b.deskripsi || '-'}</td>
+                  {canEdit && (
+                    <td style={{ textAlign: 'right' }}>
+                      <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'flex-end' }}>
+                        <button className="btn btn-sm btn-outline" onClick={() => openEditBrand(b)} title="Edit Brand"><Edit3 size={14} /></button>
+                        <button className="btn btn-sm btn-danger" onClick={() => handleDeleteBrand(b)} title="Hapus Brand"><Trash2 size={14} /></button>
+                      </div>
                     </td>
-                  </tr>
-                ) : (
-                  filteredKategori.map((k, i) => (
-                    <tr key={k.id || k._id || i}>
-                      <td style={{ color: 'var(--text-muted)' }}>{i + 1}</td>
-                      <td><strong style={{ color: '#fff', fontSize: '0.95rem' }}>📂 {k.nama}</strong></td>
-                      <td style={{ color: 'var(--text-muted)' }}>{k.deskripsi || '-'}</td>
-                      {canEdit && (
-                        <td style={{ textAlign: 'right' }}>
-                          <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'flex-end' }}>
-                            <button className="btn btn-sm btn-outline" onClick={() => openEditKategori(k)} title="Edit Kategori"><Edit3 size={14} /></button>
-                            <button className="btn btn-sm btn-danger" onClick={() => handleDeleteKategori(k)} title="Hapus Kategori"><Trash2 size={14} /></button>
-                          </div>
-                        </td>
-                      )}
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </>
-      )}
-
-      {/* VIEW 2: KELOLA BRAND PRODUK */}
-      {activeSubTab === 'brand' && (
-        <>
-          <div className="toolbar" style={{ marginBottom: '1.25rem' }}>
-            <div className="search-box">
-              <Search size={16} />
-              <input placeholder="Cari nama brand / merek..." value={searchBrand} onChange={e => setSearchBrand(e.target.value)} />
-            </div>
-            {canEdit && (
-              <button className="btn btn-primary" onClick={openAddBrand}>
-                <Plus size={16} /> Tambah Brand Merek
-              </button>
-            )}
-          </div>
-
-          <div className="table-responsive">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>No</th>
-                  <th>Nama Brand Merek</th>
-                  <th>Deskripsi Lini Produk</th>
-                  {canEdit && <th style={{ textAlign: 'right' }}>Aksi</th>}
+                  )}
                 </tr>
-              </thead>
-              <tbody>
-                {filteredBrand.length === 0 ? (
-                  <tr>
-                    <td colSpan={canEdit ? 4 : 3} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
-                      Belum ada data brand. Klik "+ Tambah Brand Merek" untuk menambahkan.
-                    </td>
-                  </tr>
-                ) : (
-                  filteredBrand.map((b, i) => (
-                    <tr key={b.id || b._id || i}>
-                      <td style={{ color: 'var(--text-muted)' }}>{i + 1}</td>
-                      <td><strong style={{ color: '#f59e0b', fontSize: '0.95rem' }}>🏷️ {b.nama}</strong></td>
-                      <td style={{ color: 'var(--text-muted)' }}>{b.deskripsi || '-'}</td>
-                      {canEdit && (
-                        <td style={{ textAlign: 'right' }}>
-                          <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'flex-end' }}>
-                            <button className="btn btn-sm btn-outline" onClick={() => openEditBrand(b)} title="Edit Brand"><Edit3 size={14} /></button>
-                            <button className="btn btn-sm btn-danger" onClick={() => handleDeleteBrand(b)} title="Hapus Brand"><Trash2 size={14} /></button>
-                          </div>
-                        </td>
-                      )}
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </>
-      )}
-
-      {/* MODAL KATEGORI FORM */}
-      {showKatModal && (
-        <div className="modal-overlay" onClick={() => setShowKatModal(false)}>
-          <div className="modal-card modal-sm" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3><Layers size={20} style={{ color: 'var(--cyan)' }} /> {editKatData ? 'Edit Kategori Produk' : 'Tambah Kategori Produk'}</h3>
-              <button className="modal-close" onClick={() => setShowKatModal(false)}><X size={18} /></button>
-            </div>
-            <form onSubmit={handleSaveKategori}>
-              <div className="modal-body">
-                <div className="form-group">
-                  <label className="form-label">Nama Kategori Produk *</label>
-                  <input className="form-input" placeholder="Contoh: Sosis, Nugget, Baso, Minuman..." value={katForm.nama} onChange={e => setKatForm(f => ({ ...f, nama: e.target.value }))} required />
-                </div>
-                <div className="form-group" style={{ marginTop: '0.75rem' }}>
-                  <label className="form-label">Deskripsi Keterangan</label>
-                  <textarea className="form-input" rows={3} placeholder="Keterangan kategori produk..." value={katForm.deskripsi} onChange={e => setKatForm(f => ({ ...f, deskripsi: e.target.value }))} />
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setShowKatModal(false)}>Batal</button>
-                <button type="submit" className="btn btn-primary"><Check size={16} /> {editKatData ? 'Simpan Edit' : 'Tambah Kategori'}</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
 
       {/* MODAL BRAND FORM */}
       {showBrandModal && (
@@ -271,11 +124,11 @@ export default function KategoriSalesBrandTab({
               <div className="modal-body">
                 <div className="form-group">
                   <label className="form-label">Nama Brand Merek *</label>
-                  <input className="form-input" placeholder="Contoh: Saren One Original, Saren Bakery..." value={brandForm.nama} onChange={e => setBrandForm(f => ({ ...f, nama: e.target.value }))} required />
+                  <input className="form-input" placeholder="Contoh: SAREN ONE, EAT GOW, BEULEUM..." value={brandForm.nama} onChange={e => setBrandForm(f => ({ ...f, nama: e.target.value }))} required />
                 </div>
                 <div className="form-group" style={{ marginTop: '0.75rem' }}>
-                  <label className="form-label">Deskripsi Lini Brand</label>
-                  <textarea className="form-input" rows={3} placeholder="Keterangan lini brand..." value={brandForm.deskripsi} onChange={e => setBrandForm(f => ({ ...f, deskripsi: e.target.value }))} />
+                  <label className="form-label">Deskripsi Brand</label>
+                  <textarea className="form-input" rows={3} placeholder="Daging olahan makanan beku..." value={brandForm.deskripsi} onChange={e => setBrandForm(f => ({ ...f, deskripsi: e.target.value }))} />
                 </div>
               </div>
               <div className="modal-footer">
