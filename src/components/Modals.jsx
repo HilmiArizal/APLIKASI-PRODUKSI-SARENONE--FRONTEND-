@@ -1106,8 +1106,7 @@ export function ModalTambahUtangSupplier({ isOpen, onClose, bahanList = [], supp
 
   useEffect(() => {
     if (isOpen) {
-      const autoFaktur = 'INV-SUP-' + new Date().toISOString().slice(0,7).replace('-','') + '-' + String(Math.floor(Math.random()*900)+100);
-      setNoFaktur(autoFaktur);
+      setNoFaktur('');
       setSupplier(suppliersList.length > 0 ? suppliersList[0].nama : '');
       if (bahanList.length > 0) {
         setBahanId(bahanList[0].id || bahanList[0]._id || bahanList[0].sku);
@@ -1164,7 +1163,14 @@ export function ModalTambahUtangSupplier({ isOpen, onClose, bahanList = [], supp
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
               <div className="form-group">
                 <label>Nomor Faktur / Invoice *</label>
-                <input type="text" className="form-control" value={noFaktur} onChange={e => setNoFaktur(e.target.value)} required />
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Masukkan No Faktur / Invoice"
+                  value={noFaktur}
+                  onChange={e => setNoFaktur(e.target.value)}
+                  required
+                />
               </div>
               <div className="form-group">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
@@ -1188,7 +1194,6 @@ export function ModalTambahUtangSupplier({ isOpen, onClose, bahanList = [], supp
                     required
                     style={{ width: '100%' }}
                   >
-                    <option value="">-- Pilih Supplier --</option>
                     {suppliersList.map(s => (
                       <option key={s.id || s._id || s.nama} value={s.nama}>
                         {s.kode ? `[${s.kode}] ${s.nama}` : s.nama}
