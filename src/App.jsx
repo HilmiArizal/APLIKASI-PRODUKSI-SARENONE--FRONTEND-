@@ -256,7 +256,8 @@ export default function App() {
       if (logRes?.success) setAuditLog(logRes.data);
       if (utgRes?.success) setUtangList(utgRes.data);
       if (supRes?.success) {
-        const cleaned = (supRes.data || []).filter(x => !['sup_1', 'sup_2', 'sup_3', 'sup_4', 'sup_5'].includes(x.id));
+        const sampleNames = ['PT Marksoy Indonesia', 'CV Daging Utama', 'PT Plastik & Kemasan Nusantara', 'Toko Rempah & Bumbu Berkah', 'Pabrik Es Batu Kristal Saren'];
+        const cleaned = (supRes.data || []).filter(x => !['sup_1', 'sup_2', 'sup_3', 'sup_4', 'sup_5'].includes(x.id) && !sampleNames.includes(x.nama));
         setSuppliersList(cleaned);
       }
 
