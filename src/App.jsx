@@ -1485,6 +1485,7 @@ export default function App() {
               onSaveUser={handleSaveUser}
               onResetUserPassword={handleResetUserPassword}
               showAlert={showAlert}
+              domainRoles={['BAHAN_BAKU', 'PEMBELIAN', 'TIM_PENJUALAN', 'TIM_MARKETING']}
             />
           )}
 
@@ -1571,14 +1572,14 @@ export default function App() {
 
           {activeTab === 'user-approval-produk' && (
             <UserApprovalTab
-              users={users.filter(u => ['TIM_PENJUALAN', 'TIM_MARKETING', 'PENDING'].includes(u.role) || (u.status === 'PENDING' && ['TIM_PENJUALAN', 'TIM_MARKETING'].includes(u.requestedRole)))}
+              users={users}
               onApproveUser={handleApproveUser}
               onRejectUser={handleRejectUser}
               onDeleteUser={handleDeleteUser}
               onSaveUser={handleSaveUser}
               onResetUserPassword={handleResetUserPassword}
               showAlert={showAlert}
-              domainRoles={['TIM_PENJUALAN', 'TIM_MARKETING']}
+              domainRoles={['BAHAN_BAKU', 'PEMBELIAN', 'TIM_PENJUALAN', 'TIM_MARKETING']}
             />
           )}
 

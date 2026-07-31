@@ -13,9 +13,15 @@ export default function UserApprovalTab({ users, onApproveUser, onRejectUser, on
   const [isModalResetOpen, setIsModalResetOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
 
-  const ROLE_OPTIONS = domainRoles
-    ? domainRoles
-    : ['BAHAN_BAKU', 'PEMBELIAN', 'ADMIN'];
+  const ALL_ROLES = [
+    'BAHAN_BAKU',
+    'PEMBELIAN',
+    'TIM_PENJUALAN',
+    'TIM_MARKETING',
+    'ADMIN',
+    'ADMIN_PRODUK'
+  ];
+  const ROLE_OPTIONS = (domainRoles && domainRoles.length) ? domainRoles : ALL_ROLES;
   const defaultRole = ROLE_OPTIONS[0] || 'BAHAN_BAKU';
 
   // Form Create State
@@ -43,15 +49,20 @@ export default function UserApprovalTab({ users, onApproveUser, onRejectUser, on
   const rejectedUsers = users.filter(u => u.status === 'REJECTED');
 
   const getRoleLabel = (role) => {
-    if (role === 'ADMIN') return 'Super Admin';
+    if (role === 'ADMIN') return 'Super Admin BB';
+    if (role === 'ADMIN_PRODUK') return 'Super Admin Produk';
     if (role === 'BAHAN_BAKU') return 'Tim Produksi';
     if (role === 'PEMBELIAN') return 'Tim Pembelian';
+    if (role === 'TIM_PENJUALAN') return 'Tim Penjualan';
+    if (role === 'TIM_MARKETING') return 'Tim Marketing';
+    if (role === 'PENDING') return 'Menunggu ACC';
     return role;
   };
 
   const getRoleBadgeClass = (role) => {
-    if (role === 'ADMIN') return 'badge-amber';
-    if (role === 'PEMBELIAN') return 'badge-emerald';
+    if (role === 'ADMIN' || role === 'ADMIN_PRODUK') return 'badge-amber';
+    if (role === 'PEMBELIAN' || role === 'TIM_PENJUALAN') return 'badge-emerald';
+    if (role === 'TIM_MARKETING') return 'badge-indigo';
     return 'badge-cyan';
   };
 
@@ -277,7 +288,7 @@ export default function UserApprovalTab({ users, onApproveUser, onRejectUser, on
                     </td>
                     <td className="text-muted" style={{ fontSize: '0.78rem' }}>{u.createdAt}</td>
                     <td style={{ textAlign: 'right' }}>
-                      <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end' }}>
+                      <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'flex-end' }}>
                         {u.status === 'PENDING' && (
                           <button
                             className="btn btn-sm btn-emerald"
@@ -288,7 +299,23 @@ export default function UserApprovalTab({ users, onApproveUser, onRejectUser, on
                           </button>
                         )}
 
-                        {u.role !== 'ADMIN' && (
+                        <button
+                          className="btn btn-sm btn-outline"
+                          onClick={() => handleOpenEdit(u)}
+                          title="Ubah Role & Profil Staf"
+                        >
+                          <Edit size={14} /> Ubah Role
+                        </button>
+
+                        <button
+                          className="btn btn-sm btn-outline"
+                          onClick={() => handleOpenReset(u)}
+                          title="Reset Password Staf"
+                        >
+                          <KeyRound size={14} />
+                        </button>
+
+                        {u.role !== 'ADMIN' && u.role !== 'ADMIN_PRODUK' && (
                           <button
                             className="btn btn-sm btn-outline btn-danger"
                             onClick={() => onDeleteUser(u.id)}
