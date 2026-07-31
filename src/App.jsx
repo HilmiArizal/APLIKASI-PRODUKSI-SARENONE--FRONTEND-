@@ -325,7 +325,10 @@ export default function App() {
         if (pjRes?.success) setPenjualanList(pjRes.data || []);
         if (mktRes?.success) setMarketingList(mktRes.data || []);
         if (psRes?.success) setProdukSalesList(psRes.data || []);
-        if (brRes?.success && (brRes.data || []).length > 0) setBrandList(brRes.data);
+        if (brRes?.success && (brRes.data || []).length > 0) {
+          const cleanedBr = (brRes.data || []).filter(b => !['Saren Bakery', 'Saren Frozen', 'Dapur Saren', 'Saren One Original'].includes(b.nama));
+          if (cleanedBr.length > 0) setBrandList(cleanedBr);
+        }
         if (kpsRes?.success && (kpsRes.data || []).length > 0) setKategoriSalesList(kpsRes.data);
       } catch (e) { /* ignore produk domain fetch errors */ }
 
@@ -1709,7 +1712,7 @@ export default function App() {
               produkSalesList={produkSalesList}
               kategoriList={kategoriProduk}
               kategoriSalesList={kategoriSalesList}
-              brandList={brandList}
+              brandList={(brandList || []).filter(b => !['Saren Bakery', 'Saren Frozen', 'Dapur Saren', 'Saren One Original'].includes(b.nama))}
               activeRoleView={activeRoleView}
               activeUser={activeUser}
               onCreateProdukSales={handleCreateProdukSales}
@@ -1729,7 +1732,7 @@ export default function App() {
           {activeTab === 'kategori-produk-sales' && (
             <KategoriSalesBrandTab
               kategoriSalesList={kategoriSalesList}
-              brandList={brandList}
+              brandList={(brandList || []).filter(b => !['Saren Bakery', 'Saren Frozen', 'Dapur Saren', 'Saren One Original'].includes(b.nama))}
               activeRoleView={activeRoleView}
               onCreateKategoriSales={handleCreateKategoriSales}
               onUpdateKategoriSales={handleUpdateKategoriSales}
