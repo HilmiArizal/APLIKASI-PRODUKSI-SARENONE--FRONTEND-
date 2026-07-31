@@ -23,6 +23,7 @@ import MarketingTab from './components/MarketingTab';
 import KatalogProdukSalesTab from './components/KatalogProdukSalesTab';
 import StokProdukSalesTab from './components/StokProdukSalesTab';
 import KategoriSalesBrandTab from './components/KategoriSalesBrandTab';
+import PelangganTab from './components/PelangganTab';
 
 import {
   ModalBahan,
@@ -119,7 +120,11 @@ import {
   getKategoriProdukSalesApi,
   createKategoriProdukSalesApi,
   updateKategoriProdukSalesApi,
-  deleteKategoriProdukSalesApi
+  deleteKategoriProdukSalesApi,
+  getPelangganApi,
+  createPelangganApi,
+  updatePelangganApi,
+  deletePelangganApi
 } from './services/api';
 
 const STORAGE_KEYS = {
@@ -132,6 +137,7 @@ const STORAGE_KEYS = {
   RESEP: 'saren_one_resep_v2',
   AUDIT_LOG: 'saren_one_audit_log_v2',
   RIWAYAT_PRODUKSI: 'saren_one_riwayat_produksi_v2',
+  PELANGGAN: 'saren_one_pelanggan_v2',
   ACTIVE_TAB: 'saren_one_active_tab_v2'
 };
 
@@ -142,7 +148,6 @@ function safeGetStorage(key, fallback) {
     const parsed = JSON.parse(saved);
     return parsed !== null && parsed !== undefined ? parsed : fallback;
   } catch (e) {
-    console.warn(`[SafeStorage Warning] Corrupt data for ${key}:`, e);
     return fallback;
   }
 }
@@ -152,8 +157,11 @@ export default function App() {
 
   const [activeRoleView, setActiveRoleView] = useState(() => activeUser?.role || 'ADMIN');
   const [activeTab, setActiveTab] = useState(() => {
-    const saved = safeGetStorage(STORAGE_KEYS.ACTIVE_TAB, 'dashboard');
-    return typeof saved === 'string' ? saved : 'dashboard';
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.ACTIVE_TAB);
+      if (saved && saved !== 'null' && saved !== 'undefined') return saved;
+    } catch { /* ignore */ }
+    return (activeUser?.role === 'ADMIN_PRODUK' || activeUser?.role === 'TIM_PENJUALAN') ? 'dashboard-produk' : 'dashboard';
   });
 
   useEffect(() => {
@@ -178,6 +186,11 @@ export default function App() {
   const [utangList, setUtangList] = useState([]);
   const [suppliersList, setSuppliersList] = useState([]);
   const [penjualanList, setPenjualanList] = useState([]);
+  const [pelangganList, setPelangganList] = useState(() => safeGetStorage(STORAGE_KEYS.PELANGGAN, [
+    { id: 'cust_1', nama: 'Toko Berkah Frozen', noHp: '081234567890', alamat: 'Jl. Raya Bandung No. 12', tipe: 'Distributor', catatan: 'Pelanggan langganan grosir' },
+    { id: 'cust_2', nama: 'Warung Bu Siti', noHp: '085712345678', alamat: 'Komp. Gria Asri Blok C2', tipe: 'Reseller', catatan: 'Ambil mingguan' },
+    { id: 'cust_3', nama: 'Resto Sate Barokah', noHp: '081987654321', alamat: 'Jl. Ahmad Yani No. 45', tipe: 'Retail', catatan: 'Restoran mitra' }
+  ]));
   const [marketingList, setMarketingList] = useState([]);
   const [produkSalesList, setProdukSalesList] = useState([]);
   const [brandList, setBrandList] = useState([
@@ -303,10 +316,13 @@ export default function App() {
 
       // Fetch domain produk data
       try {
-        const [pjRes, mktRes, psRes, brRes, kpsRes] = await Promise.all([getPenjualanApi(), getMarketingApi(), getProdukSalesApi(), getBrandProdukApi(), getKategoriProdukSalesApi()]);
+        const [pjRes, mktRes, psRes, brRes, kpsRes, pelRes] = await Promise.all([
+          getPenjualanApi(), getMarketingApi(), getProdukSalesApi(), getBrandProdukApi(), getKategoriProdukSalesApi(), getPelangganApi()
+        ]);
         if (pjRes?.success) setPenjualanList(pjRes.data || []);
         if (mktRes?.success) setMarketingList(mktRes.data || []);
         if (psRes?.success) setProdukSalesList(psRes.data || []);
+        if (pelRes?.success && (pelRes.data || []).length > 0) setPelangganList(pelRes.data);
         if (brRes?.success && (brRes.data || []).length > 0) {
           const cleanedBr = (brRes.data || []).filter(b => !['Saren Bakery', 'Saren Frozen', 'Dapur Saren', 'Saren One Original'].includes(b.nama));
           if (cleanedBr.length > 0) setBrandList(cleanedBr);
@@ -364,6 +380,10 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.RIWAYAT_PRODUKSI, JSON.stringify(riwayatProduksi));
   }, [riwayatProduksi]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.PELANGGAN, JSON.stringify(pelangganList));
+  }, [pelangganList]);
 
   useEffect(() => {
     if (activeUser) {
@@ -1433,6 +1453,44 @@ export default function App() {
     }
   };
 
+  // Pelanggan CRUD Handlers
+  const handleCreatePelanggan = async (pelangganData) => {
+    try {
+      const res = await createPelangganApi(pelangganData, activeUser);
+      if (res?.success) {
+        showAlert('Pelanggan baru berhasil ditambahkan! 🎉', 'success');
+        fetchAllDataFromBackend(true);
+        return;
+      }
+    } catch { /* fallback local */ }
+
+    const newObj = { ...pelangganData, id: `cust_${Date.now()}` };
+    setPelangganList(prev => [newObj, ...prev]);
+    showAlert('Pelanggan baru ditambahkan! 🎉', 'success');
+  };
+
+  const handleUpdatePelanggan = async (id, pelangganData) => {
+    try {
+      const res = await updatePelangganApi(id, pelangganData, activeUser);
+      if (res?.success) {
+        showAlert('Data pelanggan berhasil diperbarui!', 'success');
+        fetchAllDataFromBackend(true);
+        return;
+      }
+    } catch { /* fallback local */ }
+
+    setPelangganList(prev => prev.map(p => (p.id === id || p._id === id) ? { ...p, ...pelangganData } : p));
+    showAlert('Data pelanggan diperbarui!', 'success');
+  };
+
+  const handleDeletePelanggan = async (id) => {
+    try {
+      await deletePelangganApi(id, activeUser);
+    } catch { /* ignore */ }
+    setPelangganList(prev => prev.filter(p => p.id !== id && p._id !== id));
+    showAlert('Pelanggan berhasil dihapus!', 'info');
+  };
+
   if (!activeUser) {
     return (
       <>
@@ -1730,11 +1788,24 @@ export default function App() {
           {activeTab === 'penjualan' && (
             <PenjualanTab
               penjualanList={penjualanList}
+              pelangganList={pelangganList}
+              produkSalesList={produkSalesList}
               activeRoleView={activeRoleView}
               activeUser={activeUser}
               onCreatePenjualan={handleCreatePenjualan}
               onUpdatePenjualan={handleUpdatePenjualan}
               onDeletePenjualan={handleDeletePenjualan}
+              showAlert={showAlert}
+            />
+          )}
+
+          {activeTab === 'pelanggan' && (
+            <PelangganTab
+              pelangganList={pelangganList}
+              activeRoleView={activeRoleView}
+              onCreatePelanggan={handleCreatePelanggan}
+              onUpdatePelanggan={handleUpdatePelanggan}
+              onDeletePelanggan={handleDeletePelanggan}
               showAlert={showAlert}
             />
           )}

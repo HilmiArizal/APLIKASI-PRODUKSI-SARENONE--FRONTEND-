@@ -154,9 +154,14 @@ export default function Sidebar({ activeUser, activeRoleView, activeTab, onSwitc
               )}
 
               {showPenjualan && (
-                <a href="#penjualan" className={mi('penjualan')} onClick={e => { e.preventDefault(); nav('penjualan'); }}>
-                  <TrendingUp size={18} /><span>Data Penjualan</span>
-                </a>
+                <>
+                  <a href="#penjualan" className={mi('penjualan')} onClick={e => { e.preventDefault(); nav('penjualan'); }}>
+                    <TrendingUp size={18} /><span>Data Penjualan</span>
+                  </a>
+                  <a href="#pelanggan" className={mi('pelanggan')} onClick={e => { e.preventDefault(); nav('pelanggan'); }}>
+                    <Users size={18} /><span>Kelola Pelanggan</span>
+                  </a>
+                </>
               )}
 
               {showMarketing && (

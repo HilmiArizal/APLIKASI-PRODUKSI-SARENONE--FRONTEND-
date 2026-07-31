@@ -479,3 +479,29 @@ export async function deleteKategoriProdukSalesApi(id, activeUser) {
   });
 }
 
+// 15. PELANGGAN / CUSTOMER (Domain Produk)
+export async function getPelangganApi() {
+  return request('/pelanggan');
+}
+
+export async function createPelangganApi(data, activeUser) {
+  return request('/pelanggan', {
+    method: 'POST',
+    body: JSON.stringify({ ...data, user: activeUser })
+  });
+}
+
+export async function updatePelangganApi(id, data, activeUser) {
+  return request(`/pelanggan/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ ...data, user: activeUser })
+  });
+}
+
+export async function deletePelangganApi(id, activeUser) {
+  return request(`/pelanggan/${id}`, {
+    method: 'DELETE',
+    body: JSON.stringify({ user: activeUser })
+  });
+}
+
