@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Tag, Plus, Edit3, Trash2, Check, Search, X } from 'lucide-react';
 
 export default function KategoriSalesBrandTab({
@@ -17,8 +17,24 @@ export default function KategoriSalesBrandTab({
 
   const canEdit = ['ADMIN_PRODUK', 'TIM_PENJUALAN', 'TIM_MARKETING'].includes(activeRoleView);
 
+  // Safe normalized brand list
+  const safeBrandList = useMemo(() => {
+    if (!Array.isArray(brandList)) return [];
+    return brandList
+      .filter(Boolean)
+      .map(b => typeof b === 'string' ? { id: b, nama: b, deskripsi: 'Daging olahan makanan beku' } : b)
+      .filter(b => b && b.nama && !['Saren Bakery', 'Saren Frozen', 'Dapur Saren', 'Saren One Original'].includes(b.nama));
+  }, [brandList]);
+
   // Filtered list
-  const filteredBrand = brandList.filter(b => !searchBrand || b.nama?.toLowerCase().includes(searchBrand.toLowerCase()) || b.deskripsi?.toLowerCase().includes(searchBrand.toLowerCase()));
+  const filteredBrand = useMemo(() => {
+    const q = (searchBrand || '').toLowerCase();
+    return safeBrandList.filter(b => {
+      if (!b || !b.nama) return false;
+      if (!q) return true;
+      return b.nama.toLowerCase().includes(q) || (b.deskripsi && b.deskripsi.toLowerCase().includes(q));
+    });
+  }, [safeBrandList, searchBrand]);
 
   // Handlers Brand
   const openAddBrand = () => {
@@ -29,25 +45,25 @@ export default function KategoriSalesBrandTab({
 
   const openEditBrand = (b) => {
     setEditBrandData(b);
-    setBrandForm({ nama: b.nama || '', deskripsi: b.deskripsi || '' });
+    setBrandForm({ nama: b?.nama || '', deskripsi: b?.deskripsi || '' });
     setShowBrandModal(true);
   };
 
   const handleSaveBrand = async (e) => {
     e.preventDefault();
-    if (!brandForm.nama.trim()) { showAlert('Nama brand wajib diisi!', 'error'); return; }
+    if (!brandForm.nama.trim()) { if (showAlert) showAlert('Nama brand wajib diisi!', 'error'); return; }
 
-    if (editBrandData) {
+    if (editBrandData && onUpdateBrand) {
       await onUpdateBrand(editBrandData.id || editBrandData._id, brandForm);
-    } else {
+    } else if (onCreateBrand) {
       await onCreateBrand(brandForm);
     }
     setShowBrandModal(false);
   };
 
   const handleDeleteBrand = async (b) => {
-    if (!confirm(`Hapus brand "${b.nama}"?`)) return;
-    await onDeleteBrand(b.id || b._id);
+    if (!confirm(`Hapus brand "${b?.nama}"?`)) return;
+    if (onDeleteBrand) await onDeleteBrand(b.id || b._id);
   };
 
   return (

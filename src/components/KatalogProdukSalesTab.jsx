@@ -40,12 +40,20 @@ export default function KatalogProdukSalesTab({
 
   const canEdit = ['ADMIN_PRODUK', 'TIM_PENJUALAN'].includes(activeRoleView);
 
+  const safeBrandList = useMemo(() => {
+    if (!Array.isArray(brandList)) return [];
+    return brandList
+      .filter(Boolean)
+      .map(b => typeof b === 'string' ? { id: b, nama: b, deskripsi: 'Daging olahan makanan beku' } : b)
+      .filter(b => b && b.nama && !['Saren Bakery', 'Saren Frozen', 'Dapur Saren', 'Saren One Original'].includes(b.nama));
+  }, [brandList]);
+
   const emptyForm = {
     sku: '',
     namaProduk: '',
     varian: '',
     gramasi: '',
-    brand: brandList[0]?.nama || 'SAREN ONE',
+    brand: safeBrandList[0]?.nama || 'SAREN ONE',
     hargaJual: 0,
     stokReady: 0,
     deskripsi: '',

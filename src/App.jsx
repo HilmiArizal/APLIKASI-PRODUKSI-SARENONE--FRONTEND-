@@ -1710,9 +1710,7 @@ export default function App() {
           {activeTab === 'katalog-produk' && (
             <KatalogProdukSalesTab
               produkSalesList={produkSalesList}
-              kategoriList={kategoriProduk}
-              kategoriSalesList={kategoriSalesList}
-              brandList={(brandList || []).filter(b => !['Saren Bakery', 'Saren Frozen', 'Dapur Saren', 'Saren One Original'].includes(b.nama))}
+              brandList={brandList}
               activeRoleView={activeRoleView}
               activeUser={activeUser}
               onCreateProdukSales={handleCreateProdukSales}
@@ -1721,9 +1719,6 @@ export default function App() {
               onCreateBrand={handleCreateBrand}
               onUpdateBrand={handleUpdateBrand}
               onDeleteBrand={handleDeleteBrand}
-              onCreateKategoriSales={handleCreateKategoriSales}
-              onUpdateKategoriSales={handleUpdateKategoriSales}
-              onDeleteKategoriSales={handleDeleteKategoriSales}
               onOpenPdfPreview={handleOpenPdfPreview}
               showAlert={showAlert}
             />
@@ -1731,12 +1726,8 @@ export default function App() {
 
           {activeTab === 'kategori-produk-sales' && (
             <KategoriSalesBrandTab
-              kategoriSalesList={kategoriSalesList}
-              brandList={(brandList || []).filter(b => !['Saren Bakery', 'Saren Frozen', 'Dapur Saren', 'Saren One Original'].includes(b.nama))}
+              brandList={brandList}
               activeRoleView={activeRoleView}
-              onCreateKategoriSales={handleCreateKategoriSales}
-              onUpdateKategoriSales={handleUpdateKategoriSales}
-              onDeleteKategoriSales={handleDeleteKategoriSales}
               onCreateBrand={handleCreateBrand}
               onUpdateBrand={handleUpdateBrand}
               onDeleteBrand={handleDeleteBrand}
