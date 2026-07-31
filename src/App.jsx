@@ -1480,18 +1480,18 @@ export default function App() {
           )}
 
           {activeTab === 'katalog-produk' && (
-            <div className="tab-container">
-              <div className="tab-header">
-                <div>
-                  <h2 className="tab-title">📦 Katalog Produk</h2>
-                  <p className="tab-subtitle">Daftar produk yang tersedia untuk dijual</p>
-                </div>
-              </div>
-              <div style={{ padding: '2rem', background: 'var(--bg-card)', borderRadius: 14, border: '2px dashed var(--border-color)', textAlign: 'center', color: 'var(--text-muted)' }}>
-                📦 Katalog produk domain penjualan sedang dalam pengembangan.<br />
-                <small>Data ini terpisah dari katalog produksi internal dan akan dikelola oleh tim Super Admin Produk.</small>
-              </div>
-            </div>
+            <ProdukTab
+              produk={produk}
+              resep={resep}
+              kategoriList={kategoriProduk}
+              activeRoleView={activeRoleView}
+              onOpenTambahProduk={() => { setEditingProduk(null); setIsModalProdukOpen(true); }}
+              onOpenEditProduk={(p) => { setEditingProduk(p); setIsModalProdukOpen(true); }}
+              onOpenProduksiSpesifik={(pId) => { setSelectedProduksiId(pId); setIsModalProduksiOpen(true); }}
+              onOpenKelolaKategori={() => setIsModalKelolaKategoriOpen(true)}
+              onOpenPdfPreview={handleOpenPdfPreview}
+              onDeleteProduk={handleDeleteProduk}
+            />
           )}
 
           {activeTab === 'penjualan' && (

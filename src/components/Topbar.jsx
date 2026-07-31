@@ -4,6 +4,12 @@ import { Eye, Menu, KeyRound } from 'lucide-react';
 export default function Topbar({ activeUser, activeRoleView, onChangeRoleView, activeTab, onOpenMobileSidebar, onOpenChangePassword }) {
   const titles = {
     'dashboard': { title: 'Dashboard Ringkasan', sub: 'Pantau kesehatan persediaan dan statistik produksi secara real-time.' },
+    'dashboard-produk': { title: 'Dashboard Produk & Penjualan', sub: 'Ringkasan performa omzet, transaksi penjualan, dan program marketing.' },
+    'katalog-produk': { title: 'Katalog Produk', sub: 'Daftar produk jadi, varian, dan stok yang tersedia untuk dijual.' },
+    'penjualan': { title: 'Data Penjualan Produk', sub: 'Catat transaksi penjualan, pantau invoice, dan kelola histori pelanggan.' },
+    'marketing': { title: 'Program Marketing & Campaign', sub: 'Kelola program promo, diskon, anggaran marketing, dan saluran penjualan.' },
+    'user-approval-produk': { title: 'Verifikasi User & Staf Produk', sub: 'Persetujuan pendaftaran & manajemen hak akses Tim Penjualan & Tim Marketing.' },
+    'audit-log-produk': { title: 'Jurnal Aktivitas Produk', sub: 'Riwayat pencatatan aktivitas penjualan, promo, dan manajemen staf.' },
     'bahan-baku': { title: 'Manajemen Stok Bahan Baku', sub: 'Kelola inventaris bahan mentah, pemasokan supplier, dan peringatan stok.' },
     'produk': { title: 'Katalog & Pemrosesan Produksi', sub: 'Kelola stok produk jadi dan jalankan batch produksi otomatis.' },
     'resep': { title: 'Manajemen Resep & BOM', sub: 'Konfigurasi formula kebutuhan bahan baku untuk setiap produk.' },
@@ -39,9 +45,23 @@ export default function Topbar({ activeUser, activeRoleView, onChangeRoleView, a
               value={activeRoleView}
               onChange={(e) => onChangeRoleView(e.target.value)}
             >
-              <option value="ADMIN">Super Admin</option>
+              <option value="ADMIN">Super Admin BB</option>
               <option value="BAHAN_BAKU">Tim Produksi</option>
               <option value="PEMBELIAN">Tim Pembelian</option>
+            </select>
+          </div>
+        )}
+
+        {activeUser?.role === 'ADMIN_PRODUK' && (
+          <div className="admin-role-switcher">
+            <label><Eye size={14} /> Peran:</label>
+            <select
+              value={activeRoleView}
+              onChange={(e) => onChangeRoleView(e.target.value)}
+            >
+              <option value="ADMIN_PRODUK">Super Admin Produk</option>
+              <option value="TIM_PENJUALAN">Tim Penjualan</option>
+              <option value="TIM_MARKETING">Tim Marketing</option>
             </select>
           </div>
         )}

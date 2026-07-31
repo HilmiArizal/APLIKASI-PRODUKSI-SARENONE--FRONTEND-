@@ -17,8 +17,9 @@ export default function ProdukTab({
 }) {
   const [search, setSearch] = useState('');
   const [kategoriFilter, setKategoriFilter] = useState('');
-  const isSuperAdmin = (activeRoleView === 'ADMIN');
-  const canEdit = (activeRoleView === 'ADMIN' || activeRoleView === 'BAHAN_BAKU');
+  const isSuperAdmin = (activeRoleView === 'ADMIN' || activeRoleView === 'ADMIN_PRODUK');
+  const canEdit = (activeRoleView === 'ADMIN' || activeRoleView === 'BAHAN_BAKU' || activeRoleView === 'ADMIN_PRODUK' || activeRoleView === 'TIM_PENJUALAN');
+  const isProdukDomain = ['ADMIN_PRODUK', 'TIM_PENJUALAN', 'TIM_MARKETING'].includes(activeRoleView);
 
   const filtered = produk
     .filter(p => {
@@ -106,9 +107,11 @@ export default function ProdukTab({
 
           {canEdit && (
             <>
-              <button className="btn btn-emerald" onClick={() => onOpenProduksiSpesifik(null)}>
-                <Play size={16} /> Mulai Produksi Batch
-              </button>
+              {!isProdukDomain && (
+                <button className="btn btn-emerald" onClick={() => onOpenProduksiSpesifik(null)}>
+                  <Play size={16} /> Mulai Produksi Batch
+                </button>
+              )}
               <button className="btn btn-primary" onClick={onOpenTambahProduk}>
                 <Plus size={16} /> Tambah Produk Baru
               </button>
