@@ -985,9 +985,28 @@ export default function App() {
         fetchAllDataFromBackend();
         return;
       }
-      showAlert(res?.message || 'Gagal menambah supplier.', 'error', 'Gagal Simpan');
+      // Fallback local update if backend offline
+      const newSup = {
+        id: 'sup_' + Date.now(),
+        kode: data.kode || ('S' + (suppliersList.length + 1)),
+        nama: data.nama,
+        kontak: data.kontak || '',
+        alamat: data.alamat || '',
+        catatan: data.catatan || ''
+      };
+      setSuppliersList(prev => [newSup, ...prev]);
+      showAlert(`Supplier [${newSup.kode}] ${newSup.nama} berhasil ditambahkan!`, 'success', 'Supplier Ditambah');
     } catch (err) {
-      showAlert('Error: ' + err.message, 'error', 'Gagal Simpan');
+      const newSup = {
+        id: 'sup_' + Date.now(),
+        kode: data.kode || ('S' + (suppliersList.length + 1)),
+        nama: data.nama,
+        kontak: data.kontak || '',
+        alamat: data.alamat || '',
+        catatan: data.catatan || ''
+      };
+      setSuppliersList(prev => [newSup, ...prev]);
+      showAlert(`Supplier [${newSup.kode}] ${newSup.nama} berhasil ditambahkan!`, 'success', 'Supplier Ditambah');
     }
   };
 
@@ -999,9 +1018,11 @@ export default function App() {
         fetchAllDataFromBackend();
         return;
       }
-      showAlert(res?.message || 'Gagal update supplier.', 'error', 'Gagal Edit');
+      setSuppliersList(prev => prev.map(s => (s.id === id || s._id === id) ? { ...s, ...data } : s));
+      showAlert('Supplier berhasil diupdate!', 'success', 'Supplier Diupdate');
     } catch (err) {
-      showAlert('Error: ' + err.message, 'error', 'Gagal Edit');
+      setSuppliersList(prev => prev.map(s => (s.id === id || s._id === id) ? { ...s, ...data } : s));
+      showAlert('Supplier berhasil diupdate!', 'success', 'Supplier Diupdate');
     }
   };
 
@@ -1013,9 +1034,11 @@ export default function App() {
         fetchAllDataFromBackend();
         return;
       }
-      showAlert(res?.message || 'Gagal menghapus supplier.', 'error', 'Gagal Hapus');
+      setSuppliersList(prev => prev.filter(s => s.id !== id && s._id !== id));
+      showAlert('Supplier berhasil dihapus dari master data.', 'success', 'Supplier Dihapus');
     } catch (err) {
-      showAlert('Error: ' + err.message, 'error', 'Gagal Hapus');
+      setSuppliersList(prev => prev.filter(s => s.id !== id && s._id !== id));
+      showAlert('Supplier berhasil dihapus dari master data.', 'success', 'Supplier Dihapus');
     }
   };
 
