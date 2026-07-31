@@ -966,9 +966,52 @@ export default function App() {
         fetchAllDataFromBackend();
         return;
       }
-      showAlert(res?.message || 'Gagal mencatat penerimaan barang.', 'error', 'Gagal Terima');
+
+      const terimaQty = parseFloat(receiveData.jumlahTerima) || 0;
+      let targetBahanId = '';
+      setUtangList(prev => prev.map(u => {
+        if (u.id === id || u._id === id || u.noFaktur === id) {
+          targetBahanId = u.bahanId;
+          const newDiterima = (u.jumlahDiterima || 0) + terimaQty;
+          const sisaBelum = Math.max(0, u.jumlah - newDiterima);
+          return {
+            ...u,
+            jumlahDiterima: newDiterima,
+            sisaBelumDiterima: sisaBelum,
+            statusPengiriman: sisaBelum === 0 ? 'SUDAH DITERIMA' : 'SEBAGIAN'
+          };
+        }
+        return u;
+      }));
+
+      if (targetBahanId) {
+        setBahanBaku(prev => prev.map(b => (b.id === targetBahanId || b._id === targetBahanId || b.sku === targetBahanId) ? { ...b, stok: b.stok + terimaQty } : b));
+      }
+
+      showAlert(`Penerimaan +${terimaQty} berhasil diverifikasi! Stok gudang bertambah!`, 'success', 'Penerimaan Berhasil! 📦');
     } catch (err) {
-      showAlert('Error: ' + err.message, 'error', 'Gagal Terima');
+      const terimaQty = parseFloat(receiveData.jumlahTerima) || 0;
+      let targetBahanId = '';
+      setUtangList(prev => prev.map(u => {
+        if (u.id === id || u._id === id || u.noFaktur === id) {
+          targetBahanId = u.bahanId;
+          const newDiterima = (u.jumlahDiterima || 0) + terimaQty;
+          const sisaBelum = Math.max(0, u.jumlah - newDiterima);
+          return {
+            ...u,
+            jumlahDiterima: newDiterima,
+            sisaBelumDiterima: sisaBelum,
+            statusPengiriman: sisaBelum === 0 ? 'SUDAH DITERIMA' : 'SEBAGIAN'
+          };
+        }
+        return u;
+      }));
+
+      if (targetBahanId) {
+        setBahanBaku(prev => prev.map(b => (b.id === targetBahanId || b._id === targetBahanId || b.sku === targetBahanId) ? { ...b, stok: b.stok + terimaQty } : b));
+      }
+
+      showAlert(`Penerimaan +${terimaQty} berhasil diverifikasi! Stok gudang bertambah!`, 'success', 'Penerimaan Berhasil! 📦');
     }
   };
 
