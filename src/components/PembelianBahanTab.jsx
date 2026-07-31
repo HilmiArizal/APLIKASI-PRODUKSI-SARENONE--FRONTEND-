@@ -3,10 +3,35 @@ import { ShoppingCart, Plus, Search, Calendar, CheckCircle, AlertTriangle, Credi
 import { formatNumber } from '../data/initialData';
 import { ModalTambahUtangSupplier, ModalKelolaSupplier } from './Modals';
 
-const getMonthKey = (dateStr) => {
+// Robust date parser to YYYY-MM format
+const parseYYYYMM = (dateStr) => {
   if (!dateStr) return '';
-  const s = String(dateStr).trim();
-  if (s.length >= 7) return s.slice(0, 7); // 'YYYY-MM'
+  const str = String(dateStr).trim();
+
+  // Pattern YYYY-MM-DD or YYYY-MM...
+  const matchIso = str.match(/^(\d{4})-(\d{2})/);
+  if (matchIso) {
+    return `${matchIso[1]}-${matchIso[2]}`;
+  }
+
+  // Pattern DD/MM/YYYY or D/M/YYYY
+  const matchSlash = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (matchSlash) {
+    const year = matchSlash[3];
+    const month = matchSlash[2].padStart(2, '0');
+    return `${year}-${month}`;
+  }
+
+  // Native Date fallback
+  try {
+    const d = new Date(str);
+    if (!isNaN(d.getTime())) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      return `${y}-${m}`;
+    }
+  } catch (e) {}
+
   return '';
 };
 
@@ -40,36 +65,42 @@ export default function PembelianBahanTab({
   const [search, setSearch] = useState('');
 
   // Default to current running month (e.g. '2026-07')
-  const currentYM = useMemo(() => new Date().toISOString().slice(0, 7), []);
+  const now = new Date();
+  const currentYear = now.getFullYear(); // e.g. 2026
+  const currentYM = `${currentYear}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const [selectedMonth, setSelectedMonth] = useState(currentYM);
 
   const canManage = (activeRoleView === 'ADMIN' || activeRoleView === 'PEMBELIAN');
 
-  // Available Months list dynamically generated from data & current month
-  const availableMonths = useMemo(() => {
-    const set = new Set();
-    set.add(currentYM);
+  // Generate FULL 12 MONTHS for the current year (Januari - Desember) + any other years found in data
+  const full12MonthsOptions = useMemo(() => {
+    const yearSet = new Set([currentYear]);
     utangList.forEach(item => {
-      if (item.tanggalBeli) {
-        const k = getMonthKey(item.tanggalBeli);
-        if (k) set.add(k);
-      }
-      if (item.riwayatPenerimaan && Array.isArray(item.riwayatPenerimaan)) {
-        item.riwayatPenerimaan.forEach(r => {
-          if (r.tanggal) {
-            const k = getMonthKey(r.tanggal);
-            if (k) set.add(k);
-          }
-        });
+      const ym = parseYYYYMM(item.tanggalBeli);
+      if (ym) {
+        const y = parseInt(ym.slice(0, 4), 10);
+        if (y > 2000 && y < 2100) yearSet.add(y);
       }
     });
-    return Array.from(set).sort((a, b) => b.localeCompare(a));
-  }, [utangList, currentYM]);
+
+    const yearsSorted = Array.from(yearSet).sort((a, b) => b - a); // newest year first (e.g. 2026)
+
+    const list = [];
+    yearsSorted.forEach(y => {
+      // Full 12 months from 1 (Januari) to 12 (Desember)
+      for (let m = 1; m <= 12; m++) {
+        const mm = String(m).padStart(2, '0');
+        list.push(`${y}-${mm}`);
+      }
+    });
+
+    return list;
+  }, [utangList, currentYear]);
 
   // Metrics for selected month
   const monthPembelianVal = useMemo(() => {
     return utangList
-      .filter(item => selectedMonth === 'semua' || getMonthKey(item.tanggalBeli) === selectedMonth)
+      .filter(item => selectedMonth === 'semua' || parseYYYYMM(item.tanggalBeli) === selectedMonth)
       .reduce((acc, item) => acc + (item.totalTagihan || 0), 0);
   }, [utangList, selectedMonth]);
 
@@ -78,12 +109,12 @@ export default function PembelianBahanTab({
       let recVal = 0;
       if (item.riwayatPenerimaan && item.riwayatPenerimaan.length > 0) {
         item.riwayatPenerimaan.forEach(r => {
-          if (selectedMonth === 'semua' || getMonthKey(r.tanggal) === selectedMonth) {
+          if (selectedMonth === 'semua' || parseYYYYMM(r.tanggal) === selectedMonth) {
             recVal += (r.jumlah || 0) * (item.hargaSatuan || 0);
           }
         });
       } else if ((item.jumlahDiterima || 0) > 0) {
-        if (selectedMonth === 'semua' || getMonthKey(item.tanggalBeli) === selectedMonth) {
+        if (selectedMonth === 'semua' || parseYYYYMM(item.tanggalBeli) === selectedMonth) {
           recVal += (item.jumlahDiterima || 0) * (item.hargaSatuan || 0);
         }
       }
@@ -92,7 +123,7 @@ export default function PembelianBahanTab({
   }, [utangList, selectedMonth]);
 
   const monthFakturCount = useMemo(() => {
-    return utangList.filter(item => selectedMonth === 'semua' || getMonthKey(item.tanggalBeli) === selectedMonth).length;
+    return utangList.filter(item => selectedMonth === 'semua' || parseYYYYMM(item.tanggalBeli) === selectedMonth).length;
   }, [utangList, selectedMonth]);
 
   const monthQtyDiterima = useMemo(() => {
@@ -100,12 +131,12 @@ export default function PembelianBahanTab({
       let qty = 0;
       if (item.riwayatPenerimaan && item.riwayatPenerimaan.length > 0) {
         item.riwayatPenerimaan.forEach(r => {
-          if (selectedMonth === 'semua' || getMonthKey(r.tanggal) === selectedMonth) {
+          if (selectedMonth === 'semua' || parseYYYYMM(r.tanggal) === selectedMonth) {
             qty += (r.jumlah || 0);
           }
         });
       } else if ((item.jumlahDiterima || 0) > 0) {
-        if (selectedMonth === 'semua' || getMonthKey(item.tanggalBeli) === selectedMonth) {
+        if (selectedMonth === 'semua' || parseYYYYMM(item.tanggalBeli) === selectedMonth) {
           qty += (item.jumlahDiterima || 0);
         }
       }
@@ -120,7 +151,7 @@ export default function PembelianBahanTab({
                         (item.noFaktur || '').toLowerCase().includes(s) ||
                         (item.bahanNama || '').toLowerCase().includes(s);
 
-    const matchMonth = selectedMonth === 'semua' || getMonthKey(item.tanggalBeli) === selectedMonth;
+    const matchMonth = selectedMonth === 'semua' || parseYYYYMM(item.tanggalBeli) === selectedMonth;
     return matchSearch && matchMonth;
   });
 
@@ -138,7 +169,7 @@ export default function PembelianBahanTab({
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-          {/* Month Selector Dropdown */}
+          {/* Month Selector Dropdown (Full 12 Months) */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.35rem 0.75rem' }}>
             <Calendar size={16} style={{ color: 'var(--primary)' }} />
             <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)' }}>Periode:</span>
@@ -149,7 +180,7 @@ export default function PembelianBahanTab({
               onChange={e => setSelectedMonth(e.target.value)}
             >
               <option value="semua" style={{ background: '#1e293b' }}>🌐 Semua Periode (All Time)</option>
-              {availableMonths.map(ym => (
+              {full12MonthsOptions.map(ym => (
                 <option key={ym} value={ym} style={{ background: '#1e293b' }}>
                   📅 {formatMonthLabel(ym)} {ym === currentYM ? '(Bulan Berjalan)' : ''}
                 </option>
