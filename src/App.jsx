@@ -230,8 +230,11 @@ export default function App() {
     setAlertState(prev => ({ ...prev, isOpen: false }));
   };
 
+  const [isLoadingData, setIsLoadingData] = useState(true);
+
   // Sync Data from Backend API (Realtime Sync & Mount)
   const fetchAllDataFromBackend = async (silent = false) => {
+    if (!silent) setIsLoadingData(true);
     try {
       const [uRes, kpRes, kbRes, bRes, pRes, rRes, prodRes, logRes, utgRes, supRes] = await Promise.all([
         getUsersApi(),
@@ -265,6 +268,8 @@ export default function App() {
     } catch (err) {
       if (!silent) console.warn('Backend API Offline, menggunakan LocalStorage:', err);
       setBackendConnected(false);
+    } finally {
+      if (!silent) setIsLoadingData(false);
     }
   };
 
@@ -1393,6 +1398,24 @@ export default function App() {
         cancelText={alertState.cancelText}
         isConfirm={alertState.isConfirm}
       />
+
+      {isLoadingData && (
+        <div className="loading-overlay-screen">
+          <div className="loading-card">
+            <img
+              src="/logo.png"
+              alt="Saren One"
+              className="loading-logo-badge"
+              onError={(e) => { e.target.style.display = 'none'; }}
+            />
+            <div className="loading-spinner-ring"></div>
+            <div>
+              <div className="loading-text">tunggu yaaa...</div>
+              <div className="loading-subtext" style={{ marginTop: '0.45rem' }}>Sedang mengambil data dari server...</div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
