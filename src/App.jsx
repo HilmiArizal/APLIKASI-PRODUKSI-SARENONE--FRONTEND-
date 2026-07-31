@@ -1405,7 +1405,7 @@ export default function App() {
             <img
               src="/logo.png"
               alt="Saren One"
-              className="loading-logo-badge"
+              style={{ width: '72px', height: '72px', objectFit: 'contain', borderRadius: '12px' }}
               onError={(e) => { e.target.style.display = 'none'; }}
             />
             <div className="loading-spinner-ring"></div>
