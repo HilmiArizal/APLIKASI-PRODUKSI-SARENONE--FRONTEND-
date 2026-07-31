@@ -81,14 +81,6 @@ export default function Sidebar({
                 )}
               </a>
 
-              <a
-                href="#penerimaan-bahan"
-                className={`menu-item ${activeTab === 'penerimaan-bahan' ? 'active' : ''}`}
-                onClick={(e) => { e.preventDefault(); handleNavClick('penerimaan-bahan'); }}
-              >
-                <PackageCheck size={18} /> <span>Penerimaan Bahan Baku</span>
-              </a>
-
               {showEmulsi && (
                 <a
                   href="#emulsi"
@@ -109,6 +101,14 @@ export default function Sidebar({
                 onClick={(e) => { e.preventDefault(); handleNavClick('pembelian-bahan'); }}
               >
                 <ShoppingCart size={18} /> <span>Pembelian Bahan Baku</span>
+              </a>
+
+              <a
+                href="#penerimaan-bahan"
+                className={`menu-item ${activeTab === 'penerimaan-bahan' ? 'active' : ''}`}
+                onClick={(e) => { e.preventDefault(); handleNavClick('penerimaan-bahan'); }}
+              >
+                <PackageCheck size={18} /> <span>Penerimaan Bahan Baku</span>
               </a>
 
               <a
