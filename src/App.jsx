@@ -982,15 +982,23 @@ export default function App() {
       return b;
     }));
 
-    // 2. Immediately update Utang status in-memory!
+    // 2. Immediately update Utang status & sisaUtang in-memory!
     setUtangList(prev => prev.map(u => {
       if (u.id === id || u._id === id || u.noFaktur === id) {
         const newDiterima = (u.jumlahDiterima || 0) + terimaQty;
         const sisaBelum = Math.max(0, u.jumlah - newDiterima);
+        const hg = u.hargaSatuan || 0;
+        const tagihanFisik = newDiterima * hg;
+        const dpPaid = u.jumlahDibayar || 0;
+        const newSisaUtang = Math.max(0, tagihanFisik - dpPaid);
+        const newStatus = newSisaUtang === 0 ? (dpPaid >= tagihanFisik && newDiterima > 0 ? 'LUNAS' : 'MENUNGGU PENERIMAAN') : (dpPaid > 0 ? 'SEBAGIAN' : 'BELUM LUNAS');
+
         return {
           ...u,
           jumlahDiterima: newDiterima,
           sisaBelumDiterima: sisaBelum,
+          sisaUtang: newSisaUtang,
+          status: newStatus,
           statusPengiriman: sisaBelum === 0 ? 'SUDAH DITERIMA' : 'SEBAGIAN'
         };
       }

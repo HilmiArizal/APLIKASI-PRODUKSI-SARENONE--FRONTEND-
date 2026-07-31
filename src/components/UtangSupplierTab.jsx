@@ -266,10 +266,11 @@ export default function UtangSupplierTab({
               </tr>
             ) : (
               filteredList.map(item => {
-                const isLunas = item.status === 'LUNAS' || item.sisaUtang === 0;
+                const isPendingPenerimaan = (item.jumlahDiterima || 0) === 0 && (item.jumlahDibayar || 0) === 0;
+                const isLunas = (item.status === 'LUNAS' || item.sisaUtang === 0) && !isPendingPenerimaan;
 
                 return (
-                  <tr key={item.id}>
+                  <tr key={item.id || item._id || item.noFaktur}>
                     <td>
                       <div style={{ fontWeight: 700, color: 'var(--primary)' }}>{item.noFaktur}</div>
                       <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#fff' }}>{item.supplier}</div>
@@ -278,7 +279,10 @@ export default function UtangSupplierTab({
                     <td>
                       <div style={{ fontWeight: 600 }}>{item.bahanNama}</div>
                       <div className="text-muted" style={{ fontSize: '0.78rem' }}>
-                        {formatNumber(item.jumlah)} {item.satuan} @ Rp {formatNumber(item.hargaSatuan)}
+                        Order: {formatNumber(item.jumlah)} {item.satuan} @ Rp {formatNumber(item.hargaSatuan)}
+                      </div>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 600, color: (item.jumlahDiterima || 0) > 0 ? 'var(--cyan)' : 'var(--amber)', marginTop: '0.15rem' }}>
+                        📥 Diterima: {formatNumber(item.jumlahDiterima || 0)} / {formatNumber(item.jumlah)} {item.satuan}
                       </div>
                     </td>
                     <td>
@@ -290,9 +294,12 @@ export default function UtangSupplierTab({
                       </span>
                     </td>
                     <td>
-                      <strong style={{ fontSize: '1rem', color: isLunas ? 'var(--emerald)' : 'var(--rose)' }}>
+                      <strong style={{ fontSize: '1rem', color: isPendingPenerimaan ? 'var(--amber)' : (isLunas ? 'var(--emerald)' : 'var(--rose)') }}>
                         Rp {formatNumber(item.sisaUtang)}
                       </strong>
+                      {isPendingPenerimaan && (
+                        <div className="text-muted" style={{ fontSize: '0.7rem' }}>Belum Diterima</div>
+                      )}
                     </td>
                     <td>
                       <div style={{ fontSize: '0.82rem', fontWeight: 600, color: isLunas ? 'var(--text-muted)' : 'var(--amber)' }}>
@@ -300,7 +307,9 @@ export default function UtangSupplierTab({
                       </div>
                     </td>
                     <td>
-                      {isLunas ? (
+                      {isPendingPenerimaan ? (
+                        <span className="badge badge-amber">⏳ PENDING RECEIVE</span>
+                      ) : isLunas ? (
                         <span className="badge badge-emerald">✓ LUNAS</span>
                       ) : item.jumlahDibayar > 0 ? (
                         <span className="badge badge-amber">CICILAN</span>
