@@ -40,7 +40,7 @@ export default function PenerimaanBahanTab({
   return (
     <div className="tab-pane active">
       {/* Header Toolbar */}
-      <div className="toolbar" style={{ marginBottom: '1.5rem', justifyContent: 'space-between' }}>
+      {/* <div className="toolbar" style={{ marginBottom: '1.5rem', justifyContent: 'space-between' }}>
         <div>
           <h2 style={{ fontSize: '1.3rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <PackageCheck size={22} style={{ color: 'var(--emerald)' }} /> Penerimaan Bahan Baku &amp; Verifikasi Fisik
@@ -49,7 +49,7 @@ export default function PenerimaanBahanTab({
             Verifikasi fisik bahan baku yang dikirim supplier. Stok gudang akan otomatis bertambah saat barang diterima.
           </p>
         </div>
-      </div>
+      </div> */}
 
       {/* Main Table Container */}
       <div className="table-container">
