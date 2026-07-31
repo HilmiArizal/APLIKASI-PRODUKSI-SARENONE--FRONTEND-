@@ -1,7 +1,28 @@
-import React, { useState } from 'react';
-import { ShoppingCart, Plus, Search, Calendar, CheckCircle, AlertTriangle, CreditCard, Building2 } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { ShoppingCart, Plus, Search, Calendar, CheckCircle, AlertTriangle, CreditCard, Building2, PackageCheck, Filter } from 'lucide-react';
 import { formatNumber } from '../data/initialData';
 import { ModalTambahUtangSupplier, ModalKelolaSupplier } from './Modals';
+
+const getMonthKey = (dateStr) => {
+  if (!dateStr) return '';
+  const s = String(dateStr).trim();
+  if (s.length >= 7) return s.slice(0, 7); // 'YYYY-MM'
+  return '';
+};
+
+const formatMonthLabel = (ymStr) => {
+  if (!ymStr || ymStr === 'semua') return 'Semua Periode (All Time)';
+  const [year, month] = ymStr.split('-');
+  const monthNames = [
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+  ];
+  const idx = parseInt(month, 10) - 1;
+  if (idx >= 0 && idx < 12) {
+    return `${monthNames[idx]} ${year}`;
+  }
+  return ymStr;
+};
 
 export default function PembelianBahanTab({
   utangList = [],
@@ -18,73 +39,174 @@ export default function PembelianBahanTab({
   const [isKelolaSupplierOpen, setIsKelolaSupplierOpen] = useState(false);
   const [search, setSearch] = useState('');
 
+  // Default to current running month (e.g. '2026-07')
+  const currentYM = useMemo(() => new Date().toISOString().slice(0, 7), []);
+  const [selectedMonth, setSelectedMonth] = useState(currentYM);
+
   const canManage = (activeRoleView === 'ADMIN' || activeRoleView === 'PEMBELIAN');
 
-  // Only show recent purchases (last 30 days or all)
+  // Available Months list dynamically generated from data & current month
+  const availableMonths = useMemo(() => {
+    const set = new Set();
+    set.add(currentYM);
+    utangList.forEach(item => {
+      if (item.tanggalBeli) {
+        const k = getMonthKey(item.tanggalBeli);
+        if (k) set.add(k);
+      }
+      if (item.riwayatPenerimaan && Array.isArray(item.riwayatPenerimaan)) {
+        item.riwayatPenerimaan.forEach(r => {
+          if (r.tanggal) {
+            const k = getMonthKey(r.tanggal);
+            if (k) set.add(k);
+          }
+        });
+      }
+    });
+    return Array.from(set).sort((a, b) => b.localeCompare(a));
+  }, [utangList, currentYM]);
+
+  // Metrics for selected month
+  const monthPembelianVal = useMemo(() => {
+    return utangList
+      .filter(item => selectedMonth === 'semua' || getMonthKey(item.tanggalBeli) === selectedMonth)
+      .reduce((acc, item) => acc + (item.totalTagihan || 0), 0);
+  }, [utangList, selectedMonth]);
+
+  const monthPenerimaanVal = useMemo(() => {
+    return utangList.reduce((acc, item) => {
+      let recVal = 0;
+      if (item.riwayatPenerimaan && item.riwayatPenerimaan.length > 0) {
+        item.riwayatPenerimaan.forEach(r => {
+          if (selectedMonth === 'semua' || getMonthKey(r.tanggal) === selectedMonth) {
+            recVal += (r.jumlah || 0) * (item.hargaSatuan || 0);
+          }
+        });
+      } else if ((item.jumlahDiterima || 0) > 0) {
+        if (selectedMonth === 'semua' || getMonthKey(item.tanggalBeli) === selectedMonth) {
+          recVal += (item.jumlahDiterima || 0) * (item.hargaSatuan || 0);
+        }
+      }
+      return acc + recVal;
+    }, 0);
+  }, [utangList, selectedMonth]);
+
+  const monthFakturCount = useMemo(() => {
+    return utangList.filter(item => selectedMonth === 'semua' || getMonthKey(item.tanggalBeli) === selectedMonth).length;
+  }, [utangList, selectedMonth]);
+
+  const monthQtyDiterima = useMemo(() => {
+    return utangList.reduce((acc, item) => {
+      let qty = 0;
+      if (item.riwayatPenerimaan && item.riwayatPenerimaan.length > 0) {
+        item.riwayatPenerimaan.forEach(r => {
+          if (selectedMonth === 'semua' || getMonthKey(r.tanggal) === selectedMonth) {
+            qty += (r.jumlah || 0);
+          }
+        });
+      } else if ((item.jumlahDiterima || 0) > 0) {
+        if (selectedMonth === 'semua' || getMonthKey(item.tanggalBeli) === selectedMonth) {
+          qty += (item.jumlahDiterima || 0);
+        }
+      }
+      return acc + qty;
+    }, 0);
+  }, [utangList, selectedMonth]);
+
+  // Filtered List for Table
   const filtered = utangList.filter(item => {
     const s = search.toLowerCase();
-    return (item.supplier || '').toLowerCase().includes(s) ||
-           (item.noFaktur || '').toLowerCase().includes(s) ||
-           (item.bahanNama || '').toLowerCase().includes(s);
-  });
+    const matchSearch = (item.supplier || '').toLowerCase().includes(s) ||
+                        (item.noFaktur || '').toLowerCase().includes(s) ||
+                        (item.bahanNama || '').toLowerCase().includes(s);
 
-  // Metrics
-  const totalFaktur = utangList.length;
-  const totalTagihanAll = utangList.reduce((acc, x) => acc + (x.totalTagihan || 0), 0);
-  const totalBelumLunas = utangList.filter(x => x.status !== 'LUNAS').length;
+    const matchMonth = selectedMonth === 'semua' || getMonthKey(item.tanggalBeli) === selectedMonth;
+    return matchSearch && matchMonth;
+  });
 
   return (
     <div className="tab-pane active">
       {/* Header */}
-      <div className="toolbar" style={{ marginBottom: '1.5rem', justifyContent: 'space-between' }}>
+      <div className="toolbar" style={{ marginBottom: '1.5rem', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h2 style={{ fontSize: '1.3rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <ShoppingCart size={22} style={{ color: 'var(--primary)' }} /> Pembelian Bahan Baku
           </h2>
           <p className="text-muted" style={{ fontSize: '0.82rem', marginTop: '0.2rem' }}>
-            Catat transaksi pembelian bahan baku dari supplier — setiap faktur pembelian dicatat sebagai tagihan utang.
+            Catat transaksi pembelian bahan baku dari supplier &amp; pantau rekapitulasi nilai transaksi per bulan.
           </p>
         </div>
-        {canManage && (
-          <button className="btn btn-primary" onClick={() => setIsTambahOpen(true)}>
-            <Plus size={16} /> Tambah Faktur Pembelian
-          </button>
-        )}
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          {/* Month Selector Dropdown */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.35rem 0.75rem' }}>
+            <Calendar size={16} style={{ color: 'var(--primary)' }} />
+            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)' }}>Periode:</span>
+            <select
+              className="select-input"
+              style={{ background: 'transparent', border: 'none', color: '#fff', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', padding: '0.2rem 0.4rem' }}
+              value={selectedMonth}
+              onChange={e => setSelectedMonth(e.target.value)}
+            >
+              <option value="semua" style={{ background: '#1e293b' }}>🌐 Semua Periode (All Time)</option>
+              {availableMonths.map(ym => (
+                <option key={ym} value={ym} style={{ background: '#1e293b' }}>
+                  📅 {formatMonthLabel(ym)} {ym === currentYM ? '(Bulan Berjalan)' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {canManage && (
+            <button className="btn btn-primary" onClick={() => setIsTambahOpen(true)}>
+              <Plus size={16} /> Tambah Faktur Pembelian
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Summary Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '1.25rem', marginBottom: '1.5rem' }}>
-        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderTop: '4px solid var(--primary)', borderRadius: 'var(--radius-md)', padding: '1.25rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="text-muted" style={{ fontSize: '0.78rem' }}>Total Transaksi Faktur</span>
-            <CreditCard size={18} style={{ color: 'var(--primary)' }} />
-          </div>
-          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--primary)', marginTop: '0.5rem' }}>
-            {totalFaktur} <span style={{ fontSize: '1rem', fontWeight: 600 }}>Faktur</span>
-          </div>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Tercatat dari supplier</span>
-        </div>
-
+      {/* Summary Cards Perbulan */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem', marginBottom: '1.5rem' }}>
+        {/* Total Nilai Pembelian (Order) */}
         <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderTop: '4px solid var(--amber)', borderRadius: 'var(--radius-md)', padding: '1.25rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="text-muted" style={{ fontSize: '0.78rem' }}>Total Nilai Pembelian</span>
+            <span className="text-muted" style={{ fontSize: '0.78rem' }}>Total Nilai Pembelian (Order)</span>
             <ShoppingCart size={18} style={{ color: 'var(--amber)' }} />
           </div>
-          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--amber)', marginTop: '0.5rem' }}>
-            Rp {formatNumber(totalTagihanAll)}
+          <div style={{ fontSize: '1.7rem', fontWeight: 800, color: 'var(--amber)', marginTop: '0.5rem' }}>
+            Rp {formatNumber(monthPembelianVal)}
           </div>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Akumulasi semua faktur</span>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+            Rencana pembelian: {formatMonthLabel(selectedMonth)}
+          </span>
         </div>
 
-        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderTop: '4px solid var(--rose)', borderRadius: 'var(--radius-md)', padding: '1.25rem' }}>
+        {/* Total Nilai Penerimaan (Fisik) */}
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderTop: '4px solid var(--emerald)', borderRadius: 'var(--radius-md)', padding: '1.25rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="text-muted" style={{ fontSize: '0.78rem' }}>Faktur Belum Lunas</span>
-            <AlertTriangle size={18} style={{ color: 'var(--rose)' }} />
+            <span className="text-muted" style={{ fontSize: '0.78rem' }}>Total Nilai Penerimaan (Fisik)</span>
+            <PackageCheck size={18} style={{ color: 'var(--emerald)' }} />
           </div>
-          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--rose)', marginTop: '0.5rem' }}>
-            {totalBelumLunas}
+          <div style={{ fontSize: '1.7rem', fontWeight: 800, color: 'var(--emerald)', marginTop: '0.5rem' }}>
+            Rp {formatNumber(monthPenerimaanVal)}
           </div>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Masih ada sisa utang</span>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+            Fisik diterima gudang: {formatMonthLabel(selectedMonth)}
+          </span>
+        </div>
+
+        {/* Total Transaksi Faktur & Barangs */}
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderTop: '4px solid var(--primary)', borderRadius: 'var(--radius-md)', padding: '1.25rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span className="text-muted" style={{ fontSize: '0.78rem' }}>Transaksi &amp; Fisik Diterima</span>
+            <CreditCard size={18} style={{ color: 'var(--primary)' }} />
+          </div>
+          <div style={{ fontSize: '1.7rem', fontWeight: 800, color: 'var(--primary)', marginTop: '0.5rem' }}>
+            {monthFakturCount} <span style={{ fontSize: '0.95rem', fontWeight: 600 }}>Faktur</span>
+          </div>
+          <span style={{ fontSize: '0.75rem', color: 'var(--cyan)', fontWeight: 600 }}>
+            📥 {formatNumber(monthQtyDiterima)} item fisik masuk gudang
+          </span>
         </div>
       </div>
 
@@ -92,8 +214,12 @@ export default function PembelianBahanTab({
       <div className="table-container">
         <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
           <div>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 700 }}>Riwayat Faktur Pembelian</h3>
-            <span className="text-muted" style={{ fontSize: '0.78rem' }}>Daftar semua transaksi pembelian bahan baku yang telah dicatat.</span>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 700 }}>
+              Riwayat Faktur Pembelian — <span style={{ color: 'var(--primary)' }}>{formatMonthLabel(selectedMonth)}</span>
+            </h3>
+            <span className="text-muted" style={{ fontSize: '0.78rem' }}>
+              Daftar transaksi pembelian bahan baku yang dicatat di periode {formatMonthLabel(selectedMonth)}.
+            </span>
           </div>
           <div className="search-box" style={{ maxWidth: '280px' }}>
             <Search size={16} />
@@ -109,13 +235,13 @@ export default function PembelianBahanTab({
         <table className="custom-table">
           <thead>
             <tr>
-              <th>NO FAKTUR & SUPPLIER</th>
+              <th>NO FAKTUR &amp; SUPPLIER</th>
               <th>BAHAN BAKU DIBELI</th>
-              <th>JUMLAH</th>
+              <th>JUMLAH ORDER</th>
               <th>HARGA SATUAN</th>
-              <th>TOTAL TAGIHAN</th>
+              <th>TOTAL ORDER</th>
               <th>TGL BELI</th>
-              <th>STATUS</th>
+              <th>STATUS PENERIMAAN</th>
             </tr>
           </thead>
           <tbody>
@@ -125,16 +251,19 @@ export default function PembelianBahanTab({
                   {canManage ? (
                     <div>
                       <ShoppingCart size={32} style={{ marginBottom: '0.75rem', opacity: 0.4 }} />
-                      <div>Belum ada faktur pembelian. Klik <strong>"+ Tambah Faktur Pembelian"</strong> untuk mulai mencatat.</div>
+                      <div>Belum ada faktur pembelian di periode <strong>{formatMonthLabel(selectedMonth)}</strong>. Klik <strong>"+ Tambah Faktur Pembelian"</strong> untuk mulai mencatat.</div>
                     </div>
-                  ) : 'Belum ada catatan pembelian.'}
+                  ) : `Belum ada catatan pembelian di ${formatMonthLabel(selectedMonth)}.`}
                 </td>
               </tr>
             ) : (
               filtered.map(item => {
-                const isLunas = item.status === 'LUNAS' || item.sisaUtang === 0;
+                const statusPeng = item.statusPengiriman || ((item.jumlahDiterima || 0) >= item.jumlah ? 'SUDAH DITERIMA' : ((item.jumlahDiterima || 0) > 0 ? 'SEBAGIAN' : 'BELUM DITERIMA'));
+                const isFullReceived = statusPeng === 'SUDAH DITERIMA';
+                const isPartial = statusPeng === 'SEBAGIAN';
+
                 return (
-                  <tr key={item.id || item._id}>
+                  <tr key={item.id || item._id || item.noFaktur}>
                     <td>
                       <div style={{ fontWeight: 700, color: 'var(--primary)' }}>{item.noFaktur}</div>
                       <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#fff' }}>{item.supplier}</div>
@@ -150,12 +279,12 @@ export default function PembelianBahanTab({
                       <div style={{ fontSize: '0.82rem' }}>📅 {item.tanggalBeli}</div>
                     </td>
                     <td>
-                      {isLunas ? (
-                        <span className="badge badge-emerald">✓ LUNAS</span>
-                      ) : item.jumlahDibayar > 0 ? (
-                        <span className="badge badge-amber">CICILAN</span>
+                      {isFullReceived ? (
+                        <span className="badge badge-emerald">✓ SUDAH DITERIMA</span>
+                      ) : isPartial ? (
+                        <span className="badge badge-amber">⏳ DITERIMA SEBAGIAN ({item.jumlahDiterima || 0}/{item.jumlah})</span>
                       ) : (
-                        <span className="badge badge-rose">BELUM LUNAS</span>
+                        <span className="badge badge-rose">📦 BELUM DITERIMA</span>
                       )}
                     </td>
                   </tr>
