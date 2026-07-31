@@ -1130,7 +1130,8 @@ export function ModalTambahUtangSupplier({ isOpen, onClose, bahanList = [], supp
       setCatatan('');
       setIsSubmitting(false);
     }
-  }, [isOpen, sortedBahanList, suppliersList]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
