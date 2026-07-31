@@ -327,9 +327,9 @@ export default function App() {
 
   useEffect(() => {
     if (activeRoleView === 'PEMBELIAN') {
-      const allowed = ['dashboard', 'bahan-baku', 'utang-supplier', 'penerimaan-bahan'];
+      const allowed = ['dashboard', 'bahan-baku', 'pembelian-bahan', 'utang-supplier', 'penerimaan-bahan'];
       if (!allowed.includes(activeTab)) {
-        setActiveTab('utang-supplier');
+        setActiveTab('pembelian-bahan');
       }
     } else if (activeRoleView === 'BAHAN_BAKU') {
       const allowed = ['dashboard', 'bahan-baku', 'penerimaan-bahan', 'emulsi', 'produk', 'resep', 'pemakaian-kemasan', 'riwayat-produksi'];
