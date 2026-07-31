@@ -107,6 +107,94 @@ export default function UtangSupplierTab({
         </div>
       </div>
 
+      {/* Saldo Utang Per Supplier */}
+      {(() => {
+        // Group utang by supplier name
+        const supplierMap = {};
+        utangList.forEach(item => {
+          const nama = item.supplier || 'Tidak Diketahui';
+          if (!supplierMap[nama]) {
+            supplierMap[nama] = { nama, sisaUtang: 0, totalTagihan: 0, jumlahDibayar: 0, fakturCount: 0, fakturBelumLunas: 0 };
+          }
+          supplierMap[nama].sisaUtang += (item.sisaUtang || 0);
+          supplierMap[nama].totalTagihan += (item.totalTagihan || 0);
+          supplierMap[nama].jumlahDibayar += (item.jumlahDibayar || 0);
+          supplierMap[nama].fakturCount += 1;
+          if (item.status !== 'LUNAS') supplierMap[nama].fakturBelumLunas += 1;
+        });
+        const supplierList = Object.values(supplierMap).sort((a, b) => b.sisaUtang - a.sisaUtang);
+        if (supplierList.length === 0) return null;
+        return (
+          <div style={{ marginBottom: '1.5rem' }}>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              🏢 Saldo Utang per Supplier
+            </h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1rem' }}>
+              {supplierList.map(sup => {
+                const isLunas = sup.sisaUtang === 0;
+                const pct = sup.totalTagihan > 0 ? Math.min(100, Math.round((sup.jumlahDibayar / sup.totalTagihan) * 100)) : 100;
+                return (
+                  <div
+                    key={sup.nama}
+                    style={{
+                      background: 'var(--bg-card)',
+                      border: `1px solid ${isLunas ? 'rgba(52,211,153,0.35)' : 'rgba(251,113,133,0.35)'}`,
+                      borderLeft: `4px solid ${isLunas ? 'var(--emerald)' : 'var(--rose)'}`,
+                      borderRadius: 'var(--radius-md)',
+                      padding: '1.1rem 1.25rem',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.6rem' }}>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-main)' }}>{sup.nama}</div>
+                        <div className="text-muted" style={{ fontSize: '0.72rem', marginTop: '0.15rem' }}>
+                          {sup.fakturCount} faktur · {sup.fakturBelumLunas} belum lunas
+                        </div>
+                      </div>
+                      {isLunas
+                        ? <span className="badge badge-emerald" style={{ fontSize: '0.7rem' }}>✓ LUNAS</span>
+                        : <span className="badge badge-rose" style={{ fontSize: '0.7rem' }}>BELUM LUNAS</span>
+                      }
+                    </div>
+                    <div style={{ marginBottom: '0.55rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', marginBottom: '0.3rem' }}>
+                        <span className="text-muted">Saldo Utang</span>
+                        <strong style={{ color: isLunas ? 'var(--emerald)' : 'var(--rose)', fontSize: '1rem' }}>
+                          Rp {formatNumber(sup.sisaUtang)}
+                        </strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
+                        <span className="text-muted">Total Tagihan</span>
+                        <span style={{ color: 'var(--text-muted)' }}>Rp {formatNumber(sup.totalTagihan)}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginTop: '0.2rem' }}>
+                        <span className="text-muted">Sudah Dibayar</span>
+                        <span style={{ color: 'var(--emerald)' }}>Rp {formatNumber(sup.jumlahDibayar)}</span>
+                      </div>
+                    </div>
+                    {/* Progress bar */}
+                    <div style={{ background: 'var(--bg-main)', borderRadius: '999px', height: '6px', overflow: 'hidden', marginTop: '0.65rem' }}>
+                      <div style={{
+                        width: `${pct}%`,
+                        height: '100%',
+                        borderRadius: '999px',
+                        background: isLunas
+                          ? 'var(--emerald)'
+                          : `linear-gradient(90deg, var(--primary), var(--rose))`,
+                        transition: 'width 0.4s ease'
+                      }} />
+                    </div>
+                    <div className="text-muted" style={{ fontSize: '0.7rem', marginTop: '0.3rem', textAlign: 'right' }}>
+                      {pct}% terbayar
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Main Table Container */}
       <div className="table-container">
         <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
