@@ -255,7 +255,10 @@ export default function App() {
       if (prodRes?.success) setRiwayatProduksi(prodRes.data);
       if (logRes?.success) setAuditLog(logRes.data);
       if (utgRes?.success) setUtangList(utgRes.data);
-      if (supRes?.success) setSuppliersList(supRes.data);
+      if (supRes?.success) {
+        const cleaned = (supRes.data || []).filter(x => !['sup_1', 'sup_2', 'sup_3', 'sup_4', 'sup_5'].includes(x.id));
+        setSuppliersList(cleaned);
+      }
 
       setBackendConnected(true);
     } catch (err) {
