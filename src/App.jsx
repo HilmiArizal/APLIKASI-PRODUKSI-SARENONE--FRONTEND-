@@ -186,11 +186,7 @@ export default function App() {
   const [utangList, setUtangList] = useState([]);
   const [suppliersList, setSuppliersList] = useState([]);
   const [penjualanList, setPenjualanList] = useState([]);
-  const [pelangganList, setPelangganList] = useState(() => safeGetStorage(STORAGE_KEYS.PELANGGAN, [
-    { id: 'cust_1', nama: 'Toko Berkah Frozen', noHp: '081234567890', alamat: 'Jl. Raya Bandung No. 12', tipe: 'Distributor', catatan: 'Pelanggan langganan grosir' },
-    { id: 'cust_2', nama: 'Warung Bu Siti', noHp: '085712345678', alamat: 'Komp. Gria Asri Blok C2', tipe: 'Reseller', catatan: 'Ambil mingguan' },
-    { id: 'cust_3', nama: 'Resto Sate Barokah', noHp: '081987654321', alamat: 'Jl. Ahmad Yani No. 45', tipe: 'Retail', catatan: 'Restoran mitra' }
-  ]));
+  const [pelangganList, setPelangganList] = useState(() => safeGetStorage(STORAGE_KEYS.PELANGGAN, []));
   const [marketingList, setMarketingList] = useState([]);
   const [produkSalesList, setProdukSalesList] = useState([]);
   const [brandList, setBrandList] = useState([
@@ -322,7 +318,7 @@ export default function App() {
         if (pjRes?.success) setPenjualanList(pjRes.data || []);
         if (mktRes?.success) setMarketingList(mktRes.data || []);
         if (psRes?.success) setProdukSalesList(psRes.data || []);
-        if (pelRes?.success && (pelRes.data || []).length > 0) setPelangganList(pelRes.data);
+        if (pelRes?.success) setPelangganList(pelRes.data || []);
         if (brRes?.success && (brRes.data || []).length > 0) {
           const cleanedBr = (brRes.data || []).filter(b => !['Saren Bakery', 'Saren Frozen', 'Dapur Saren', 'Saren One Original'].includes(b.nama));
           if (cleanedBr.length > 0) setBrandList(cleanedBr);
