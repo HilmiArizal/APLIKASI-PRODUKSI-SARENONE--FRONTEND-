@@ -79,7 +79,7 @@ export default function KatalogProdukSalesTab({
     setEditData(null);
     setForm({
       ...emptyForm,
-      sku: 'SLS-' + String(Math.floor(100 + Math.random() * 900)),
+      sku: '',
       brand: brandList[0]?.nama || 'SAREN ONE'
     });
     setShowModal(true);
@@ -425,7 +425,7 @@ export default function KatalogProdukSalesTab({
               <div className="form-grid">
                 <div className="form-group">
                   <label className="form-label">Kode SKU *</label>
-                  <input className="form-input" value={form.sku} onChange={e => setForm(f => ({ ...f, sku: e.target.value }))} placeholder="Contoh: SLS-001" />
+                  <input className="form-input" value={form.sku} onChange={e => setForm(f => ({ ...f, sku: e.target.value }))} placeholder="Contoh: P1" />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Brand Produk *</label>
@@ -435,11 +435,11 @@ export default function KatalogProdukSalesTab({
                 </div>
                 <div className="form-group" style={{ gridColumn: '1/-1' }}>
                   <label className="form-label">Nama Produk Jual *</label>
-                  <input className="form-input" value={form.namaProduk} onChange={e => setForm(f => ({ ...f, namaProduk: e.target.value }))} placeholder="Contoh: Sosis Sapi Premium, Nugget Ayam Crispy" />
+                  <input className="form-input" value={form.namaProduk} onChange={e => setForm(f => ({ ...f, namaProduk: e.target.value }))} placeholder="Contoh: Red Cocktail Sausage 500gr" />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Varian Rasa / Jenis</label>
-                  <input className="form-input" value={form.varian} onChange={e => setForm(f => ({ ...f, varian: e.target.value }))} placeholder="Contoh: Original Smoked, Keju Lumer" />
+                  <input className="form-input" value={form.varian} onChange={e => setForm(f => ({ ...f, varian: e.target.value }))} placeholder="Contoh: Original" />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Gramasi / Ukuran Berat</label>
