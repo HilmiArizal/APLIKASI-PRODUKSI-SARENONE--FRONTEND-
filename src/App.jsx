@@ -535,14 +535,14 @@ export default function App() {
 
   const handleSaveUser = async (userData) => {
     if (userData.id) {
+      setUsers(prev => prev.map(u => (u.id === userData.id || u._id === userData.id || u.username === userData.username) ? { ...u, role: userData.role, status: 'VERIFIED' } : u));
       const res = await updateUserApi(userData.id, userData);
       if (res?.success) {
-        showAlert(res.message, 'success', 'Update Staf Berhasil! ✨');
-        fetchAllDataFromBackend();
+        showAlert(res.message, 'success', 'Role Staf Berhasil Diubah! ✨');
+        fetchAllDataFromBackend(true);
         return;
       }
-      setUsers(prev => prev.map(u => u.id === userData.id ? { ...u, ...userData } : u));
-      showAlert('Data pengguna berhasil diperbarui!', 'success', 'Update Staf');
+      showAlert('Role pengguna berhasil diperbarui!', 'success', 'Role Diubah');
     } else {
       const res = await registerApi(userData);
       if (res?.success && res?.data?.id) {
