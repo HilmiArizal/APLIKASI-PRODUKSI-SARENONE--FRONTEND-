@@ -394,11 +394,32 @@ export default function App() {
     }
   }, [activeRoleView, activeTab]);
 
+  useEffect(() => {
+    if (activeUser && users.length > 0) {
+      const freshUser = users.find(u => u.username?.toLowerCase() === activeUser.username?.toLowerCase() || u.id === activeUser.id);
+      if (freshUser && (freshUser.role !== activeUser.role || freshUser.name !== activeUser.name)) {
+        const updatedActiveUser = { ...activeUser, role: freshUser.role, requestedRole: freshUser.role, name: freshUser.name };
+        setActiveUser(updatedActiveUser);
+        setActiveRoleView(freshUser.role);
+        localStorage.setItem(STORAGE_KEYS.ACTIVE_USER, JSON.stringify(updatedActiveUser));
+        localStorage.setItem(STORAGE_KEYS.ROLE_VIEW, freshUser.role);
+      }
+    }
+  }, [users]);
+
   // Auth Handlers
   const handleLogin = async (usernameOrEmail, password) => {
     const res = await loginApi(usernameOrEmail, password);
-    const targetUser = res?.user || res?.data;
+    let targetUser = res?.user || res?.data;
     if (res?.success && targetUser) {
+      try {
+        const savedOverrides = JSON.parse(localStorage.getItem('SAREN_USER_ROLE_OVERRIDES') || '{}');
+        const k = targetUser.username || targetUser.id;
+        if (k && savedOverrides[k]) {
+          targetUser = { ...targetUser, role: savedOverrides[k], requestedRole: savedOverrides[k] };
+        }
+      } catch (e) {}
+
       if (targetUser.status === 'PENDING') {
         showAlert('Akun Anda masih dalam antrean persetujuan (PENDING). Mohon hubungi Super Admin.', 'warning', 'Persetujuan Pending');
         setActiveUser(targetUser);
@@ -407,6 +428,8 @@ export default function App() {
       }
       setActiveUser(targetUser);
       setActiveRoleView(targetUser.role);
+      localStorage.setItem(STORAGE_KEYS.ACTIVE_USER, JSON.stringify(targetUser));
+      localStorage.setItem(STORAGE_KEYS.ROLE_VIEW, targetUser.role);
       showAlert(`Selamat datang kembali, ${targetUser.name}! (Role: ${targetUser.role})`, 'success', 'Login Berhasil!');
       fetchAllDataFromBackend();
       return;
