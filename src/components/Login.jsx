@@ -44,9 +44,9 @@ export default function Login({ onLogin, onRegister, showAlert }) {
     } else if (userType === 'bahan') {
       setLoginInput('hilmi');
       setLoginPass('Hilmi@123');
-    } else if (userType === 'produk') {
-      setLoginInput('imam');
-      setLoginPass('Imam@123');
+    } else if (userType === 'admin_produk') {
+      setLoginInput('admin_produk');
+      setLoginPass('Adminproduk@123');
     }
   };
 
@@ -328,6 +328,21 @@ export default function Login({ onLogin, onRegister, showAlert }) {
                   {showRegConfirmPass ? <EyeOff size={14} /> : <Eye size={14} />}
                 </button>
               </div>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: '0.75rem' }}>
+              <label style={{ fontSize: '0.78rem' }}><ShieldCheck size={13} style={{ color: 'var(--emerald)' }} /> Pilihan Divisi / Role Pengajuan *</label>
+              <select
+                className="form-control"
+                value={regRole}
+                onChange={(e) => setRegRole(e.target.value)}
+                style={{ padding: '0.55rem 0.85rem', fontSize: '0.85rem' }}
+              >
+                <option value="TIM_PENJUALAN">🛍️ Tim Penjualan (Domain Produk)</option>
+                <option value="TIM_MARKETING">📣 Tim Marketing (Domain Produk)</option>
+                <option value="BAHAN_BAKU">🏭 Tim Produksi (Domain Bahan Baku)</option>
+                <option value="PEMBELIAN">🛒 Tim Pembelian (Domain Bahan Baku)</option>
+              </select>
             </div>
 
 
