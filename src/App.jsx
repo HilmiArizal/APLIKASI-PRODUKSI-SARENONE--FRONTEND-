@@ -1240,6 +1240,7 @@ export default function App() {
           {activeTab === 'utang-supplier' && (
             <UtangSupplierTab
               utangList={utangList}
+              suppliersList={suppliersList}
               activeRoleView={activeRoleView}
               onPayUtang={handlePayUtang}
               onDeleteUtang={handleDeleteUtang}

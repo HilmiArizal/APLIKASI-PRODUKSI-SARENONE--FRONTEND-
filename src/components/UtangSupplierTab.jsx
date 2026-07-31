@@ -5,6 +5,7 @@ import { ModalBayarUtangSupplier, ModalRiwayatBayarSupplier } from './Modals';
 
 export default function UtangSupplierTab({
   utangList = [],
+  suppliersList = [],
   activeRoleView,
   onPayUtang,
   onDeleteUtang,
@@ -109,8 +110,15 @@ export default function UtangSupplierTab({
 
       {/* Saldo Utang Per Supplier */}
       {(() => {
-        // Group utang by supplier name
+        // Start with ALL suppliers from master list (even those with 0 utang)
         const supplierMap = {};
+        suppliersList.forEach(sup => {
+          const nama = sup.nama || sup.name || '';
+          if (nama) {
+            supplierMap[nama] = { nama, sisaUtang: 0, totalTagihan: 0, jumlahDibayar: 0, fakturCount: 0, fakturBelumLunas: 0 };
+          }
+        });
+        // Accumulate utang data on top
         utangList.forEach(item => {
           const nama = item.supplier || 'Tidak Diketahui';
           if (!supplierMap[nama]) {
@@ -122,7 +130,11 @@ export default function UtangSupplierTab({
           supplierMap[nama].fakturCount += 1;
           if (item.status !== 'LUNAS') supplierMap[nama].fakturBelumLunas += 1;
         });
-        const supplierList = Object.values(supplierMap).sort((a, b) => b.sisaUtang - a.sisaUtang);
+        // Sort: ada utang dulu (descending), lalu yang 0 secara alfabetis
+        const supplierList = Object.values(supplierMap).sort((a, b) => {
+          if (b.sisaUtang !== a.sisaUtang) return b.sisaUtang - a.sisaUtang;
+          return a.nama.localeCompare(b.nama);
+        });
         if (supplierList.length === 0) return null;
         return (
           <div style={{ marginBottom: '1.5rem' }}>
@@ -148,12 +160,17 @@ export default function UtangSupplierTab({
                       <div>
                         <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-main)' }}>{sup.nama}</div>
                         <div className="text-muted" style={{ fontSize: '0.72rem', marginTop: '0.15rem' }}>
-                          {sup.fakturCount} faktur · {sup.fakturBelumLunas} belum lunas
+                          {sup.fakturCount > 0
+                            ? `${sup.fakturCount} faktur · ${sup.fakturBelumLunas} belum lunas`
+                            : 'Belum ada transaksi'
+                          }
                         </div>
                       </div>
-                      {isLunas
-                        ? <span className="badge badge-emerald" style={{ fontSize: '0.7rem' }}>✓ LUNAS</span>
-                        : <span className="badge badge-rose" style={{ fontSize: '0.7rem' }}>BELUM LUNAS</span>
+                      {sup.fakturCount === 0
+                        ? <span className="badge" style={{ fontSize: '0.7rem', background: 'rgba(148,163,184,0.15)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}>BERSIH</span>
+                        : isLunas
+                          ? <span className="badge badge-emerald" style={{ fontSize: '0.7rem' }}>✓ LUNAS</span>
+                          : <span className="badge badge-rose" style={{ fontSize: '0.7rem' }}>BELUM LUNAS</span>
                       }
                     </div>
                     <div style={{ marginBottom: '0.55rem' }}>
