@@ -51,42 +51,6 @@ export default function PenerimaanBahanTab({
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem', marginBottom: '1.5rem' }}>
-        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderTop: '4px solid var(--amber)', borderRadius: 'var(--radius-md)', padding: '1.25rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="text-muted" style={{ fontSize: '0.78rem' }}>Pengiriman Pending Supplier</span>
-            <Truck size={18} style={{ color: 'var(--amber)' }} />
-          </div>
-          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--amber)', marginTop: '0.5rem' }}>
-            {pendingCount} <span style={{ fontSize: '1rem', fontWeight: 600 }}>Faktur</span>
-          </div>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Belum diterima / partial delivery</span>
-        </div>
-
-        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderTop: '4px solid var(--emerald)', borderRadius: 'var(--radius-md)', padding: '1.25rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="text-muted" style={{ fontSize: '0.78rem' }}>Faktur Selesai Diterima Full</span>
-            <CheckCircle size={18} style={{ color: 'var(--emerald)' }} />
-          </div>
-          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--emerald)', marginTop: '0.5rem' }}>
-            {receivedCount} <span style={{ fontSize: '1rem', fontWeight: 600 }}>Faktur</span>
-          </div>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Fisik barang 100% terverifikasi</span>
-        </div>
-
-        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderTop: '4px solid var(--cyan)', borderRadius: 'var(--radius-md)', padding: '1.25rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="text-muted" style={{ fontSize: '0.78rem' }}>Total Akumulasi Barang Diterima</span>
-            <Inbox size={18} style={{ color: 'var(--cyan)' }} />
-          </div>
-          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--cyan)', marginTop: '0.5rem' }}>
-            {formatNumber(totalQtyDiterima)} <span style={{ fontSize: '1rem', fontWeight: 600 }}>Item</span>
-          </div>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Telah masuk ke stok gudang</span>
-        </div>
-      </div>
-
       {/* Main Table Container */}
       <div className="table-container">
         <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>

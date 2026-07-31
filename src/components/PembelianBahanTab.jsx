@@ -197,7 +197,7 @@ export default function PembelianBahanTab({
       </div>
 
       {/* Summary Cards Perbulan */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem', marginBottom: '1.5rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem', marginBottom: '1.5rem' }}>
         {/* Total Nilai Pembelian (Order) */}
         <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderTop: '4px solid var(--amber)', borderRadius: 'var(--radius-md)', padding: '1.25rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -223,20 +223,6 @@ export default function PembelianBahanTab({
           </div>
           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
             Fisik diterima gudang: {formatMonthLabel(selectedMonth)}
-          </span>
-        </div>
-
-        {/* Total Transaksi Faktur & Barangs */}
-        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderTop: '4px solid var(--primary)', borderRadius: 'var(--radius-md)', padding: '1.25rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="text-muted" style={{ fontSize: '0.78rem' }}>Transaksi &amp; Fisik Diterima</span>
-            <CreditCard size={18} style={{ color: 'var(--primary)' }} />
-          </div>
-          <div style={{ fontSize: '1.7rem', fontWeight: 800, color: 'var(--primary)', marginTop: '0.5rem' }}>
-            {monthFakturCount} <span style={{ fontSize: '0.95rem', fontWeight: 600 }}>Faktur</span>
-          </div>
-          <span style={{ fontSize: '0.75rem', color: 'var(--cyan)', fontWeight: 600 }}>
-            📥 {formatNumber(monthQtyDiterima)} item fisik masuk gudang
           </span>
         </div>
       </div>

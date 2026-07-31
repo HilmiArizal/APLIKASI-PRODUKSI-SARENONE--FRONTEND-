@@ -73,7 +73,7 @@ export default function UtangSupplierTab({
       </div>
 
       {/* Summary Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem', marginBottom: '1.5rem' }}>
+      <div style={{ marginBottom: '1.5rem' }}>
         <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderTop: '4px solid var(--rose)', borderRadius: 'var(--radius-md)', padding: '1.25rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span className="text-muted" style={{ fontSize: '0.78rem' }}>Total Utang Supplier Aktif</span>
@@ -83,28 +83,6 @@ export default function UtangSupplierTab({
             Rp {formatNumber(totalUtangAktif)}
           </div>
           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{totalFakturBelumLunas} faktur belum lunas</span>
-        </div>
-
-        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderTop: '4px solid var(--emerald)', borderRadius: 'var(--radius-md)', padding: '1.25rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="text-muted" style={{ fontSize: '0.78rem' }}>Total Akumulasi Terbayar / DP</span>
-            <CheckCircle size={18} style={{ color: 'var(--emerald)' }} />
-          </div>
-          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--emerald)', marginTop: '0.5rem' }}>
-            Rp {formatNumber(totalTerbayar)}
-          </div>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Pembayaran DP &amp; pelunasan</span>
-        </div>
-
-        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderTop: '4px solid var(--amber)', borderRadius: 'var(--radius-md)', padding: '1.25rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="text-muted" style={{ fontSize: '0.78rem' }}>Total Transaksi Faktur</span>
-            <CreditCard size={18} style={{ color: 'var(--amber)' }} />
-          </div>
-          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--amber)', marginTop: '0.5rem' }}>
-            {utangList.length} <span style={{ fontSize: '1rem', fontWeight: 600 }}>Faktur</span>
-          </div>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Tercatat dari supplier</span>
         </div>
       </div>
 
