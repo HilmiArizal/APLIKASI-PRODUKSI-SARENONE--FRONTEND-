@@ -134,16 +134,25 @@ const STORAGE_KEYS = {
   ACTIVE_TAB: 'saren_one_active_tab_v2'
 };
 
+function safeGetStorage(key, fallback) {
+  try {
+    const saved = localStorage.getItem(key);
+    if (!saved || saved === 'undefined' || saved === 'null') return fallback;
+    const parsed = JSON.parse(saved);
+    return parsed !== null && parsed !== undefined ? parsed : fallback;
+  } catch (e) {
+    console.warn(`[SafeStorage Warning] Corrupt data for ${key}:`, e);
+    return fallback;
+  }
+}
+
 export default function App() {
-  const [activeUser, setActiveUser] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.ACTIVE_USER);
-    return saved ? JSON.parse(saved) : null;
-  });
+  const [activeUser, setActiveUser] = useState(() => safeGetStorage(STORAGE_KEYS.ACTIVE_USER, null));
 
   const [activeRoleView, setActiveRoleView] = useState(() => activeUser?.role || 'ADMIN');
   const [activeTab, setActiveTab] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.ACTIVE_TAB);
-    return saved || 'dashboard';
+    const saved = safeGetStorage(STORAGE_KEYS.ACTIVE_TAB, 'dashboard');
+    return typeof saved === 'string' ? saved : 'dashboard';
   });
 
   useEffect(() => {
@@ -156,45 +165,14 @@ export default function App() {
   const [backendConnected, setBackendConnected] = useState(false);
 
   // Core Data States
-  const [users, setUsers] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.USERS);
-    return saved ? JSON.parse(saved) : DEFAULT_USERS;
-  });
-
-  const [kategoriProduk, setKategoriProduk] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.KATEGORI_PRODUK);
-    return saved ? JSON.parse(saved) : INITIAL_KATEGORI_PRODUK;
-  });
-
-  const [kategoriBahanBaku, setKategoriBahanBaku] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.KATEGORI_BAHAN);
-    return saved ? JSON.parse(saved) : INITIAL_KATEGORI_BAHAN;
-  });
-
-  const [bahanBaku, setBahanBaku] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.BAHAN_BAKU);
-    return saved ? JSON.parse(saved) : INITIAL_BAHAN_BAKU;
-  });
-
-  const [produk, setProduk] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.PRODUK);
-    return saved ? JSON.parse(saved) : INITIAL_PRODUK;
-  });
-
-  const [resep, setResep] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.RESEP);
-    return saved ? JSON.parse(saved) : INITIAL_RESEP;
-  });
-
-  const [auditLog, setAuditLog] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.AUDIT_LOG);
-    return saved ? JSON.parse(saved) : INITIAL_AUDIT_LOG;
-  });
-
-  const [riwayatProduksi, setRiwayatProduksi] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.RIWAYAT_PRODUKSI);
-    return saved ? JSON.parse(saved) : INITIAL_RIWAYAT_PRODUKSI;
-  });
+  const [users, setUsers] = useState(() => safeGetStorage(STORAGE_KEYS.USERS, DEFAULT_USERS));
+  const [kategoriProduk, setKategoriProduk] = useState(() => safeGetStorage(STORAGE_KEYS.KATEGORI_PRODUK, INITIAL_KATEGORI_PRODUK));
+  const [kategoriBahanBaku, setKategoriBahanBaku] = useState(() => safeGetStorage(STORAGE_KEYS.KATEGORI_BAHAN, INITIAL_KATEGORI_BAHAN));
+  const [bahanBaku, setBahanBaku] = useState(() => safeGetStorage(STORAGE_KEYS.BAHAN_BAKU, INITIAL_BAHAN_BAKU));
+  const [produk, setProduk] = useState(() => safeGetStorage(STORAGE_KEYS.PRODUK, INITIAL_PRODUK));
+  const [resep, setResep] = useState(() => safeGetStorage(STORAGE_KEYS.RESEP, INITIAL_RESEP));
+  const [auditLog, setAuditLog] = useState(() => safeGetStorage(STORAGE_KEYS.AUDIT_LOG, INITIAL_AUDIT_LOG));
+  const [riwayatProduksi, setRiwayatProduksi] = useState(() => safeGetStorage(STORAGE_KEYS.RIWAYAT_PRODUKSI, INITIAL_RIWAYAT_PRODUKSI));
 
   const [utangList, setUtangList] = useState([]);
   const [suppliersList, setSuppliersList] = useState([]);
