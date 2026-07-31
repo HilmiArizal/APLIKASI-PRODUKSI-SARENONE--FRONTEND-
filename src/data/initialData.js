@@ -23,7 +23,11 @@ export const DEFAULT_USERS = [
   }
 ];
 
-export const INITIAL_KATEGORI_PRODUK = [];
+export const INITIAL_KATEGORI_PRODUK = [
+  { id: 'kat_1', nama: 'SAREN ONE', deskripsi: 'Daging olahan makanan beku' },
+  { id: 'kat_2', nama: 'EAT GOW', deskripsi: 'Daging olahan makanan beku' },
+  { id: 'kat_3', nama: 'BEULEUM', deskripsi: 'Daging olahan makanan beku' }
+];
 export const INITIAL_KATEGORI_BAHAN = [];
 export const INITIAL_BAHAN_BAKU = [];
 export const INITIAL_PRODUK = [];

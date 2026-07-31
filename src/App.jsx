@@ -1353,50 +1353,47 @@ export default function App() {
 
   const handleCreateBrand = async (brandData) => {
     try {
-      const res = await createBrandProdukApi(brandData, activeUser);
-      if (res?.success) {
-        showAlert(res.message, 'success', 'Tambah Brand');
-        fetchAllDataFromBackend(true);
-        return;
-      }
-      const newBrand = { id: `brand_${Date.now()}`, ...brandData };
-      setBrandList(prev => [newBrand, ...prev]);
-      showAlert('Brand berhasil ditambahkan!', 'success', 'Tambah Brand');
+      const [res1, res2] = await Promise.all([
+        createBrandProdukApi(brandData, activeUser),
+        createKategoriProdukApi(brandData, activeUser?.name)
+      ]);
+      showAlert(res1?.message || res2?.message || 'Brand berhasil ditambahkan!', 'success', 'Tambah Brand');
+      fetchAllDataFromBackend(true);
     } catch (err) {
       const newBrand = { id: `brand_${Date.now()}`, ...brandData };
       setBrandList(prev => [newBrand, ...prev]);
+      setKategoriProduk(prev => [...prev, newBrand]);
       showAlert('Brand berhasil ditambahkan!', 'success', 'Tambah Brand');
     }
   };
 
   const handleUpdateBrand = async (id, brandData) => {
     try {
-      const res = await updateBrandProdukApi(id, brandData, activeUser);
-      if (res?.success) {
-        showAlert(res.message, 'success', 'Edit Brand');
-        fetchAllDataFromBackend(true);
-        return;
-      }
-      setBrandList(prev => prev.map(b => (b.id === id || b._id === id) ? { ...b, ...brandData } : b));
-      showAlert('Brand berhasil diperbarui!', 'success', 'Edit Brand');
+      const [res1, res2] = await Promise.all([
+        updateBrandProdukApi(id, brandData, activeUser),
+        updateKategoriProdukApi(id, brandData, activeUser?.name)
+      ]);
+      showAlert(res1?.message || res2?.message || 'Brand berhasil diperbarui!', 'success', 'Edit Brand');
+      fetchAllDataFromBackend(true);
     } catch (err) {
       setBrandList(prev => prev.map(b => (b.id === id || b._id === id) ? { ...b, ...brandData } : b));
+      setKategoriProduk(prev => prev.map(b => (b.id === id || b._id === id) ? { ...b, ...brandData } : b));
       showAlert('Brand berhasil diperbarui!', 'success', 'Edit Brand');
     }
   };
 
   const handleDeleteBrand = async (id) => {
     try {
-      const res = await deleteBrandProdukApi(id, activeUser);
-      if (res?.success) {
-        showAlert(res.message, 'success', 'Hapus Brand');
-        setBrandList(prev => prev.filter(b => b.id !== id && b._id !== id));
-        return;
-      }
-      setBrandList(prev => prev.filter(b => b.id !== id && b._id !== id));
+      await Promise.all([
+        deleteBrandProdukApi(id, activeUser),
+        deleteKategoriProdukApi(id, activeUser?.name)
+      ]);
       showAlert('Brand berhasil dihapus.', 'info', 'Hapus Brand');
+      setBrandList(prev => prev.filter(b => b.id !== id && b._id !== id));
+      setKategoriProduk(prev => prev.filter(b => b.id !== id && b._id !== id));
     } catch (err) {
       setBrandList(prev => prev.filter(b => b.id !== id && b._id !== id));
+      setKategoriProduk(prev => prev.filter(b => b.id !== id && b._id !== id));
       showAlert('Brand berhasil dihapus.', 'info', 'Hapus Brand');
     }
   };
