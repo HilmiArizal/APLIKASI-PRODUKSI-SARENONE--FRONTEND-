@@ -959,58 +959,47 @@ export default function App() {
   };
 
   const handleReceiveBahan = async (id, receiveData) => {
+    const terimaQty = parseFloat(receiveData.jumlahTerima) || 0;
+
+    // Find target invoice record synchronously from utangList state
+    const targetUtang = utangList.find(u => u.id === id || u._id === id || u.noFaktur === id);
+    const targetBahanId = targetUtang?.bahanId || receiveData.bahanId;
+    const targetBahanNama = targetUtang?.bahanNama;
+
+    // 1. Immediately update physical stock of Bahan Baku in-memory!
+    setBahanBaku(prev => prev.map(b => {
+      const isMatch = (targetBahanId && (b.id === targetBahanId || b._id === targetBahanId || b.sku === targetBahanId)) ||
+                      (targetBahanNama && b.nama.toLowerCase() === targetBahanNama.toLowerCase());
+      if (isMatch) {
+        return { ...b, stok: Math.round((b.stok + terimaQty) * 1000) / 1000 };
+      }
+      return b;
+    }));
+
+    // 2. Immediately update Utang status in-memory!
+    setUtangList(prev => prev.map(u => {
+      if (u.id === id || u._id === id || u.noFaktur === id) {
+        const newDiterima = (u.jumlahDiterima || 0) + terimaQty;
+        const sisaBelum = Math.max(0, u.jumlah - newDiterima);
+        return {
+          ...u,
+          jumlahDiterima: newDiterima,
+          sisaBelumDiterima: sisaBelum,
+          statusPengiriman: sisaBelum === 0 ? 'SUDAH DITERIMA' : 'SEBAGIAN'
+        };
+      }
+      return u;
+    }));
+
     try {
       const res = await receiveUtangSupplierApi(id, receiveData, activeUser);
       if (res?.success) {
         showAlert(res.message, 'success', 'Penerimaan Berhasil & Stok Bertambah! 📦');
-        fetchAllDataFromBackend();
+        fetchAllDataFromBackend(true);
         return;
       }
-
-      const terimaQty = parseFloat(receiveData.jumlahTerima) || 0;
-      let targetBahanId = '';
-      setUtangList(prev => prev.map(u => {
-        if (u.id === id || u._id === id || u.noFaktur === id) {
-          targetBahanId = u.bahanId;
-          const newDiterima = (u.jumlahDiterima || 0) + terimaQty;
-          const sisaBelum = Math.max(0, u.jumlah - newDiterima);
-          return {
-            ...u,
-            jumlahDiterima: newDiterima,
-            sisaBelumDiterima: sisaBelum,
-            statusPengiriman: sisaBelum === 0 ? 'SUDAH DITERIMA' : 'SEBAGIAN'
-          };
-        }
-        return u;
-      }));
-
-      if (targetBahanId) {
-        setBahanBaku(prev => prev.map(b => (b.id === targetBahanId || b._id === targetBahanId || b.sku === targetBahanId) ? { ...b, stok: b.stok + terimaQty } : b));
-      }
-
       showAlert(`Penerimaan +${terimaQty} berhasil diverifikasi! Stok gudang bertambah!`, 'success', 'Penerimaan Berhasil! 📦');
     } catch (err) {
-      const terimaQty = parseFloat(receiveData.jumlahTerima) || 0;
-      let targetBahanId = '';
-      setUtangList(prev => prev.map(u => {
-        if (u.id === id || u._id === id || u.noFaktur === id) {
-          targetBahanId = u.bahanId;
-          const newDiterima = (u.jumlahDiterima || 0) + terimaQty;
-          const sisaBelum = Math.max(0, u.jumlah - newDiterima);
-          return {
-            ...u,
-            jumlahDiterima: newDiterima,
-            sisaBelumDiterima: sisaBelum,
-            statusPengiriman: sisaBelum === 0 ? 'SUDAH DITERIMA' : 'SEBAGIAN'
-          };
-        }
-        return u;
-      }));
-
-      if (targetBahanId) {
-        setBahanBaku(prev => prev.map(b => (b.id === targetBahanId || b._id === targetBahanId || b.sku === targetBahanId) ? { ...b, stok: b.stok + terimaQty } : b));
-      }
-
       showAlert(`Penerimaan +${terimaQty} berhasil diverifikasi! Stok gudang bertambah!`, 'success', 'Penerimaan Berhasil! 📦');
     }
   };
