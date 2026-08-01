@@ -37,6 +37,8 @@ export default function PiutangPelangganTab({
     catatan: ''
   });
 
+  const canEdit = ['ADMIN_PRODUK', 'TIM_PENJUALAN'].includes(activeRoleView);
+
   // Calculate exact dynamic net piutang for any customer
   const getNetPiutangForCustomer = (p) => {
     const custName = p.nama?.trim().toLowerCase();
