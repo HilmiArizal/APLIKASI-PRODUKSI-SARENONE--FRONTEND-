@@ -125,17 +125,39 @@ export default function PenjualanTab({
   const handleSelectCustomer = (e) => {
     const custId = e.target.value;
     if (!custId) {
-      setForm(f => ({ ...f, pelangganId: '', namaPelanggan: '', teleponPelanggan: '', alamatPelanggan: '' }));
+      setForm(f => ({ ...f, pelangganId: '', namaPelanggan: '', teleponPelanggan: '', alamatPelanggan: '', kategoriCustomer: 'Umum' }));
       return;
     }
     const found = pelangganList.find(c => (c.id || c._id) === custId);
     if (found) {
+      const isTopMarket = found.kategoriCustomer === 'Top Market';
+
+      const updatedItems = form.items.map(item => {
+        if (!item.produkId) return item;
+        const prod = produkSalesList.find(p => (p.id || p._id) === item.produkId || p.namaProduk === item.namaProduk);
+        if (!prod) return item;
+
+        const newPrice = isTopMarket
+          ? (prod.hargaTopMarket || prod.hargaUmum || prod.hargaPabrik || 0)
+          : (prod.hargaUmum || prod.hargaTopMarket || prod.hargaPabrik || 0);
+
+        const qty = Number(item.qty) || 1;
+        return {
+          ...item,
+          hargaSatuan: newPrice,
+          subtotal: qty * newPrice
+        };
+      });
+
       setForm(f => ({
         ...f,
         pelangganId: custId,
         namaPelanggan: found.nama,
         teleponPelanggan: found.noHp || '',
-        alamatPelanggan: found.alamat || ''
+        alamatPelanggan: found.alamat || '',
+        kategoriCustomer: found.kategoriCustomer || 'Umum',
+        sistemPembayaran: found.sistemPembayaran || f.sistemPembayaran,
+        items: updatedItems
       }));
     }
   };
