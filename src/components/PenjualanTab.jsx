@@ -121,6 +121,17 @@ export default function PenjualanTab({
     setShowModal(true);
   };
 
+  const selectedCustomerValue = useMemo(() => {
+    if (!form.pelangganId && !form.namaPelanggan) return '';
+    const matched = (pelangganList || []).find(c => {
+      const cId = c.id || c._id;
+      if (cId && form.pelangganId && String(cId) === String(form.pelangganId)) return true;
+      if (c.nama && form.namaPelanggan && c.nama.trim().toLowerCase() === form.namaPelanggan.trim().toLowerCase()) return true;
+      return false;
+    });
+    return matched ? (matched.id || matched._id) : '';
+  }, [form.pelangganId, form.namaPelanggan, pelangganList]);
+
   // Handle Customer Selection Dropdown
   const handleSelectCustomer = (e) => {
     const custId = e.target.value;
@@ -128,13 +139,21 @@ export default function PenjualanTab({
       setForm(f => ({ ...f, pelangganId: '', namaPelanggan: '', teleponPelanggan: '', alamatPelanggan: '', kategoriCustomer: 'Umum' }));
       return;
     }
-    const found = pelangganList.find(c => (c.id || c._id) === custId);
+    const found = (pelangganList || []).find(c => {
+      const cId = c.id || c._id;
+      return String(cId) === String(custId) || c.nama === custId;
+    });
+
     if (found) {
       const isTopMarket = found.kategoriCustomer === 'Top Market';
+      const targetId = found.id || found._id;
 
       const updatedItems = form.items.map(item => {
         if (!item.produkId) return item;
-        const prod = produkSalesList.find(p => (p.id || p._id) === item.produkId || p.namaProduk === item.namaProduk);
+        const prod = produkSalesList.find(p => {
+          const pId = p.id || p._id;
+          return String(pId) === String(item.produkId) || p.namaProduk === item.namaProduk;
+        });
         if (!prod) return item;
 
         const newPrice = isTopMarket
@@ -151,7 +170,7 @@ export default function PenjualanTab({
 
       setForm(f => ({
         ...f,
-        pelangganId: custId,
+        pelangganId: targetId,
         namaPelanggan: found.nama,
         teleponPelanggan: found.noHp || '',
         alamatPelanggan: found.alamat || '',
@@ -351,13 +370,16 @@ export default function PenjualanTab({
               <div className="form-grid">
                 <div className="form-group" style={{ gridColumn: '1/-1' }}>
                   <label className="form-label">Pilih Pelanggan / Customer *</label>
-                  <select className="form-select" value={form.pelangganId} onChange={handleSelectCustomer}>
+                  <select className="form-select" value={selectedCustomerValue} onChange={handleSelectCustomer}>
                     <option value="">-- Pilih Pelanggan Terdaftar --</option>
-                    {pelangganList.map(c => (
-                      <option key={c.id || c._id} value={c.id || c._id}>
-                        👤 {c.nama} ({c.tipe || 'Retail'}) {c.noHp ? `- ${c.noHp}` : ''}
-                      </option>
-                    ))}
+                    {pelangganList.map(c => {
+                      const cId = c.id || c._id;
+                      return (
+                        <option key={cId} value={cId}>
+                          👤 [{c.kode || 'C'}] {c.nama} ({c.kategoriCustomer === 'Top Market' ? '⭐ Top Market' : 'Umum'}) {c.noHp ? `- ${c.noHp}` : ''}
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
                 <div className="form-group">
