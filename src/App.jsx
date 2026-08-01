@@ -1873,6 +1873,7 @@ export default function App() {
           {activeTab === 'marketing' && (
             <MarketingTab
               marketingList={marketingList}
+              penjualanList={penjualanList}
               activeRoleView={activeRoleView}
               activeUser={activeUser}
               onCreateMarketing={handleCreateMarketing}

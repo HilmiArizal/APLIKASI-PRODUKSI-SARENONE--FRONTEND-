@@ -98,9 +98,6 @@ export default function PenjualanTab({
   const lunas = filtered.filter(p => p.statusPembayaran === 'Lunas').length;
   const pelangganUnik = new Set(filtered.map(p => p.namaPelanggan)).size;
 
-  const calcItems = (items) => {
-    return items.map(it => ({ ...it, subtotal: (Number(it.qty) || 0) * (Number(it.hargaSatuan) || 0) }));
-  };
   const totalHarga = form.items.reduce((s, it) => s + (Number(it.subtotal) || 0), 0);
   const totalBersih = Math.max(0, totalHarga - (Number(form.diskon) || 0));
 
@@ -233,10 +230,52 @@ export default function PenjualanTab({
     setForm(f => ({ ...f, items: f.items.filter((_, i) => i !== idx) }));
   };
 
+  // Calculate Items with Fee Marketing (Selisih Harga Jual vs Harga Modal)
+  const calcItems = (itemsList) => {
+    const selectedCust = (pelangganList || []).find(c => (c.id || c._id) === form.pelangganId || c.nama === form.namaPelanggan);
+    const isTopMarket = selectedCust?.kategoriCustomer === 'Top Market';
+
+    return (itemsList || []).map(it => {
+      const prod = (produkSalesList || []).find(p => (p.id || p._id) === it.produkId || p.namaProduk === it.namaProduk);
+      const qty = Number(it.qty) || 1;
+      const hJual = Number(it.hargaSatuan) || 0;
+
+      let hModal = Number(it.hargaModal) || 0;
+      if (prod) {
+        hModal = isTopMarket
+          ? (Number(prod.hargaTopMarket) || Number(prod.hargaPabrik) || 0)
+          : (Number(prod.hargaUmum) || Number(prod.hargaPabrik) || 0);
+      }
+
+      const feeItem = Math.max(0, (hJual - hModal) * qty);
+      const subtotal = qty * hJual;
+
+      return {
+        ...it,
+        qty,
+        hargaModal: hModal,
+        hargaSatuan: hJual,
+        feeMarketingItem: feeItem,
+        subtotal
+      };
+    });
+  };
+
+  const totalFeeMarketingForm = useMemo(() => {
+    return calcItems(form.items).reduce((sum, i) => sum + (i.feeMarketingItem || 0), 0);
+  }, [form.items, form.pelangganId, form.namaPelanggan, produkSalesList, pelangganList]);
+
   const handleSubmit = async () => {
     if (!form.namaPelanggan.trim()) { showAlert('Nama pelanggan wajib diisi/dipilih!', 'error'); return; }
     if (!form.items.some(it => it.namaProduk)) { showAlert('Minimal 1 produk harus diisi/dipilih!', 'error'); return; }
-    const payload = { ...form, items: calcItems(form.items), totalHarga, totalBersih };
+    const processed = calcItems(form.items);
+    const payload = {
+      ...form,
+      items: processed,
+      totalHarga,
+      totalBersih,
+      totalFeeMarketing: totalFeeMarketingForm
+    };
     if (editData) {
       await onUpdatePenjualan(editData.id || editData._id, payload);
     } else {
@@ -251,6 +290,20 @@ export default function PenjualanTab({
   };
 
   const statusColor = { 'Lunas': '#10b981', 'Cicilan': '#f59e0b', 'Pending': '#6366f1', 'Dibatalkan': '#ef4444' };
+
+  const totalFeeMarketingSemua = useMemo(() => {
+    return filtered.reduce((sum, p) => {
+      if (p.totalFeeMarketing !== undefined) return sum + (Number(p.totalFeeMarketing) || 0);
+      const itemFee = (p.items || []).reduce((s, it) => {
+        if (it.feeMarketingItem !== undefined) return s + Number(it.feeMarketingItem);
+        const qty = Number(it.qty) || 1;
+        const hj = Number(it.hargaSatuan) || 0;
+        const hm = Number(it.hargaModal) || 0;
+        return s + Math.max(0, (hj - hm) * qty);
+      }, 0);
+      return sum + itemFee;
+    }, 0);
+  }, [filtered]);
 
   return (
     <div className="tab-container">
@@ -268,10 +321,14 @@ export default function PenjualanTab({
       </div>
 
       {/* SUMMARY CARDS */}
-      <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', marginBottom: '1.5rem' }}>
+      <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', marginBottom: '1.5rem' }}>
         <div className="stat-card">
           <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}><DollarSign size={20} /></div>
-          <div className="stat-info"><p className="stat-label">Total Omzet</p><h3 className="stat-value" style={{ fontSize: '1.1rem' }}>{formatRp(totalPenjualan)}</h3></div>
+          <div className="stat-info"><p className="stat-label">Total Omzet</p><h3 className="stat-value" style={{ fontSize: '1.05rem' }}>{formatRp(totalPenjualan)}</h3></div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#ec4899,#be185d)' }}><Megaphone size={20} /></div>
+          <div className="stat-info"><p className="stat-label">Fee / Margin Mkt</p><h3 className="stat-value" style={{ fontSize: '1.05rem', color: '#ec4899' }}>{formatRp(totalFeeMarketingSemua)}</h3></div>
         </div>
         <div className="stat-card">
           <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#10b981,#059669)' }}><TrendingUp size={20} /></div>
