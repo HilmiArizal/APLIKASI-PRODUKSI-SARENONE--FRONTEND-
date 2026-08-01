@@ -8,25 +8,18 @@ export default function Login({ onLogin, onRegister, showAlert }) {
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
 
-  // Helper alert safe trigger
   const notify = (msg, type = 'error', title = 'Peringatan!') => {
-    if (showAlert) {
-      showAlert(msg, type, title);
-    } else {
-      alert(msg);
-    }
+    if (showAlert) showAlert(msg, type, title);
+    else alert(msg);
   };
 
-  // Password visibility states
   const [showPass, setShowPass] = useState(false);
   const [showRegPass, setShowRegPass] = useState(false);
   const [showRegConfirmPass, setShowRegConfirmPass] = useState(false);
 
-  // Login Form States
   const [loginInput, setLoginInput] = useState('');
   const [loginPass, setLoginPass] = useState('');
 
-  // Register Form States
   const [regName, setRegName] = useState('');
   const [regUsername, setRegUsername] = useState('');
   const [regEmail, setRegEmail] = useState('');
@@ -35,18 +28,17 @@ export default function Login({ onLogin, onRegister, showAlert }) {
   const [regRole, setRegRole] = useState('BAHAN_BAKU');
   const [regCatatan, setRegCatatan] = useState('');
 
-  // Quick Demo Credentials Handler
   const handleQuickFill = (userType) => {
     setIsRegisterMode(false);
     if (userType === 'admin') {
       setLoginInput('admin');
       setLoginPass('admin');
-    } else if (userType === 'bahan') {
-      setLoginInput('hilmi');
-      setLoginPass('Hilmi@123');
     } else if (userType === 'admin_produk') {
       setLoginInput('admin_produk');
       setLoginPass('Adminproduk@123');
+    } else if (userType === 'bahan') {
+      setLoginInput('hilmi');
+      setLoginPass('Hilmi@123');
     }
   };
 
@@ -71,7 +63,6 @@ export default function Login({ onLogin, onRegister, showAlert }) {
       return;
     }
 
-    // Password Security Checks
     if (regPass.length < 8) {
       notify('🔒 Syarat Keamanan: Kata sandi minimal harus 8 karakter!', 'error', 'Syarat Keamanan Password');
       return;
@@ -88,13 +79,9 @@ export default function Login({ onLogin, onRegister, showAlert }) {
       notify('🔒 Syarat Keamanan: Kata sandi wajib mengandung minimal 1 Angka (0-9)!', 'error', 'Syarat Keamanan Password');
       return;
     }
-    if (!/[@$!%*?&#^_-]/.test(regPass)) {
-      notify('🔒 Syarat Keamanan: Kata sandi wajib mengandung minimal 1 Simbol Spesial (contoh: @, #, $, %, !, &)!', 'error', 'Syarat Keamanan Password');
-      return;
-    }
 
     if (regPass !== regConfirmPass) {
-      notify('Ulangi kata sandi (Konfirmasi Password) tidak cocok dengan Kata Sandi!', 'error', 'Password Tidak Cocok');
+      notify('Konfirmasi password tidak cocok dengan Kata Sandi!', 'error', 'Password Tidak Cocok');
       return;
     }
 
@@ -123,39 +110,31 @@ export default function Login({ onLogin, onRegister, showAlert }) {
   };
 
   return (
-    <div className="login-wrapper">
-      <div className="login-card" style={{ maxWidth: '520px', padding: isRegisterMode ? '1.75rem 2rem' : '2.25rem' }}>
+    <div className="login-wrapper" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'radial-gradient(circle at top right, #1e1b4b 0%, #0f172a 60%, #020617 100%)', padding: '1.5rem' }}>
+      <div className="login-card" style={{ maxWidth: '500px', width: '100%', padding: isRegisterMode ? '2rem' : '2.5rem', background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(20px)', borderRadius: '24px', border: '1px solid rgba(255, 255, 255, 0.1)', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}>
         
-        {/* Brand Header */}
-        <div className="login-header" style={{ marginBottom: '1.25rem', textAlign: 'center' }}>
-          <img src={logoImg} alt="SAREN ONE Logo" style={{ height: isRegisterMode ? '48px' : '65px', marginBottom: '0.4rem' }} />
-          <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em' }}>SAREN ONE SYSTEM</h2>
-          <p className="text-muted" style={{ fontSize: '0.82rem', marginTop: '0.2rem' }}>
-            {isRegisterMode ? 'Pendaftaran Akun Pengguna Staf Baru' : 'Sistem Manajerial Persediaan Bahan Baku'}
+        {/* BRAND LOGO HEADER */}
+        <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+          <img src={logoImg} alt="SAREN ONE Logo" style={{ height: isRegisterMode ? '52px' : '70px', marginBottom: '0.6rem', filter: 'drop-shadow(0 4px 12px rgba(99, 102, 241, 0.3))' }} />
+          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', margin: '0 0 0.2rem' }}>SAREN ONE SYSTEM</h2>
+          <p style={{ fontSize: '0.83rem', color: 'var(--text-muted)', margin: 0 }}>
+            {isRegisterMode ? 'Pendaftaran Akun Pengguna Staf Baru' : 'Sistem Integrasi Produksi, Bahan Baku, & Penjualan'}
           </p>
         </div>
 
-        {/* Tab Toggle Switch (Masuk vs Daftar) */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          background: 'rgba(255, 255, 255, 0.05)',
-          padding: '4px',
-          borderRadius: '14px',
-          marginBottom: '1.5rem',
-          border: '1px solid var(--border-color)'
-        }}>
+        {/* TOGGLE MASUK vs DAFTAR */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', background: 'rgba(255, 255, 255, 0.05)', padding: '5px', borderRadius: '14px', marginBottom: '1.5rem', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
           <button
             type="button"
             onClick={() => setIsRegisterMode(false)}
             style={{
-              padding: '0.6rem 0.5rem',
+              padding: '0.65rem',
               borderRadius: '10px',
               border: 'none',
-              background: !isRegisterMode ? 'var(--primary)' : 'transparent',
+              background: !isRegisterMode ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'transparent',
               color: !isRegisterMode ? '#fff' : 'var(--text-muted)',
               fontWeight: 700,
-              fontSize: '0.85rem',
+              fontSize: '0.88rem',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -164,20 +143,20 @@ export default function Login({ onLogin, onRegister, showAlert }) {
               transition: 'all 0.25s ease'
             }}
           >
-            <LogIn size={15} /> Masuk Akun
+            <LogIn size={16} /> Masuk Akun
           </button>
 
           <button
             type="button"
             onClick={() => setIsRegisterMode(true)}
             style={{
-              padding: '0.6rem 0.5rem',
+              padding: '0.65rem',
               borderRadius: '10px',
               border: 'none',
-              background: isRegisterMode ? 'var(--emerald)' : 'transparent',
-              color: isRegisterMode ? '#022c22' : 'var(--text-muted)',
+              background: isRegisterMode ? 'linear-gradient(135deg, #10b981, #059669)' : 'transparent',
+              color: isRegisterMode ? '#fff' : 'var(--text-muted)',
               fontWeight: 700,
-              fontSize: '0.85rem',
+              fontSize: '0.88rem',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -186,20 +165,35 @@ export default function Login({ onLogin, onRegister, showAlert }) {
               transition: 'all 0.25s ease'
             }}
           >
-            <UserPlus size={15} /> Daftar Akun Baru
+            <UserPlus size={16} /> Daftar Akun Baru
           </button>
         </div>
 
         {!isRegisterMode ? (
           /* FORM LOGIN */
           <form onSubmit={handleLoginSubmit}>
-            {/* Demo Quick Fill Pills */}
+            {/* Quick Fill Pills */}
+            <div style={{ marginBottom: '1.25rem', background: 'rgba(255, 255, 255, 0.03)', padding: '0.6rem 0.8rem', borderRadius: 12, border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+              <div style={{ fontSize: '0.73rem', color: 'var(--text-muted)', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Sparkles size={12} style={{ color: '#f59e0b' }} /> Akun Demo Cepat:
+              </div>
+              <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                <button type="button" onClick={() => handleQuickFill('admin_produk')} className="btn btn-sm btn-outline" style={{ fontSize: '0.73rem', padding: '0.25rem 0.6rem', borderColor: 'rgba(99, 102, 241, 0.4)', color: '#818cf8' }}>
+                  👑 Super Admin Produk
+                </button>
+                <button type="button" onClick={() => handleQuickFill('admin')} className="btn btn-sm btn-outline" style={{ fontSize: '0.73rem', padding: '0.25rem 0.6rem', borderColor: 'rgba(245, 158, 11, 0.4)', color: '#f59e0b' }}>
+                  🏭 Admin Bahan Baku
+                </button>
+              </div>
+            </div>
 
-            <div className="form-group">
-              <label><User size={15} style={{ color: 'var(--primary)' }} /> Username atau Email *</label>
+            <div className="form-group" style={{ marginBottom: '1.1rem' }}>
+              <label className="form-label" style={{ fontSize: '0.82rem', marginBottom: '0.4rem' }}>
+                <User size={14} style={{ color: 'var(--accent-primary)' }} /> Username atau Email *
+              </label>
               <input
                 type="text"
-                className="form-control"
+                className="form-input"
                 placeholder="Masukkan username atau email..."
                 value={loginInput}
                 onChange={(e) => setLoginInput(e.target.value)}
@@ -208,11 +202,13 @@ export default function Login({ onLogin, onRegister, showAlert }) {
               />
             </div>
 
-            <div className="form-group" style={{ position: 'relative' }}>
-              <label><Lock size={15} style={{ color: 'var(--primary)' }} /> Kata Sandi *</label>
+            <div className="form-group" style={{ position: 'relative', marginBottom: '1.25rem' }}>
+              <label className="form-label" style={{ fontSize: '0.82rem', marginBottom: '0.4rem' }}>
+                <Lock size={14} style={{ color: 'var(--accent-primary)' }} /> Kata Sandi *
+              </label>
               <input
                 type={showPass ? 'text' : 'password'}
-                className="form-control"
+                className="form-input"
                 placeholder="Masukkan kata sandi..."
                 value={loginPass}
                 onChange={(e) => setLoginPass(e.target.value)}
@@ -228,77 +224,73 @@ export default function Login({ onLogin, onRegister, showAlert }) {
               </button>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', fontSize: '0.8rem' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--text-muted)', cursor: 'pointer', margin: 0 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', fontSize: '0.82rem' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)', cursor: 'pointer', margin: 0 }}>
                 <input
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  style={{ accentColor: 'var(--primary)' }}
+                  style={{ accentColor: 'var(--accent-primary)', width: '15px', height: '15px' }}
                 />
                 Ingat Saya di Perangkat Ini
               </label>
             </div>
 
-            <button type="submit" className="btn btn-primary btn-block btn-lg" disabled={isLoading}>
+            <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '0.75rem', fontSize: '0.98rem', fontWeight: 700, borderRadius: '12px', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', border: 'none', boxShadow: '0 4px 14px rgba(99, 102, 241, 0.4)' }} disabled={isLoading}>
               {isLoading ? 'Sedang Memproses...' : 'Masuk Aplikasi SAREN ONE'}
             </button>
           </form>
         ) : (
           /* FORM REGISTER */
           <form onSubmit={handleRegisterSubmit}>
-            <div className="form-group" style={{ marginBottom: '0.75rem' }}>
-              <label style={{ fontSize: '0.78rem' }}><User size={13} style={{ color: 'var(--emerald)' }} /> Nama Lengkap Staf *</label>
+            <div className="form-group" style={{ marginBottom: '0.85rem' }}>
+              <label className="form-label" style={{ fontSize: '0.8rem', marginBottom: '0.3rem' }}><User size={13} style={{ color: '#10b981' }} /> Nama Lengkap Staf *</label>
               <input
                 type="text"
-                className="form-control"
+                className="form-input"
                 placeholder="Nama lengkap Anda..."
                 value={regName}
                 onChange={(e) => setRegName(e.target.value)}
                 required
-                style={{ padding: '0.55rem 0.85rem', fontSize: '0.85rem' }}
               />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label style={{ fontSize: '0.78rem' }}><UserCheck size={13} style={{ color: 'var(--emerald)' }} /> Username *</label>
+            <div className="form-grid" style={{ marginBottom: '0.85rem' }}>
+              <div className="form-group">
+                <label className="form-label" style={{ fontSize: '0.8rem', marginBottom: '0.3rem' }}><UserCheck size={13} style={{ color: '#10b981' }} /> Username *</label>
                 <input
                   type="text"
-                  className="form-control"
-                  placeholder="Username unik..."
+                  className="form-input"
+                  placeholder="Username..."
                   value={regUsername}
                   onChange={(e) => setRegUsername(e.target.value.replace(/\s+/g, ''))}
                   required
-                  style={{ padding: '0.55rem 0.85rem', fontSize: '0.85rem' }}
                 />
               </div>
 
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label style={{ fontSize: '0.78rem' }}><Mail size={13} style={{ color: 'var(--emerald)' }} /> Email Aktif *</label>
+              <div className="form-group">
+                <label className="form-label" style={{ fontSize: '0.8rem', marginBottom: '0.3rem' }}><Mail size={13} style={{ color: '#10b981' }} /> Email Aktif *</label>
                 <input
                   type="email"
-                  className="form-control"
+                  className="form-input"
                   placeholder="email@domain.com"
                   value={regEmail}
                   onChange={(e) => setRegEmail(e.target.value)}
                   required
-                  style={{ padding: '0.55rem 0.85rem', fontSize: '0.85rem' }}
                 />
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
-              <div className="form-group" style={{ position: 'relative', marginBottom: 0 }}>
-                <label style={{ fontSize: '0.78rem' }}><Lock size={13} style={{ color: 'var(--emerald)' }} /> Kata Sandi *</label>
+            <div className="form-grid" style={{ marginBottom: '0.85rem' }}>
+              <div className="form-group" style={{ position: 'relative' }}>
+                <label className="form-label" style={{ fontSize: '0.8rem', marginBottom: '0.3rem' }}><Lock size={13} style={{ color: '#10b981' }} /> Kata Sandi *</label>
                 <input
                   type={showRegPass ? 'text' : 'password'}
-                  className="form-control"
+                  className="form-input"
                   placeholder="Password..."
                   value={regPass}
                   onChange={(e) => setRegPass(e.target.value)}
                   required
-                  style={{ padding: '0.55rem 0.85rem', fontSize: '0.85rem' }}
                 />
                 <button
                   type="button"
@@ -309,16 +301,15 @@ export default function Login({ onLogin, onRegister, showAlert }) {
                 </button>
               </div>
 
-              <div className="form-group" style={{ position: 'relative', marginBottom: 0 }}>
-                <label style={{ fontSize: '0.78rem' }}><KeyRound size={13} style={{ color: 'var(--emerald)' }} /> Ulangi Password *</label>
+              <div className="form-group" style={{ position: 'relative' }}>
+                <label className="form-label" style={{ fontSize: '0.8rem', marginBottom: '0.3rem' }}><KeyRound size={13} style={{ color: '#10b981' }} /> Ulangi Password *</label>
                 <input
                   type={showRegConfirmPass ? 'text' : 'password'}
-                  className="form-control"
+                  className="form-input"
                   placeholder="Konfirmasi..."
                   value={regConfirmPass}
                   onChange={(e) => setRegConfirmPass(e.target.value)}
                   required
-                  style={{ padding: '0.55rem 0.85rem', fontSize: '0.85rem' }}
                 />
                 <button
                   type="button"
@@ -330,13 +321,12 @@ export default function Login({ onLogin, onRegister, showAlert }) {
               </div>
             </div>
 
-            <div className="form-group" style={{ marginBottom: '0.75rem' }}>
-              <label style={{ fontSize: '0.78rem' }}><ShieldCheck size={13} style={{ color: 'var(--emerald)' }} /> Pilihan Divisi / Role Pengajuan *</label>
+            <div className="form-group" style={{ marginBottom: '0.85rem' }}>
+              <label className="form-label" style={{ fontSize: '0.8rem', marginBottom: '0.3rem' }}><ShieldCheck size={13} style={{ color: '#10b981' }} /> Divisi / Role Pengajuan *</label>
               <select
-                className="form-control"
+                className="form-select"
                 value={regRole}
                 onChange={(e) => setRegRole(e.target.value)}
-                style={{ padding: '0.55rem 0.85rem', fontSize: '0.85rem' }}
               >
                 <option value="TIM_PENJUALAN">🛍️ Tim Penjualan (Domain Produk)</option>
                 <option value="TIM_MARKETING">📣 Tim Marketing (Domain Produk)</option>
@@ -345,11 +335,9 @@ export default function Login({ onLogin, onRegister, showAlert }) {
               </select>
             </div>
 
-
-            {/* Real-time Password Security Meter */}
             <PasswordStrengthChecker password={regPass} />
 
-            <button type="submit" className="btn btn-emerald btn-block btn-lg" style={{ marginTop: '1rem' }} disabled={isLoading}>
+            <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '1rem', padding: '0.75rem', fontSize: '0.95rem', fontWeight: 700, borderRadius: '12px', background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', boxShadow: '0 4px 14px rgba(16, 185, 129, 0.4)' }} disabled={isLoading}>
               {isLoading ? 'Mengirim Pengajuan...' : 'Kirim Pengajuan Pendaftaran Staf'}
             </button>
           </form>

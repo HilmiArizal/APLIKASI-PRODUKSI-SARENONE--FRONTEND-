@@ -23,11 +23,43 @@ export default function PenjualanTab({
 }) {
   const [searchQ, setSearchQ] = useState('');
   const [filterStatus, setFilterStatus] = useState('Semua');
+
+  const currentMonthKey = new Date().toISOString().slice(0, 7);
+  const [filterMonth, setFilterMonth] = useState(currentMonthKey);
+
   const [showModal, setShowModal] = useState(false);
   const [showDetail, setShowDetail] = useState(null);
   const [editData, setEditData] = useState(null);
 
   const canEdit = ['ADMIN_PRODUK', 'TIM_PENJUALAN'].includes(activeRoleView);
+
+  const availableMonths = useMemo(() => {
+    const monthsSet = new Set();
+    monthsSet.add(currentMonthKey);
+    penjualanList.forEach(p => {
+      const t = p.tanggal || p.createdAt;
+      if (t) {
+        try {
+          const d = new Date(t);
+          if (!isNaN(d.getTime())) {
+            monthsSet.add(d.toISOString().slice(0, 7));
+          }
+        } catch { /* ignore */ }
+      }
+    });
+    return Array.from(monthsSet).sort().reverse();
+  }, [penjualanList, currentMonthKey]);
+
+  const formatMonthName = (monthKey) => {
+    if (!monthKey || monthKey === 'Semua') return 'Semua Bulan';
+    try {
+      const [year, month] = monthKey.split('-');
+      const d = new Date(Number(year), Number(month) - 1, 1);
+      return d.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+    } catch {
+      return monthKey;
+    }
+  };
 
   const emptyForm = {
     pelangganId: '',
@@ -42,18 +74,29 @@ export default function PenjualanTab({
   };
   const [form, setForm] = useState(emptyForm);
 
-  const totalPenjualan = useMemo(() => penjualanList.reduce((s, p) => s + (p.totalBersih || 0), 0), [penjualanList]);
-  const totalTransaksi = penjualanList.length;
-  const lunas = penjualanList.filter(p => p.statusPembayaran === 'Lunas').length;
-  const pelangganUnik = new Set(penjualanList.map(p => p.namaPelanggan)).size;
-
   const filtered = useMemo(() => {
     return penjualanList.filter(p => {
       const matchQ = !searchQ || p.namaPelanggan?.toLowerCase().includes(searchQ.toLowerCase()) || p.noFaktur?.toLowerCase().includes(searchQ.toLowerCase());
       const matchStatus = filterStatus === 'Semua' || p.statusPembayaran === filterStatus;
-      return matchQ && matchStatus;
+      
+      let matchMonth = true;
+      if (filterMonth && filterMonth !== 'Semua') {
+        const itemDate = p.tanggal || p.createdAt;
+        if (itemDate) {
+          try {
+            const itemKey = new Date(itemDate).toISOString().slice(0, 7);
+            matchMonth = itemKey === filterMonth;
+          } catch { matchMonth = true; }
+        }
+      }
+      return matchQ && matchStatus && matchMonth;
     });
-  }, [penjualanList, searchQ, filterStatus]);
+  }, [penjualanList, searchQ, filterStatus, filterMonth]);
+
+  const totalPenjualan = useMemo(() => filtered.reduce((s, p) => s + (p.totalBersih || 0), 0), [filtered]);
+  const totalTransaksi = filtered.length;
+  const lunas = filtered.filter(p => p.statusPembayaran === 'Lunas').length;
+  const pelangganUnik = new Set(filtered.map(p => p.namaPelanggan)).size;
 
   const calcItems = (items) => {
     return items.map(it => ({ ...it, subtotal: (Number(it.qty) || 0) * (Number(it.hargaSatuan) || 0) }));
@@ -196,12 +239,20 @@ export default function PenjualanTab({
       </div>
 
       {/* FILTER ROW */}
-      <div className="filter-row" style={{ marginBottom: '1rem' }}>
+      <div className="filter-row" style={{ marginBottom: '1rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
         <div className="search-box">
           <Search size={16} className="search-icon" />
           <input className="search-input" placeholder="Cari pelanggan / no. faktur..." value={searchQ} onChange={e => setSearchQ(e.target.value)} />
         </div>
-        <select className="form-select" value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ minWidth: 140 }}>
+
+        <select className="form-select" value={filterMonth} onChange={e => setFilterMonth(e.target.value)} style={{ maxWidth: 190, fontWeight: 600 }}>
+          <option value="Semua">🗓️ Semua Bulan</option>
+          {availableMonths.map(m => (
+            <option key={m} value={m}>🗓️ {formatMonthName(m)}</option>
+          ))}
+        </select>
+
+        <select className="form-select" value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ maxWidth: 150 }}>
           <option value="Semua">Semua Status</option>
           {STATUS_PEMBAYARAN.map(s => <option key={s} value={s}>{s}</option>)}
         </select>

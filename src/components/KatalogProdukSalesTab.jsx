@@ -105,12 +105,19 @@ export default function KatalogProdukSalesTab({
 
   const handleSubmit = async () => {
     if (!form.namaProduk.trim()) { showAlert('Nama produk wajib diisi!', 'error'); return; }
-    if (!form.hargaPabrik || form.hargaPabrik <= 0) { showAlert('Harga pabrik harus lebih dari 0!', 'error'); return; }
+    if ((!form.hargaTopMarket || Number(form.hargaTopMarket) <= 0) && (!form.hargaUmum || Number(form.hargaUmum) <= 0)) {
+      showAlert('Mohon isi harga modal Top Market atau Umum!', 'error');
+      return;
+    }
+    const payload = {
+      ...form,
+      hargaPabrik: form.hargaUmum || form.hargaTopMarket || 0
+    };
 
     if (editData) {
-      await onUpdateProdukSales(editData.id || editData._id, form);
+      await onUpdateProdukSales(editData.id || editData._id, payload);
     } else {
-      await onCreateProdukSales(form);
+      await onCreateProdukSales(payload);
     }
     setShowModal(false);
   };
@@ -384,9 +391,13 @@ export default function KatalogProdukSalesTab({
 
               <div>
                 <div style={{ background: 'var(--bg-secondary)', padding: '0.75rem', borderRadius: 10, margin: '0.6rem 0 0.8rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.9rem' }}>
-                    <span style={{ color: 'var(--text-muted)' }}>Harga Pabrik:</span>
-                    <strong style={{ color: '#0ea5e9', fontSize: '1.1rem' }}>{formatRp(p.hargaPabrik || p.hargaJual)}</strong>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem', marginBottom: '0.35rem' }}>
+                    <span style={{ color: '#f59e0b', fontWeight: 600 }}>⭐ Modal Top Market:</span>
+                    <strong style={{ color: '#f59e0b', fontSize: '0.98rem' }}>{formatRp(p.hargaTopMarket || p.hargaPabrik || p.hargaJual)}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem', marginBottom: '0.4rem' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>🏷️ Modal Umum:</span>
+                    <strong style={{ color: '#0ea5e9', fontSize: '0.98rem' }}>{formatRp(p.hargaUmum || p.hargaPabrik || p.hargaJual)}</strong>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.4rem', paddingTop: '0.4rem', borderTop: '1px dashed var(--border-color)', fontSize: '0.8rem' }}>
                     <span style={{ color: 'var(--text-muted)' }}>Stok Ready:</span>
@@ -438,16 +449,12 @@ export default function KatalogProdukSalesTab({
                   <input className="form-input" value={form.gramasi} onChange={e => setForm(f => ({ ...f, gramasi: e.target.value }))} placeholder="Contoh: 250 gram, 500 gram (12 Pcs)" />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Harga Pabrik Standard (Rp) *</label>
-                  <input className="form-input" type="number" min={0} value={form.hargaPabrik} onChange={e => setForm(f => ({ ...f, hargaPabrik: e.target.value }))} placeholder="35000" required />
+                  <label className="form-label">Harga Modal Top Market (Rp) *</label>
+                  <input className="form-input" type="number" min={0} value={form.hargaTopMarket} onChange={e => setForm(f => ({ ...f, hargaTopMarket: e.target.value }))} placeholder="Modal khusus Top Market" required />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Harga Modal Top Market (Rp)</label>
-                  <input className="form-input" type="number" min={0} value={form.hargaTopMarket} onChange={e => setForm(f => ({ ...f, hargaTopMarket: e.target.value }))} placeholder="Harga modal Top Market" />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Harga Modal Umum (Rp)</label>
-                  <input className="form-input" type="number" min={0} value={form.hargaUmum} onChange={e => setForm(f => ({ ...f, hargaUmum: e.target.value }))} placeholder="Harga modal Umum" />
+                  <label className="form-label">Harga Modal Umum (Rp) *</label>
+                  <input className="form-input" type="number" min={0} value={form.hargaUmum} onChange={e => setForm(f => ({ ...f, hargaUmum: e.target.value }))} placeholder="Modal umum regular" required />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Stok Siap Jual (Pcs)</label>
