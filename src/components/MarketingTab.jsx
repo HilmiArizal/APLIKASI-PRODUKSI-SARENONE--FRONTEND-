@@ -105,7 +105,7 @@ export default function MarketingTab({
           <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#ec4899,#be185d)' }}><Megaphone size={20} /></div>
           <div className="stat-info">
             <p className="stat-label">Total Fee Mkt Terkumpul</p>
-            <h3 className="stat-value" style={{ color: '#ec4899', fontSize: '1.1rem' }}>{formatRp(totalFeeMarketingSemuaPenjualan)}</h3>
+            <h3 className="stat-value" style={{ color: '#ec4899', fontSize: '1.1rem' }}>{formatRp(totalFeeMarketingPenjualan)}</h3>
           </div>
         </div>
         <div className="stat-card">
@@ -134,7 +134,7 @@ export default function MarketingTab({
             </p>
           </div>
           <span className="badge" style={{ background: 'rgba(236,72,153,0.15)', color: '#ec4899', fontSize: '0.9rem', padding: '0.4rem 0.75rem' }}>
-            Total Fee: {formatRp(totalFeeMarketingSemuaPenjualan)}
+            Total Fee: {formatRp(totalFeeMarketingPenjualan)}
           </span>
         </div>
 

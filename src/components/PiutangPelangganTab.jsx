@@ -55,7 +55,7 @@ export default function PiutangPelangganTab({
         pj.statusPembayaran === 'Tempo' ||
         pj.statusPembayaran === 'Cicilan' ||
         pj.statusPembayaran === 'Pending' ||
-        p.sistemPembayaran === 'Tempo'
+        (p.sistemPembayaran === 'Tempo' && pj.statusPembayaran !== 'Lunas')
       ))
       .reduce((sum, pj) => sum + (Number(pj.totalBersih) || 0), 0);
 
@@ -69,8 +69,8 @@ export default function PiutangPelangganTab({
       .reduce((sum, pm) => sum + (Number(pm.jumlahBayar) || 0), 0);
 
     const basePiutang = Number(p.totalPiutang) || 0;
-    const effectiveCredit = totalSalesTempo > 0 ? totalSalesTempo : basePiutang;
-    return Math.max(0, effectiveCredit - totalPayments);
+    const grossCredit = totalSalesTempo + basePiutang;
+    return Math.max(0, grossCredit - totalPayments);
   };
 
   // Filter customers that have matching search

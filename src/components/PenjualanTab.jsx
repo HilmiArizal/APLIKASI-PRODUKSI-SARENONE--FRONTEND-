@@ -165,6 +165,7 @@ export default function PenjualanTab({
         };
       });
 
+      const isTempoCust = found.sistemPembayaran === 'Tempo';
       setForm(f => ({
         ...f,
         pelangganId: targetId,
@@ -173,6 +174,8 @@ export default function PenjualanTab({
         alamatPelanggan: found.alamat || '',
         kategoriCustomer: found.kategoriCustomer || 'Umum',
         sistemPembayaran: found.sistemPembayaran || f.sistemPembayaran,
+        metodePembayaran: isTempoCust ? 'Tempo' : f.metodePembayaran,
+        statusPembayaran: isTempoCust ? 'Tempo' : f.statusPembayaran,
         items: updatedItems
       }));
     }
