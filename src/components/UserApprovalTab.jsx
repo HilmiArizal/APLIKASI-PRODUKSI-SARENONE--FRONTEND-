@@ -120,15 +120,6 @@ export default function UserApprovalTab({ users, onApproveUser, onRejectUser, on
   return (
     <div className="tab-pane active">
       {/* Top Banner & Title */}
-      <div className="tab-header" style={{ marginBottom: '1.25rem' }}>
-        <div>
-          <h2 className="tab-title"><UserCheck size={24} /> Verifikasi User &amp; Akses Peran</h2>
-          <p className="tab-subtitle">Modul persetujuan pendaftaran &amp; manajemen hak akses peran pengguna.</p>
-        </div>
-        <button className="btn btn-primary" onClick={() => setIsModalCreateOpen(true)}>
-          <UserPlus size={16} /> Buat Akun Staf Baru
-        </button>
-      </div>
 
       {/* Summary KPI Cards */}
       <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', marginBottom: '1.5rem' }}>
@@ -162,6 +153,16 @@ export default function UserApprovalTab({ users, onApproveUser, onRejectUser, on
             <span className="stat-desc text-emerald">Aktif Mengakses Sistem</span>
           </div>
         </div>
+      </div>
+
+      <div className="tab-header" style={{ marginBottom: '1.25rem' }}>
+        {/* <div>
+          <h2 className="tab-title"><UserCheck size={24} /> Verifikasi User &amp; Akses Peran</h2>
+          <p className="tab-subtitle">Modul persetujuan pendaftaran &amp; manajemen hak akses peran pengguna.</p>
+        </div> */}
+        <button className="btn btn-primary" onClick={() => setIsModalCreateOpen(true)}>
+          <UserPlus size={16} /> Buat Akun Staf Baru
+        </button>
       </div>
 
       {/* Main Users Table Directory */}

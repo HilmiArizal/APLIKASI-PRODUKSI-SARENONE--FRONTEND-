@@ -101,25 +101,10 @@ export default function PemakaianKemasanTab({
 
   return (
     <div className="tab-pane active">
-      <div className="toolbar" style={{ marginBottom: '1.5rem', justifyContent: 'space-between' }}>
-        <div>
-          <h2 style={{ fontSize: '1.3rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Package size={22} style={{ color: 'var(--amber)' }} /> Pemakaian Bahan Kemasan
-          </h2>
-          <p className="text-muted" style={{ fontSize: '0.82rem', marginTop: '0.2rem' }}>
-            Kelola &amp; catat pemakaian Casing Sosis, Plastik Vacuum, Standing Pouch, Sticker Barcode &amp; Sticker Produk, dan Box Karton.
-          </p>
-        </div>
-
-        {canUse && (
-          <button className="btn btn-amber" onClick={() => { setSelectedBahanForModal(null); setIsModalOpen(true); }}>
-            <MinusCircle size={16} /> Catat Pemakaian Kemasan
-          </button>
-        )}
-      </div>
+   
 
       {/* Auto Calculator Widget Card for Sticker Barcode & Sticker Produk based on Daily Vacumbag Usage */}
-      <div style={{ background: 'linear-gradient(135deg, rgba(249, 115, 22, 0.14), rgba(251, 191, 36, 0.09))', border: '1px solid rgba(249, 115, 22, 0.35)', borderRadius: 'var(--radius-md)', padding: '1.25rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+      {/* <div style={{ background: 'linear-gradient(135deg, rgba(249, 115, 22, 0.14), rgba(251, 191, 36, 0.09))', border: '1px solid rgba(249, 115, 22, 0.35)', borderRadius: 'var(--radius-md)', padding: '1.25rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <div style={{ background: 'var(--primary)', color: '#fff', padding: '0.85rem', borderRadius: 'var(--radius-sm)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Sparkles size={24} />
@@ -133,7 +118,7 @@ export default function PemakaianKemasanTab({
             </p>
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* Header & Controls for Carousel */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
@@ -225,6 +210,23 @@ export default function PemakaianKemasanTab({
             </div>
           );
         })}
+      </div>
+
+         <div className="toolbar" style={{ marginBottom: '1.5rem', justifyContent: 'space-between' }}>
+        {/* <div>
+          <h2 style={{ fontSize: '1.3rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Package size={22} style={{ color: 'var(--amber)' }} /> Pemakaian Bahan Kemasan
+          </h2>
+          <p className="text-muted" style={{ fontSize: '0.82rem', marginTop: '0.2rem' }}>
+            Kelola &amp; catat pemakaian Casing Sosis, Plastik Vacuum, Standing Pouch, Sticker Barcode &amp; Sticker Produk, dan Box Karton.
+          </p>
+        </div> */}
+
+        {canUse && (
+          <button className="btn btn-amber" onClick={() => { setSelectedBahanForModal(null); setIsModalOpen(true); }}>
+            <MinusCircle size={16} /> Catat Pemakaian Kemasan
+          </button>
+        )}
       </div>
 
       {/* Main Table: Bahan Kemasan Inventory & Today Usage */}

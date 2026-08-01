@@ -72,16 +72,16 @@ export default function KategoriTab({
   return (
     <div className="tab-pane active">
       {/* Header Banner */}
-      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1.5rem', marginBottom: '1.5rem' }}>
+      <div style={{ paddingBottom: '1.5rem'}}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-          <div>
+          {/* <div>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Layers size={22} style={{ color: 'var(--amber)' }} /> Manajemen Brand Produk &amp; Kategori Bahan Baku
             </h3>
             <p className="text-muted" style={{ fontSize: '0.82rem', marginTop: '0.2rem' }}>
               Kelola pengelompokan brand merk produk jadi dan kategori stok bahan baku dapur secara terpusat di Cloud MongoDB Atlas.
             </p>
-          </div>
+          </div> */}
 
           {canEdit && (
             <button className="btn btn-primary" onClick={handleStartAdd}>

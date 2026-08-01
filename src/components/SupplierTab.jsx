@@ -104,7 +104,7 @@ export default function SupplierTab({
   return (
     <div className="tab-pane active" style={{ paddingTop: '0.5rem' }}>
       {/* Header Banner */}
-      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1.25rem 1.5rem', marginBottom: '1.25rem' }}>
+      {/* <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1.25rem 1.5rem', marginBottom: '1.25rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
@@ -122,7 +122,7 @@ export default function SupplierTab({
             </div>
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* Input / Edit Form Card */}
       <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderLeft: editingId ? '4px solid var(--cyan)' : '4px solid var(--emerald)', borderRadius: 'var(--radius-md)', padding: '1.25rem', marginBottom: '1.5rem' }}>

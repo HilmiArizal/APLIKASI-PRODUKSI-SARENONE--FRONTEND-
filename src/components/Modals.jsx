@@ -1194,7 +1194,7 @@ export function ModalTambahUtangSupplier({ isOpen, onClose, bahanList = [], supp
                       style={{ padding: 0, fontSize: '0.75rem', color: 'var(--amber)', textDecoration: 'underline', border: 'none', background: 'none', cursor: 'pointer' }}
                       onClick={onOpenKelolaSupplier}
                     >
-                      + Kelola Supplier
+                      
                     </button>
                   )}
                 </div>

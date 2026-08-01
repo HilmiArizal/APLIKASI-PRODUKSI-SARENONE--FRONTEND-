@@ -159,14 +159,14 @@ export default function PembelianBahanTab({
     <div className="tab-pane active">
       {/* Header */}
       <div className="toolbar" style={{ marginBottom: '1.5rem', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
+        {/* <div>
           <h2 style={{ fontSize: '1.3rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <ShoppingCart size={22} style={{ color: 'var(--primary)' }} /> Pembelian Bahan Baku
           </h2>
           <p className="text-muted" style={{ fontSize: '0.82rem', marginTop: '0.2rem' }}>
             Catat transaksi pembelian bahan baku dari supplier &amp; pantau rekapitulasi nilai transaksi per bulan.
           </p>
-        </div>
+        </div> */}
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
           {/* Month Selector Dropdown (Full 12 Months) */}

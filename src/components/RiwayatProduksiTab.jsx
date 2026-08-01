@@ -62,7 +62,7 @@ export default function RiwayatProduksiTab({ riwayatProduksi, activeRoleView, on
           <Search size={16} />
           <input
             type="text"
-            placeholder="Cari riwayat (misal: BATCH-2026, Roti Keju)..."
+            placeholder="Cari riwayat (misal: RCS, BS dll)..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />

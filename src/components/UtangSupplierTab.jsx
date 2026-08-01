@@ -61,15 +61,15 @@ export default function UtangSupplierTab({
   return (
     <div className="tab-pane active">
       {/* Header Toolbar */}
-      <div className="toolbar" style={{ marginBottom: '1.5rem', justifyContent: 'space-between' }}>
-        <div>
+      <div className="toolbar" style={{ justifyContent: 'space-between' }}>
+        {/* <div>
           <h2 style={{ fontSize: '1.3rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <CreditCard size={22} style={{ color: 'var(--primary)' }} /> Utang Supplier
           </h2>
           <p className="text-muted" style={{ fontSize: '0.82rem', marginTop: '0.2rem' }}>
             Pantau saldo utang, bayar cicilan, dan lihat riwayat pembayaran faktur supplier.
           </p>
-        </div>
+        </div> */}
       </div>
 
       {/* Summary Cards */}

@@ -6,7 +6,7 @@ import PasswordStrengthChecker from './PasswordStrengthChecker';
 export default function Login({ onLogin, onRegister, showAlert }) {
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [rememberMe, setRememberMe] = useState(true);
+  const [rememberMe, setRememberMe] = useState(false);
 
   // Helper alert safe trigger
   const notify = (msg, type = 'error', title = 'Peringatan!') => {

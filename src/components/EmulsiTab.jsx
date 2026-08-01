@@ -63,12 +63,12 @@ export default function EmulsiTab({
     <div className="tab-pane active">
       <div className="toolbar" style={{ marginBottom: '1.5rem', justifyContent: 'space-between' }}>
         <div>
-          <h2 style={{ fontSize: '1.3rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          {/* <h2 style={{ fontSize: '1.3rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <FlaskConical size={22} style={{ color: 'var(--emerald)' }} /> Pengolahan &amp; Stok Emulsi (ISP &amp; TVP)
           </h2>
           <p className="text-muted" style={{ fontSize: '0.82rem', marginTop: '0.2rem' }}>
             Modul pengolahan formula emulsi pengikat daging sosis (ISP &amp; TVP). Pemotongan bahan mentah &amp; penambahan stok emulsi otomatis.
-          </p>
+          </p> */}
         </div>
 
         {isCanProcess && (

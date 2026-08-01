@@ -24,8 +24,10 @@ export default function Topbar({ activeUser, activeRoleView, onChangeRoleView, a
     'audit-log': { title: 'Jurnal Transaksi & Audit Log', sub: 'Riwayat pencatatan lengkap aktivitas pergerakan stok.' },
     'utang-supplier': { title: 'Utang Supplier', sub: 'Pantau saldo utang, bayar cicilan, dan lihat riwayat pembayaran faktur supplier.' },
     'pembelian-bahan': { title: 'Pembelian Bahan Baku', sub: 'Catat transaksi pembelian bahan baku dari supplier & buat faktur pembelian baru.' },
-    'penerimaan-bahan': { title: 'Penerimaan Bahan Baku & Verifikasi Gudang', sub: 'Konfirmasi kedatangan fisik barang baku supplier & update stok fisik gudang secara otomatis.' },
-    'supplier': { title: 'Master Data Supplier & Vendor', sub: 'Kelola daftar perusahaan pemasok bahan baku, kemasan, dan bumbu (Khusus Super Admin).' }
+    'penerimaan-bahan': { title: 'Penerimaan Bahan Baku & Verifikasi Fisik', sub: 'Konfirmasi kedatangan fisik barang baku supplier & update stok secara otomatis.' },
+    'supplier': { title: 'Master Data Supplier & Vendor', sub: 'Kelola daftar perusahaan pemasok bahan baku, kemasan, dan bumbu (Khusus Super Admin).' },
+    'emulsi': { title: 'Pengolahan Emulsi', sub: 'Proses pembuatan emulsi dari bahan baku yang tersedia' },
+    'pemakaian-kemasan': { title: 'Pemakaian Kemasan', sub: 'Pemakaian kemasan berdasarkan hasil produksi sesuai ukuran kemasan' },
   };
 
   const current = titles[activeTab] || titles['dashboard'];

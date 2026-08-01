@@ -62,6 +62,20 @@ export default function Sidebar({ activeUser, activeRoleView, activeTab, onSwitc
                 <LayoutDashboard size={18} /><span>Dashboard Ringkasan</span>
               </a>
 
+              {showPembelian && (
+                <>
+                  <a href="#pembelian-bahan" className={mi('pembelian-bahan')} onClick={e => { e.preventDefault(); nav('pembelian-bahan'); }}>
+                    <ShoppingCart size={18} /><span>Pembelian Bahan Baku</span>
+                  </a>
+                  <a href="#penerimaan-bahan" className={mi('penerimaan-bahan')} onClick={e => { e.preventDefault(); nav('penerimaan-bahan'); }}>
+                    <PackageCheck size={18} /><span>Penerimaan Bahan Baku</span>
+                  </a>
+                  <a href="#utang-supplier" className={mi('utang-supplier')} onClick={e => { e.preventDefault(); nav('utang-supplier'); }}>
+                    <CreditCard size={18} /><span>Utang Supplier</span>
+                  </a>
+                </>
+              )}
+
               {showBahan && (
                 <>
                   <a href="#bahan-baku" className={mi('bahan-baku')} onClick={e => { e.preventDefault(); nav('bahan-baku'); }}>
@@ -76,19 +90,6 @@ export default function Sidebar({ activeUser, activeRoleView, activeTab, onSwitc
                 </>
               )}
 
-              {showPembelian && (
-                <>
-                  <a href="#pembelian-bahan" className={mi('pembelian-bahan')} onClick={e => { e.preventDefault(); nav('pembelian-bahan'); }}>
-                    <ShoppingCart size={18} /><span>Pembelian Bahan Baku</span>
-                  </a>
-                  <a href="#penerimaan-bahan" className={mi('penerimaan-bahan')} onClick={e => { e.preventDefault(); nav('penerimaan-bahan'); }}>
-                    <PackageCheck size={18} /><span>Penerimaan Bahan Baku</span>
-                  </a>
-                  <a href="#utang-supplier" className={mi('utang-supplier')} onClick={e => { e.preventDefault(); nav('utang-supplier'); }}>
-                    <CreditCard size={18} /><span>Utang Supplier</span>
-                  </a>
-                </>
-              )}
 
               {showProdukMenu && (
                 <>
