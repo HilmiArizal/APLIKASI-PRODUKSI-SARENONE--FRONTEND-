@@ -139,12 +139,13 @@ export default function PiutangPelangganTab({
     }
     const found = pelangganList.find(c => (c.id || c._id) === cId);
     if (found) {
+      const net = getNetPiutangForCustomer(found);
       setFormPay(f => ({
         ...f,
         pelangganId: cId,
         namaPelanggan: found.nama,
         kodePelanggan: found.kode || '',
-        jumlahBayar: found.totalPiutang || ''
+        jumlahBayar: net || ''
       }));
     }
   };
@@ -432,18 +433,21 @@ export default function PiutangPelangganTab({
                   <label className="form-label">Pilih Pelanggan / Customer *</label>
                   <select className="form-select" value={formPay.pelangganId} onChange={handleSelectCustChange} required>
                     <option value="">-- Pilih Pelanggan --</option>
-                    {pelangganList.map(c => (
-                      <option key={c.id || c._id} value={c.id || c._id}>
-                        👤 [{c.kode || 'C'}] {c.nama} (Sisa Piutang: {formatRp(c.totalPiutang)})
-                      </option>
-                    ))}
+                    {pelangganList.map(c => {
+                      const net = getNetPiutangForCustomer(c);
+                      return (
+                        <option key={c.id || c._id} value={c.id || c._id}>
+                          👤 [{c.kode || 'C'}] {c.nama} (Sisa Piutang: {formatRp(net)})
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
 
                 {selectedCustInModal && (
                   <div style={{ background: 'var(--bg-secondary)', padding: '0.75rem', borderRadius: 10, margin: '0.75rem 0 1rem', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: '0.83rem', color: 'var(--text-muted)' }}>Sisa Piutang Aktif:</span>
-                    <strong style={{ color: '#ef4444', fontSize: '1.05rem' }}>{formatRp(selectedCustInModal.totalPiutang)}</strong>
+                    <strong style={{ color: '#ef4444', fontSize: '1.05rem' }}>{formatRp(getNetPiutangForCustomer(selectedCustInModal))}</strong>
                   </div>
                 )}
 
