@@ -1857,21 +1857,11 @@ export default function App() {
             <PiutangPelangganTab
               pelangganList={pelangganList}
               penjualanList={penjualanList}
+              pembayaranMasukList={pembayaranMasukList}
               activeRoleView={activeRoleView}
               activeUser={activeUser}
               onUpdatePelanggan={handleUpdatePelanggan}
               onUpdatePenjualan={handleUpdatePenjualan}
-              showAlert={showAlert}
-            />
-          )}
-
-          {activeTab === 'pembayaran-masuk' && (
-            <PembayaranMasukTab
-              pembayaranMasukList={pembayaranMasukList}
-              pelangganList={pelangganList}
-              penjualanList={penjualanList}
-              activeRoleView={activeRoleView}
-              activeUser={activeUser}
               onCreatePembayaranMasuk={handleCreatePembayaranMasuk}
               onDeletePembayaranMasuk={handleDeletePembayaranMasuk}
               onOpenPdfPreview={handleOpenPdfPreview}

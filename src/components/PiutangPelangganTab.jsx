@@ -1,29 +1,45 @@
 import React, { useState, useMemo } from 'react';
-import { CreditCard, Search, DollarSign, Clock, CheckCircle2, User, Phone, MapPin, Eye, PlusCircle, Check, X, AlertCircle } from 'lucide-react';
+import { CreditCard, Search, DollarSign, Clock, CheckCircle2, User, Phone, MapPin, Eye, PlusCircle, Check, X, AlertCircle, ArrowDownLeft, Download, FileText, Trash2, Plus } from 'lucide-react';
+import { exportToExcel, exportToPDF } from '../utils/exportUtils';
 
 const formatRp = (n) => 'Rp ' + (Number(n) || 0).toLocaleString('id-ID');
 
 export default function PiutangPelangganTab({
   pelangganList = [],
   penjualanList = [],
+  pembayaranMasukList = [],
   activeRoleView,
   activeUser,
   onUpdatePelanggan,
   onUpdatePenjualan,
+  onCreatePembayaranMasuk,
+  onDeletePembayaranMasuk,
+  onOpenPdfPreview,
   showAlert
 }) {
   const [search, setSearch] = useState('');
   const [kategoriFilter, setKategoriFilter] = useState('');
-  const [showPayModal, setShowPayModal] = useState(null);
+  
+  // Payment Modal States
+  const [showPayModal, setShowPayModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(null);
+  const [showKwitansi, setShowKwitansi] = useState(null);
 
-  const [payAmount, setPayAmount] = useState('');
-  const [payMethod, setPayMethod] = useState('Transfer Bank');
-  const [payNotes, setPayNotes] = useState('');
+  const [formPay, setFormPay] = useState({
+    pelangganId: '',
+    namaPelanggan: '',
+    kodePelanggan: '',
+    noFaktur: '',
+    tanggal: new Date().toISOString().slice(0, 10),
+    jumlahBayar: '',
+    metodePembayaran: 'Transfer Bank',
+    noReferensi: '',
+    catatan: ''
+  });
 
   const canEdit = ['ADMIN_PRODUK', 'TIM_PENJUALAN'].includes(activeRoleView);
 
-  // Filter customers that have totalPiutang > 0 or matching search
+  // Filter customers that have matching search
   const customersWithPiutang = useMemo(() => {
     return pelangganList.filter(p => {
       const q = search.toLowerCase();
@@ -41,44 +57,128 @@ export default function PiutangPelangganTab({
     return pelangganList.filter(p => (Number(p.totalPiutang) || 0) > 0).length;
   }, [pelangganList]);
 
-  const openPayModal = (p) => {
-    setShowPayModal(p);
-    setPayAmount(p.totalPiutang || 0);
-    setPayMethod('Transfer Bank');
-    setPayNotes('');
+  const totalSetoranBulanIni = useMemo(() => {
+    return (pembayaranMasukList || []).reduce((sum, p) => sum + (Number(p.jumlahBayar) || 0), 0);
+  }, [pembayaranMasukList]);
+
+  // Selected customer object in form pay modal
+  const selectedCustInModal = useMemo(() => {
+    if (!formPay.pelangganId) return null;
+    return pelangganList.find(c => (c.id || c._id) === formPay.pelangganId);
+  }, [formPay.pelangganId, pelangganList]);
+
+  const openAddPayModal = (p = null) => {
+    if (p) {
+      setFormPay({
+        pelangganId: p.id || p._id,
+        namaPelanggan: p.nama,
+        kodePelanggan: p.kode || '',
+        noFaktur: '',
+        tanggal: new Date().toISOString().slice(0, 10),
+        jumlahBayar: p.totalPiutang || '',
+        metodePembayaran: 'Transfer Bank',
+        noReferensi: '',
+        catatan: ''
+      });
+    } else {
+      setFormPay({
+        pelangganId: '',
+        namaPelanggan: '',
+        kodePelanggan: '',
+        noFaktur: '',
+        tanggal: new Date().toISOString().slice(0, 10),
+        jumlahBayar: '',
+        metodePembayaran: 'Transfer Bank',
+        noReferensi: '',
+        catatan: ''
+      });
+    }
+    setShowPayModal(true);
+  };
+
+  const handleSelectCustChange = (e) => {
+    const cId = e.target.value;
+    if (!cId) {
+      setFormPay(f => ({ ...f, pelangganId: '', namaPelanggan: '', kodePelanggan: '', jumlahBayar: '' }));
+      return;
+    }
+    const found = pelangganList.find(c => (c.id || c._id) === cId);
+    if (found) {
+      setFormPay(f => ({
+        ...f,
+        pelangganId: cId,
+        namaPelanggan: found.nama,
+        kodePelanggan: found.kode || '',
+        jumlahBayar: found.totalPiutang || ''
+      }));
+    }
   };
 
   const handleProcessPayment = async (e) => {
     e.preventDefault();
-    if (!showPayModal) return;
+    if (!formPay.namaPelanggan) {
+      if (showAlert) showAlert('Pelanggan wajib dipilih!', 'error');
+      return;
+    }
 
-    const currentPiutang = Number(showPayModal.totalPiutang) || 0;
-    const amount = Number(payAmount) || 0;
-
+    const amount = Number(formPay.jumlahBayar) || 0;
     if (amount <= 0) {
       if (showAlert) showAlert('Jumlah pembayaran harus lebih dari Rp 0!', 'error');
       return;
     }
 
-    if (amount > currentPiutang) {
-      if (showAlert) showAlert('Jumlah pembayaran melebihi total sisa piutang!', 'error');
-      return;
-    }
-
-    const newPiutang = Math.max(0, currentPiutang - amount);
-    const updatedPayload = {
-      ...showPayModal,
-      totalPiutang: newPiutang
-    };
-
-    if (onUpdatePelanggan) {
-      await onUpdatePelanggan(showPayModal.id || showPayModal._id, updatedPayload);
+    if (onCreatePembayaranMasuk) {
+      await onCreatePembayaranMasuk(formPay);
       if (showAlert) {
-        showAlert(`Pembayaran piutang ${showPayModal.nama} sebesar ${formatRp(amount)} berhasil dicatat! 🎉`, 'success', 'Pembayaran Piutang');
+        showAlert(`Pembayaran masuk ${formatRp(amount)} dari ${formPay.namaPelanggan} berhasil dicatat! 🎉`, 'success', 'Pembayaran Masuk');
       }
     }
 
-    setShowPayModal(null);
+    setShowPayModal(false);
+  };
+
+  const handleDeletePembayaran = async (p) => {
+    if (!confirm(`Hapus catatan pembayaran ${p.noBukti} dari ${p.namaPelanggan}? Sisa piutang akan dikembalikan.`)) return;
+    if (onDeletePembayaranMasuk) {
+      await onDeletePembayaranMasuk(p.id || p._id);
+    }
+  };
+
+  // Export Excel Piutang
+  const handleExportExcel = () => {
+    const headers = ['Kode', 'Nama Pelanggan', 'Kategori', 'Sistem Pembayaran', 'No. WA', 'Total Sisa Piutang'];
+    const rows = customersWithPiutang.map(p => [
+      p.kode || '-',
+      p.nama,
+      p.kategoriCustomer || 'Umum',
+      p.sistemPembayaran || 'COD',
+      p.noHp || '-',
+      p.totalPiutang || 0
+    ]);
+    exportToExcel('Data_Piutang_Pelanggan', headers, rows);
+  };
+
+  // Export PDF Piutang
+  const handleExportPDF = () => {
+    const headers = ['Kode', 'Nama Pelanggan', 'Kategori', 'Sistem Bayar', 'No. WA', 'Sisa Piutang'];
+    const rows = customersWithPiutang.map(p => [
+      p.kode || '-',
+      p.nama,
+      p.kategoriCustomer || 'Umum',
+      p.sistemPembayaran || 'COD',
+      p.noHp || '-',
+      formatRp(p.totalPiutang || 0)
+    ]);
+    const config = {
+      title: 'Laporan Piutang & Tagihan Pelanggan',
+      subtitle: `Status saldo piutang aktif pelanggan Saren One.`,
+      headers,
+      rows,
+      summaryText: `Total Sisa Piutang Aktif: ${formatRp(totalPiutangKeseluruhan)} | Pelanggan Berpiutang: ${totalPelangganBerpiutang} Orang`,
+      filename: 'Laporan_Piutang_Pelanggan'
+    };
+    if (onOpenPdfPreview) onOpenPdfPreview(config);
+    else exportToPDF(config.title, config.subtitle, config.headers, config.rows, config.summaryText, config.filename);
   };
 
   return (
@@ -87,7 +187,20 @@ export default function PiutangPelangganTab({
       <div className="tab-header">
         <div>
           <h2 className="tab-title"><CreditCard size={24} /> Piutang &amp; Tagihan Pelanggan</h2>
-          <p className="tab-subtitle">Pantau sisa piutang tempo, histori tagihan per customer, &amp; catat pelunasan pembayaran</p>
+          <p className="tab-subtitle">Pantau sisa piutang tempo, histori tagihan customer, &amp; catat pembayaran masuk</p>
+        </div>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <button className="btn btn-secondary" onClick={handleExportExcel}>
+            <Download size={16} style={{ color: 'var(--emerald)' }} /> Excel
+          </button>
+          <button className="btn btn-secondary" onClick={handleExportPDF}>
+            <FileText size={16} style={{ color: '#ef4444' }} /> PDF
+          </button>
+          {canEdit && (
+            <button className="btn btn-primary" onClick={() => openAddPayModal()} style={{ background: 'linear-gradient(135deg,#10b981,#059669)', border: 'none' }}>
+              <Plus size={16} /> Catat Pembayaran Masuk
+            </button>
+          )}
         </div>
       </div>
 
@@ -98,16 +211,16 @@ export default function PiutangPelangganTab({
           <div className="stat-info"><p className="stat-label">Total Sisa Piutang Aktif</p><h3 className="stat-value" style={{ color: '#ef4444' }}>{formatRp(totalPiutangKeseluruhan)}</h3></div>
         </div>
         <div className="stat-card">
+          <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#10b981,#059669)' }}><ArrowDownLeft size={20} /></div>
+          <div className="stat-info"><p className="stat-label">Setoran Masuk Terkumpul</p><h3 className="stat-value" style={{ color: '#10b981' }}>{formatRp(totalSetoranBulanIni)}</h3></div>
+        </div>
+        <div className="stat-card">
           <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#f59e0b,#d97706)' }}><User size={20} /></div>
           <div className="stat-info"><p className="stat-label">Pelanggan Berpiutang</p><h3 className="stat-value">{totalPelangganBerpiutang} Orang</h3></div>
         </div>
         <div className="stat-card">
           <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#6366f1,#4f46e5)' }}><Clock size={20} /></div>
           <div className="stat-info"><p className="stat-label">Customer Tempo Kredit</p><h3 className="stat-value">{pelangganList.filter(p => p.sistemPembayaran === 'Tempo').length}</h3></div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#10b981,#059669)' }}><CheckCircle2 size={20} /></div>
-          <div className="stat-info"><p className="stat-label">Pelanggan Bebas Piutang</p><h3 className="stat-value">{pelangganList.length - totalPelangganBerpiutang}</h3></div>
         </div>
       </div>
 
@@ -125,131 +238,220 @@ export default function PiutangPelangganTab({
         </select>
       </div>
 
-      {/* TABLE PIUTANG */}
-      <div className="table-responsive">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Kode</th>
-              <th>Nama Pelanggan</th>
-              <th>Kategori</th>
-              <th>Sistem Bayar</th>
-              <th>No. WhatsApp</th>
-              <th>Total Sisa Piutang</th>
-              <th>Status Tagihan</th>
-              {canEdit && <th style={{ textAlign: 'right' }}>Aksi</th>}
-            </tr>
-          </thead>
-          <tbody>
-            {customersWithPiutang.length === 0 ? (
+      {/* TABLE PIUTANG PELANGGAN */}
+      <div style={{ marginBottom: '2rem' }}>
+        <h4 style={{ margin: '0 0 0.75rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          <CreditCard size={18} style={{ color: '#ef4444' }} /> Daftar Saldo Piutang Pelanggan
+        </h4>
+        <div className="table-responsive">
+          <table className="table">
+            <thead>
               <tr>
-                <td colSpan={canEdit ? 8 : 7} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
-                  Tidak ada data piutang pelanggan. Seluruh piutang telah lunas atau belum ada tagihan kredit.
-                </td>
+                <th>Kode</th>
+                <th>Nama Pelanggan</th>
+                <th>Kategori</th>
+                <th>Sistem Bayar</th>
+                <th>No. WhatsApp</th>
+                <th>Total Sisa Piutang</th>
+                <th>Status Tagihan</th>
+                {canEdit && <th style={{ textAlign: 'right' }}>Aksi</th>}
               </tr>
-            ) : (
-              customersWithPiutang.map(p => {
-                const sisa = Number(p.totalPiutang) || 0;
-                const isLunas = sisa === 0;
+            </thead>
+            <tbody>
+              {customersWithPiutang.length === 0 ? (
+                <tr>
+                  <td colSpan={canEdit ? 8 : 7} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
+                    Tidak ada data piutang pelanggan. Seluruh piutang telah lunas atau belum ada tagihan kredit.
+                  </td>
+                </tr>
+              ) : (
+                customersWithPiutang.map(p => {
+                  const sisa = Number(p.totalPiutang) || 0;
+                  const isLunas = sisa === 0;
 
-                return (
-                  <tr key={p.id || p._id}>
-                    <td><strong style={{ color: 'var(--accent-primary)', fontFamily: 'monospace' }}>{p.kode || 'C1'}</strong></td>
-                    <td>
-                      <strong style={{ color: '#fff', fontSize: '0.98rem' }}>{p.nama}</strong>
-                      {p.alamat && <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}><MapPin size={11} /> {p.alamat}</div>}
-                    </td>
-                    <td>
-                      <span className="badge" style={{ background: p.kategoriCustomer === 'Top Market' ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.08)', color: p.kategoriCustomer === 'Top Market' ? '#f59e0b' : 'var(--text-muted)', border: `1px solid ${p.kategoriCustomer === 'Top Market' ? '#f59e0b' : 'var(--border-color)'}` }}>
-                        {p.kategoriCustomer === 'Top Market' ? '⭐ Top Market' : 'Umum'}
-                      </span>
-                    </td>
-                    <td>
-                      <span className="badge" style={{ background: p.sistemPembayaran === 'Tempo' ? 'rgba(239,68,68,0.15)' : 'rgba(16,185,129,0.15)', color: p.sistemPembayaran === 'Tempo' ? '#ef4444' : '#10b981' }}>
-                        {p.sistemPembayaran || 'COD'}
-                      </span>
-                    </td>
-                    <td>
-                      {p.noHp ? (
-                        <a href={`https://wa.me/${p.noHp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" style={{ color: '#10b981', display: 'inline-flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }}>
-                          <Phone size={13} /> {p.noHp}
-                        </a>
-                      ) : '-'}
-                    </td>
-                    <td>
-                      <strong style={{ fontSize: '1.05rem', color: isLunas ? '#10b981' : '#ef4444' }}>
-                        {formatRp(sisa)}
-                      </strong>
-                    </td>
-                    <td>
-                      {isLunas ? (
-                        <span className="badge" style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981' }}>✓ Lunas</span>
-                      ) : (
-                        <span className="badge" style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444' }}>⚠️ Ada Belum Bayar</span>
+                  return (
+                    <tr key={p.id || p._id}>
+                      <td><strong style={{ color: 'var(--accent-primary)', fontFamily: 'monospace' }}>{p.kode || 'C1'}</strong></td>
+                      <td>
+                        <strong style={{ color: '#fff', fontSize: '0.98rem' }}>{p.nama}</strong>
+                        {p.alamat && <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}><MapPin size={11} /> {p.alamat}</div>}
+                      </td>
+                      <td>
+                        <span className="badge" style={{ background: p.kategoriCustomer === 'Top Market' ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.08)', color: p.kategoriCustomer === 'Top Market' ? '#f59e0b' : 'var(--text-muted)', border: `1px solid ${p.kategoriCustomer === 'Top Market' ? '#f59e0b' : 'var(--border-color)'}` }}>
+                          {p.kategoriCustomer === 'Top Market' ? '⭐ Top Market' : 'Umum'}
+                        </span>
+                      </td>
+                      <td>
+                        <span className="badge" style={{ background: p.sistemPembayaran === 'Tempo' ? 'rgba(239,68,68,0.15)' : 'rgba(16,185,129,0.15)', color: p.sistemPembayaran === 'Tempo' ? '#ef4444' : '#10b981' }}>
+                          {p.sistemPembayaran || 'COD'}
+                        </span>
+                      </td>
+                      <td>
+                        {p.noHp ? (
+                          <a href={`https://wa.me/${p.noHp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" style={{ color: '#10b981', display: 'inline-flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }}>
+                            <Phone size={13} /> {p.noHp}
+                          </a>
+                        ) : '-'}
+                      </td>
+                      <td>
+                        <strong style={{ fontSize: '1.05rem', color: isLunas ? '#10b981' : '#ef4444' }}>
+                          {formatRp(sisa)}
+                        </strong>
+                      </td>
+                      <td>
+                        {isLunas ? (
+                          <span className="badge" style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981' }}>✓ Lunas</span>
+                        ) : (
+                          <span className="badge" style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444' }}>⚠️ Ada Belum Bayar</span>
+                        )}
+                      </td>
+                      {canEdit && (
+                        <td style={{ textAlign: 'right' }}>
+                          <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end' }}>
+                            {!isLunas && (
+                              <button className="btn btn-sm btn-primary" onClick={() => openAddPayModal(p)} style={{ background: 'linear-gradient(135deg,#10b981,#059669)', border: 'none' }} title="Catat Setoran / Pelunasan">
+                                <PlusCircle size={14} /> Bayar Piutang
+                              </button>
+                            )}
+                            <button className="btn btn-sm btn-secondary" onClick={() => setShowDetailModal(p)} title="Lihat Histori Faktur"><Eye size={14} /></button>
+                          </div>
+                        </td>
                       )}
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* TABLE RIWAYAT PEMBAYARAN MASUK */}
+      <div style={{ marginTop: '1.5rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+          <h4 style={{ margin: 0, color: '#fff', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <ArrowDownLeft size={18} style={{ color: '#10b981' }} /> Riwayat Pembayaran Masuk Customer
+          </h4>
+        </div>
+        <div className="table-responsive">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>No. Bukti</th>
+                <th>Tanggal</th>
+                <th>Pelanggan</th>
+                <th>Faktur Terkait</th>
+                <th>Jumlah Setoran (Rp)</th>
+                <th>Metode Bayar</th>
+                <th>No. Referensi</th>
+                {canEdit && <th style={{ textAlign: 'right' }}>Aksi</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {(pembayaranMasukList || []).length === 0 ? (
+                <tr>
+                  <td colSpan={canEdit ? 8 : 7} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
+                    Belum ada riwayat pembayaran masuk dari pelanggan. Klik "+ Catat Pembayaran Masuk" untuk mencatat setoran baru.
+                  </td>
+                </tr>
+              ) : (
+                (pembayaranMasukList || []).map(pm => (
+                  <tr key={pm.id || pm._id}>
+                    <td><strong style={{ color: 'var(--accent-primary)', fontFamily: 'monospace' }}>{pm.noBukti}</strong></td>
+                    <td>{pm.tanggal || pm.createdAt}</td>
+                    <td>
+                      <strong style={{ color: '#fff' }}>{pm.namaPelanggan}</strong>
+                      {pm.kodePelanggan && <span className="badge" style={{ marginLeft: '6px', background: 'rgba(99,102,241,0.15)', color: '#818cf8' }}>{pm.kodePelanggan}</span>}
                     </td>
+                    <td>{pm.noFaktur ? <strong style={{ color: '#0ea5e9', fontFamily: 'monospace' }}>{pm.noFaktur}</strong> : '-'}</td>
+                    <td><strong style={{ color: '#10b981', fontSize: '1.05rem' }}>{formatRp(pm.jumlahBayar)}</strong></td>
+                    <td><span className="badge" style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981' }}>{pm.metodePembayaran || 'Transfer Bank'}</span></td>
+                    <td style={{ color: 'var(--text-muted)', fontFamily: 'monospace' }}>{pm.noReferensi || '-'}</td>
                     {canEdit && (
                       <td style={{ textAlign: 'right' }}>
-                        <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end' }}>
-                          {!isLunas && (
-                            <button className="btn btn-sm btn-primary" onClick={() => openPayModal(p)} style={{ background: 'linear-gradient(135deg,#10b981,#059669)', border: 'none' }} title="Catat Pelunasan / Cicilan">
-                              <PlusCircle size={14} /> Bayar Piutang
-                            </button>
-                          )}
-                          <button className="btn btn-sm btn-secondary" onClick={() => setShowDetailModal(p)} title="Lihat Histori Faktur"><Eye size={14} /></button>
+                        <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'flex-end' }}>
+                          <button className="btn btn-sm btn-secondary" onClick={() => setShowKwitansi(pm)} title="Lihat Kwitansi"><Eye size={14} /></button>
+                          <button className="btn btn-sm btn-danger" onClick={() => handleDeletePembayaran(pm)} title="Hapus Catatan"><Trash2 size={14} /></button>
                         </div>
                       </td>
                     )}
                   </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      {/* MODAL 1: CATAT PEMBAYARAN PIUTANG */}
+      {/* MODAL 1: CATAT PEMBAYARAN MASUK */}
       {showPayModal && (
-        <div className="modal-overlay" onClick={() => setShowPayModal(null)}>
-          <div className="modal-card modal-sm" onClick={e => e.stopPropagation()} style={{ maxWidth: '460px' }}>
+        <div className="modal-overlay" onClick={() => setShowPayModal(false)}>
+          <div className="modal-card modal-md" onClick={e => e.stopPropagation()} style={{ maxWidth: '520px' }}>
             <div className="modal-header">
-              <h3><CreditCard size={20} style={{ color: '#10b981' }} /> Catat Pembayaran Piutang</h3>
-              <button className="modal-close" onClick={() => setShowPayModal(null)}><X size={18} /></button>
+              <h3><ArrowDownLeft size={20} style={{ color: '#10b981' }} /> Catat Pembayaran Masuk Customer</h3>
+              <button className="modal-close" onClick={() => setShowPayModal(false)}><X size={18} /></button>
             </div>
             <form onSubmit={handleProcessPayment}>
               <div className="modal-body">
-                <div style={{ background: 'var(--bg-secondary)', padding: '0.85rem', borderRadius: 10, marginBottom: '1rem', border: '1px solid var(--border-color)' }}>
-                  <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Pelanggan:</div>
-                  <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#fff' }}>{showPayModal.kode} — {showPayModal.nama}</div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px dashed var(--border-color)' }}>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Sisa Piutang Saat Ini:</span>
-                    <strong style={{ color: '#ef4444', fontSize: '1.05rem' }}>{formatRp(showPayModal.totalPiutang)}</strong>
+                <div className="form-group">
+                  <label className="form-label">Pilih Pelanggan / Customer *</label>
+                  <select className="form-select" value={formPay.pelangganId} onChange={handleSelectCustChange} required>
+                    <option value="">-- Pilih Pelanggan --</option>
+                    {pelangganList.map(c => (
+                      <option key={c.id || c._id} value={c.id || c._id}>
+                        👤 [{c.kode || 'C'}] {c.nama} (Sisa Piutang: {formatRp(c.totalPiutang)})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {selectedCustInModal && (
+                  <div style={{ background: 'var(--bg-secondary)', padding: '0.75rem', borderRadius: 10, margin: '0.75rem 0 1rem', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.83rem', color: 'var(--text-muted)' }}>Sisa Piutang Aktif:</span>
+                    <strong style={{ color: '#ef4444', fontSize: '1.05rem' }}>{formatRp(selectedCustInModal.totalPiutang)}</strong>
+                  </div>
+                )}
+
+                <div className="form-grid" style={{ marginTop: '0.85rem' }}>
+                  <div className="form-group">
+                    <label className="form-label">Tanggal Pembayaran *</label>
+                    <input className="form-input" type="date" value={formPay.tanggal} onChange={e => setFormPay(f => ({ ...f, tanggal: e.target.value }))} required />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Faktur Terkait (Opsional)</label>
+                    <input className="form-input" placeholder="INV-202608..." value={formPay.noFaktur} onChange={e => setFormPay(f => ({ ...f, noFaktur: e.target.value }))} />
                   </div>
                 </div>
 
-                <div className="form-group">
+                <div className="form-group" style={{ marginTop: '0.85rem' }}>
                   <label className="form-label">Jumlah Pembayaran / Setoran (Rp) *</label>
-                  <input className="form-input" type="number" min={1} max={showPayModal.totalPiutang} value={payAmount} onChange={e => setPayAmount(e.target.value)} required />
+                  <input className="form-input" type="number" min={1} value={formPay.jumlahBayar} onChange={e => setFormPay(f => ({ ...f, jumlahBayar: e.target.value }))} placeholder="500000" required />
                 </div>
 
-                <div className="form-group" style={{ marginTop: '0.85rem' }}>
-                  <label className="form-label">Metode Pembayaran</label>
-                  <select className="form-select" value={payMethod} onChange={e => setPayMethod(e.target.value)}>
-                    <option value="Transfer Bank">Transfer Bank</option>
-                    <option value="Tunai">Tunai / Cash</option>
-                    <option value="QRIS">QRIS</option>
-                    <option value="Giro / Cek">Giro / Cek</option>
-                  </select>
+                <div className="form-grid" style={{ marginTop: '0.85rem' }}>
+                  <div className="form-group">
+                    <label className="form-label">Metode Pembayaran</label>
+                    <select className="form-select" value={formPay.metodePembayaran} onChange={e => setFormPay(f => ({ ...f, metodePembayaran: e.target.value }))}>
+                      <option value="Transfer Bank">Transfer Bank</option>
+                      <option value="Tunai">Tunai / Cash</option>
+                      <option value="QRIS">QRIS</option>
+                      <option value="Giro / Cek">Giro / Cek</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">No. Referensi / Reff</label>
+                    <input className="form-input" placeholder="No. resi / reff transfer" value={formPay.noReferensi} onChange={e => setFormPay(f => ({ ...f, noReferensi: e.target.value }))} />
+                  </div>
                 </div>
 
                 <div className="form-group" style={{ marginTop: '0.85rem' }}>
                   <label className="form-label">Catatan Pembayaran</label>
-                  <input className="form-input" placeholder="Contoh: Cicilan tahap 1 via BCA..." value={payNotes} onChange={e => setPayNotes(e.target.value)} />
+                  <input className="form-input" placeholder="Contoh: Setoran cicilan 1 via BCA..." value={formPay.catatan} onChange={e => setFormPay(f => ({ ...f, catatan: e.target.value }))} />
                 </div>
               </div>
 
               <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setShowPayModal(null)}>Batal</button>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowPayModal(false)}>Batal</button>
                 <button type="submit" className="btn btn-primary" style={{ background: 'linear-gradient(135deg,#10b981,#059669)', border: 'none' }}>
                   <Check size={16} /> Simpan Pembayaran
                 </button>
@@ -259,7 +461,7 @@ export default function PiutangPelangganTab({
         </div>
       )}
 
-      {/* MODAL 2: HISTORI PENJUALAN / FAKTUR PELANGGAN */}
+      {/* MODAL 2: HISTORI FAKTUR PELANGGAN */}
       {showDetailModal && (
         <div className="modal-overlay" onClick={() => setShowDetailModal(null)}>
           <div className="modal-card modal-lg" onClick={e => e.stopPropagation()}>
@@ -309,6 +511,47 @@ export default function PiutangPelangganTab({
             </div>
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setShowDetailModal(null)}>Tutup</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 3: KWITANSI BUKTI PEMBAYARAN */}
+      {showKwitansi && (
+        <div className="modal-overlay" onClick={() => setShowKwitansi(null)}>
+          <div className="modal-card modal-md" onClick={e => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+            <div className="modal-header">
+              <h3>📄 Kwitansi Pembayaran Masuk</h3>
+              <button className="modal-close" onClick={() => setShowKwitansi(null)}><X size={18} /></button>
+            </div>
+            <div className="modal-body" style={{ background: '#fff', color: '#1e293b', padding: '1.5rem', borderRadius: 12 }}>
+              <div style={{ textAlign: 'center', borderBottom: '2px solid #e2e8f0', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
+                <h3 style={{ margin: 0, color: '#0f172a', fontWeight: 800 }}>SAREN ONE SYSTEM</h3>
+                <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: '#64748b' }}>BUKTI PENERIMAAN PEMBAYARAN</p>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.83rem', marginBottom: '1rem' }}>
+                <div>No. Bukti: <strong style={{ color: '#4f46e5' }}>{showKwitansi.noBukti}</strong></div>
+                <div>Tanggal: <strong>{showKwitansi.tanggal || showKwitansi.createdAt}</strong></div>
+              </div>
+
+              <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: 8, border: '1px solid #e2e8f0', marginBottom: '1rem' }}>
+                <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Telah Diterima Dari:</div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0f172a' }}>{showKwitansi.namaPelanggan} ({showKwitansi.kodePelanggan || 'C'})</div>
+                
+                <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.75rem' }}>Jumlah Pembayaran:</div>
+                <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#16a34a' }}>{formatRp(showKwitansi.jumlahBayar)}</div>
+              </div>
+
+              <div style={{ fontSize: '0.83rem', lineHeight: 1.6 }}>
+                <div>Metode Bayar: <strong>{showKwitansi.metodePembayaran}</strong></div>
+                {showKwitansi.noFaktur && <div>Faktur Terkait: <strong>{showKwitansi.noFaktur}</strong></div>}
+                {showKwitansi.noReferensi && <div>No. Reff: <strong>{showKwitansi.noReferensi}</strong></div>}
+                {showKwitansi.catatan && <div>Catatan: <i>{showKwitansi.catatan}</i></div>}
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setShowKwitansi(null)}>Tutup</button>
             </div>
           </div>
         </div>

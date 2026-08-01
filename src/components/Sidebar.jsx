@@ -164,9 +164,6 @@ export default function Sidebar({ activeUser, activeRoleView, activeTab, onSwitc
                   <a href="#piutang-pelanggan" className={mi('piutang-pelanggan')} onClick={e => { e.preventDefault(); nav('piutang-pelanggan'); }}>
                     <CreditCard size={18} /><span>Piutang Pelanggan</span>
                   </a>
-                  <a href="#pembayaran-masuk" className={mi('pembayaran-masuk')} onClick={e => { e.preventDefault(); nav('pembayaran-masuk'); }}>
-                    <ArrowDownLeft size={18} /><span>Pembayaran Masuk</span>
-                  </a>
                 </>
               )}
 
