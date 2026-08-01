@@ -37,7 +37,39 @@ export default function PiutangPelangganTab({
     catatan: ''
   });
 
-  const canEdit = ['ADMIN_PRODUK', 'TIM_PENJUALAN'].includes(activeRoleView);
+  // Calculate exact dynamic net piutang for any customer
+  const getNetPiutangForCustomer = (p) => {
+    const custName = p.nama?.trim().toLowerCase();
+
+    // 1. Sum of sales invoices for this customer where payment is Tempo / Cicilan / Pending
+    const totalSalesTempo = (penjualanList || [])
+      .filter(pj => {
+        const matchId = (pj.pelangganId && (pj.pelangganId === p.id || pj.pelangganId === p._id));
+        const matchName = (pj.namaPelanggan && custName && pj.namaPelanggan.trim().toLowerCase() === custName);
+        return matchId || matchName;
+      })
+      .filter(pj => (
+        pj.metodePembayaran === 'Tempo' ||
+        pj.statusPembayaran === 'Tempo' ||
+        pj.statusPembayaran === 'Cicilan' ||
+        pj.statusPembayaran === 'Pending' ||
+        p.sistemPembayaran === 'Tempo'
+      ))
+      .reduce((sum, pj) => sum + (Number(pj.totalBersih) || 0), 0);
+
+    // 2. Sum of payment receipts for this customer
+    const totalPayments = (pembayaranMasukList || [])
+      .filter(pm => {
+        const matchId = (pm.pelangganId && (pm.pelangganId === p.id || pm.pelangganId === p._id));
+        const matchName = (pm.namaPelanggan && custName && pm.namaPelanggan.trim().toLowerCase() === custName);
+        return matchId || matchName;
+      })
+      .reduce((sum, pm) => sum + (Number(pm.jumlahBayar) || 0), 0);
+
+    const basePiutang = Number(p.totalPiutang) || 0;
+    const effectiveCredit = totalSalesTempo > 0 ? totalSalesTempo : basePiutang;
+    return Math.max(0, effectiveCredit - totalPayments);
+  };
 
   // Filter customers that have matching search
   const customersWithPiutang = useMemo(() => {
@@ -50,12 +82,12 @@ export default function PiutangPelangganTab({
   }, [pelangganList, search, kategoriFilter]);
 
   const totalPiutangKeseluruhan = useMemo(() => {
-    return pelangganList.reduce((sum, p) => sum + (Number(p.totalPiutang) || 0), 0);
-  }, [pelangganList]);
+    return pelangganList.reduce((sum, p) => sum + getNetPiutangForCustomer(p), 0);
+  }, [pelangganList, penjualanList, pembayaranMasukList]);
 
   const totalPelangganBerpiutang = useMemo(() => {
-    return pelangganList.filter(p => (Number(p.totalPiutang) || 0) > 0).length;
-  }, [pelangganList]);
+    return pelangganList.filter(p => getNetPiutangForCustomer(p) > 0).length;
+  }, [pelangganList, penjualanList, pembayaranMasukList]);
 
   const totalSetoranBulanIni = useMemo(() => {
     return (pembayaranMasukList || []).reduce((sum, p) => sum + (Number(p.jumlahBayar) || 0), 0);
@@ -69,13 +101,14 @@ export default function PiutangPelangganTab({
 
   const openAddPayModal = (p = null) => {
     if (p) {
+      const net = getNetPiutangForCustomer(p);
       setFormPay({
         pelangganId: p.id || p._id,
         namaPelanggan: p.nama,
         kodePelanggan: p.kode || '',
         noFaktur: '',
         tanggal: new Date().toISOString().slice(0, 10),
-        jumlahBayar: p.totalPiutang || '',
+        jumlahBayar: net || '',
         metodePembayaran: 'Transfer Bank',
         noReferensi: '',
         catatan: ''
@@ -266,7 +299,7 @@ export default function PiutangPelangganTab({
                 </tr>
               ) : (
                 customersWithPiutang.map(p => {
-                  const sisa = Number(p.totalPiutang) || 0;
+                  const sisa = getNetPiutangForCustomer(p);
                   const isLunas = sisa === 0;
 
                   return (
