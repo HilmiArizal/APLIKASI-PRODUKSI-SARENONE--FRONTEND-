@@ -1817,7 +1817,7 @@ export default function App() {
               onUpdatePelanggan={handleUpdatePelanggan}
               onDeletePelanggan={handleDeletePelanggan}
               onBulkCreatePelanggan={handleBulkCreatePelanggan}
-              onOpenPdfPreview={setPdfPreviewData}
+              onOpenPdfPreview={handleOpenPdfPreview}
               showAlert={showAlert}
             />
           )}
