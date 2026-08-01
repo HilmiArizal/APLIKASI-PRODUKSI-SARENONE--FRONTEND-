@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { ShoppingBag, Plus, Trash2, Edit3, Search, X, Eye, TrendingUp, DollarSign, Package, Users } from 'lucide-react';
+import { ShoppingBag, Plus, Trash2, Edit3, Search, X, Eye, TrendingUp, DollarSign, Package, Users, Megaphone } from 'lucide-react';
 
 const METODE_PEMBAYARAN = ['Tunai', 'Transfer Bank', 'QRIS', 'Kartu Debit', 'Kartu Kredit', 'COD'];
 const STATUS_PEMBAYARAN = ['Lunas', 'Cicilan', 'Pending', 'Dibatalkan'];
