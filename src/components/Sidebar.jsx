@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Boxes, Package, BookOpen, ChefHat, History, UserCheck, LogOut, X, Layers, Tag, Users, FlaskConical, CreditCard, PackageCheck, Building2, ShoppingCart, Megaphone, TrendingUp } from 'lucide-react';
+import { LayoutDashboard, Boxes, Package, BookOpen, ChefHat, History, UserCheck, LogOut, X, Layers, Tag, Users, FlaskConical, CreditCard, PackageCheck, Building2, ShoppingCart, Megaphone, TrendingUp, ArrowDownLeft } from 'lucide-react';
 import logoImg from '../assets/logo.png';
 
 export default function Sidebar({ activeUser, activeRoleView, activeTab, onSwitchTab, onLogout, lowStockCount, pendingUserCount, isMobileOpen, onCloseMobile }) {
@@ -163,6 +163,9 @@ export default function Sidebar({ activeUser, activeRoleView, activeTab, onSwitc
                   </a>
                   <a href="#piutang-pelanggan" className={mi('piutang-pelanggan')} onClick={e => { e.preventDefault(); nav('piutang-pelanggan'); }}>
                     <CreditCard size={18} /><span>Piutang Pelanggan</span>
+                  </a>
+                  <a href="#pembayaran-masuk" className={mi('pembayaran-masuk')} onClick={e => { e.preventDefault(); nav('pembayaran-masuk'); }}>
+                    <ArrowDownLeft size={18} /><span>Pembayaran Masuk</span>
                   </a>
                 </>
               )}

@@ -512,4 +512,23 @@ export async function bulkCreatePelangganApi(customers, activeUser) {
   });
 }
 
+// 16. PEMBAYARAN MASUK PELANGGAN
+export async function getPembayaranMasukApi() {
+  return request('/pembayaran-masuk');
+}
+
+export async function createPembayaranMasukApi(data, activeUser) {
+  return request('/pembayaran-masuk', {
+    method: 'POST',
+    body: JSON.stringify({ ...data, user: activeUser })
+  });
+}
+
+export async function deletePembayaranMasukApi(id, activeUser) {
+  return request(`/pembayaran-masuk/${id}`, {
+    method: 'DELETE',
+    body: JSON.stringify({ user: activeUser })
+  });
+}
+
 

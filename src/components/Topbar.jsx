@@ -11,6 +11,7 @@ export default function Topbar({ activeUser, activeRoleView, onChangeRoleView, a
     'penjualan': { title: 'Data Penjualan Produk', sub: 'Catat transaksi penjualan, pantau invoice, dan kelola histori pelanggan.' },
     'pelanggan': { title: 'Kelola Pelanggan / Customer', sub: 'Master data pelanggan, kontak WhatsApp, alamat pengiriman, dan tipe kemitraan.' },
     'piutang-pelanggan': { title: 'Piutang & Tagihan Pelanggan', sub: 'Pantau sisa piutang tempo, histori tagihan per customer, & catat pelunasan pembayaran.' },
+    'pembayaran-masuk': { title: 'Pembayaran Masuk Customer', sub: 'Catat setoran tunai, transfer bank, & pelunasan piutang tempo dari pelanggan.' },
     'marketing': { title: 'Program Marketing & Campaign', sub: 'Kelola program promo, diskon, anggaran marketing, dan saluran penjualan.' },
     'user-approval-produk': { title: 'Verifikasi User & Staf Produk', sub: 'Persetujuan pendaftaran & manajemen hak akses Tim Penjualan & Tim Marketing.' },
     'audit-log-produk': { title: 'Jurnal Aktivitas Produk', sub: 'Riwayat pencatatan aktivitas penjualan, promo, dan manajemen staf.' },

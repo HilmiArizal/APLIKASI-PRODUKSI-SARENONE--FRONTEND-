@@ -25,6 +25,7 @@ import StokProdukSalesTab from './components/StokProdukSalesTab';
 import KategoriSalesBrandTab from './components/KategoriSalesBrandTab';
 import PelangganTab from './components/PelangganTab';
 import PiutangPelangganTab from './components/PiutangPelangganTab';
+import PembayaranMasukTab from './components/PembayaranMasukTab';
 
 import {
   ModalBahan,
@@ -126,7 +127,10 @@ import {
   createPelangganApi,
   updatePelangganApi,
   deletePelangganApi,
-  bulkCreatePelangganApi
+  bulkCreatePelangganApi,
+  getPembayaranMasukApi,
+  createPembayaranMasukApi,
+  deletePembayaranMasukApi
 } from './services/api';
 
 const STORAGE_KEYS = {
@@ -294,7 +298,7 @@ export default function App() {
             return u;
           });
           setUsers(merged);
-        } catch (e) {
+        } catch {
           setUsers(uRes.data);
         }
       }
@@ -314,13 +318,14 @@ export default function App() {
 
       // Fetch domain produk data
       try {
-        const [pjRes, mktRes, psRes, brRes, kpsRes, pelRes] = await Promise.all([
-          getPenjualanApi(), getMarketingApi(), getProdukSalesApi(), getBrandProdukApi(), getKategoriProdukSalesApi(), getPelangganApi()
+        const [pjRes, mktRes, psRes, brRes, kpsRes, pelRes, pmRes] = await Promise.all([
+          getPenjualanApi(), getMarketingApi(), getProdukSalesApi(), getBrandProdukApi(), getKategoriProdukSalesApi(), getPelangganApi(), getPembayaranMasukApi()
         ]);
         if (pjRes?.success) setPenjualanList(pjRes.data || []);
         if (mktRes?.success) setMarketingList(mktRes.data || []);
         if (psRes?.success) setProdukSalesList(psRes.data || []);
         if (pelRes?.success) setPelangganList(pelRes.data || []);
+        if (pmRes?.success) setPembayaranMasukList(pmRes.data || []);
         if (brRes?.success && (brRes.data || []).length > 0) {
           const cleanedBr = (brRes.data || []).filter(b => !['Saren Bakery', 'Saren Frozen', 'Dapur Saren', 'Saren One Original'].includes(b.nama));
           if (cleanedBr.length > 0) setBrandList(cleanedBr);
@@ -404,17 +409,17 @@ export default function App() {
         setActiveTab('bahan-baku');
       }
     } else if (activeRoleView === 'ADMIN_PRODUK') {
-      const allowed = ['dashboard-produk', 'katalog-produk', 'stok-produk', 'pelanggan', 'piutang-pelanggan', 'kategori-produk-sales', 'penjualan', 'marketing', 'user-approval-produk', 'audit-log-produk'];
+      const allowed = ['dashboard-produk', 'katalog-produk', 'stok-produk', 'pelanggan', 'piutang-pelanggan', 'pembayaran-masuk', 'kategori-produk-sales', 'penjualan', 'marketing', 'user-approval-produk', 'audit-log-produk'];
       if (!allowed.includes(activeTab)) {
         setActiveTab('dashboard-produk');
       }
     } else if (activeRoleView === 'TIM_PENJUALAN') {
-      const allowed = ['dashboard-produk', 'katalog-produk', 'stok-produk', 'pelanggan', 'piutang-pelanggan', 'kategori-produk-sales', 'penjualan'];
+      const allowed = ['dashboard-produk', 'katalog-produk', 'stok-produk', 'pelanggan', 'piutang-pelanggan', 'pembayaran-masuk', 'kategori-produk-sales', 'penjualan'];
       if (!allowed.includes(activeTab)) {
         setActiveTab('dashboard-produk');
       }
     } else if (activeRoleView === 'TIM_MARKETING') {
-      const allowed = ['dashboard-produk', 'katalog-produk', 'stok-produk', 'pelanggan', 'piutang-pelanggan', 'kategori-produk-sales', 'marketing'];
+      const allowed = ['dashboard-produk', 'katalog-produk', 'stok-produk', 'pelanggan', 'piutang-pelanggan', 'pembayaran-masuk', 'kategori-produk-sales', 'marketing'];
       if (!allowed.includes(activeTab)) {
         setActiveTab('dashboard-produk');
       }
@@ -1501,6 +1506,32 @@ export default function App() {
     showAlert('Pelanggan berhasil dihapus!', 'info');
   };
 
+  // Pembayaran Masuk Handlers
+  const handleCreatePembayaranMasuk = async (data) => {
+    try {
+      const res = await createPembayaranMasukApi(data, activeUser);
+      if (res?.success) {
+        showAlert(res.message || 'Pembayaran masuk berhasil dicatat!', 'success', 'Pembayaran Dicatat! 💰');
+        fetchAllDataFromBackend(true);
+        return;
+      }
+    } catch (err) {
+      showAlert('Error: ' + err.message, 'error', 'Gagal Simpan');
+    }
+  };
+
+  const handleDeletePembayaranMasuk = async (id) => {
+    try {
+      const res = await deletePembayaranMasukApi(id, activeUser);
+      if (res?.success) {
+        showAlert('Catatan pembayaran masuk berhasil dihapus!', 'success', 'Pembayaran Dihapus');
+        fetchAllDataFromBackend(true);
+      }
+    } catch (err) {
+      showAlert('Error: ' + err.message, 'error', 'Gagal Hapus');
+    }
+  };
+
   if (!activeUser) {
     return (
       <>
@@ -1830,6 +1861,20 @@ export default function App() {
               activeUser={activeUser}
               onUpdatePelanggan={handleUpdatePelanggan}
               onUpdatePenjualan={handleUpdatePenjualan}
+              showAlert={showAlert}
+            />
+          )}
+
+          {activeTab === 'pembayaran-masuk' && (
+            <PembayaranMasukTab
+              pembayaranMasukList={pembayaranMasukList}
+              pelangganList={pelangganList}
+              penjualanList={penjualanList}
+              activeRoleView={activeRoleView}
+              activeUser={activeUser}
+              onCreatePembayaranMasuk={handleCreatePembayaranMasuk}
+              onDeletePembayaranMasuk={handleDeletePembayaranMasuk}
+              onOpenPdfPreview={handleOpenPdfPreview}
               showAlert={showAlert}
             />
           )}
