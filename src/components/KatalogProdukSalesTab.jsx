@@ -54,6 +54,8 @@ export default function KatalogProdukSalesTab({
     gramasi: '',
     brand: safeBrandList[0]?.nama || 'SAREN ONE',
     hargaPabrik: 0,
+    hargaTopMarket: 0,
+    hargaUmum: 0,
     stokReady: 0,
     deskripsi: '',
     status: 'Tersedia'
@@ -71,7 +73,7 @@ export default function KatalogProdukSalesTab({
 
   const totalProduk = produkSalesList.length;
   const totalStokReady = useMemo(() => produkSalesList.reduce((s, p) => s + (Number(p.stokReady) || 0), 0), [produkSalesList]);
-  const totalNilaiPersediaanPabrik = useMemo(() => produkSalesList.reduce((s, p) => s + ((Number(p.stokReady) || 0) * (Number(p.hargaPabrik) || 0)), 0), [produkSalesList]);
+  const totalNilaiPersediaanPabrik = useMemo(() => produkSalesList.reduce((s, p) => s + ((Number(p.stokReady) || 0) * (Number(p.hargaPabrik || p.hargaUmum) || 0)), 0), [produkSalesList]);
 
   // Product CRUD
   const openAdd = () => {
@@ -92,6 +94,8 @@ export default function KatalogProdukSalesTab({
       gramasi: p.gramasi || '',
       brand: p.brand || (brandList[0]?.nama || 'SAREN ONE'),
       hargaPabrik: p.hargaPabrik || 0,
+      hargaTopMarket: p.hargaTopMarket || p.hargaPabrik || 0,
+      hargaUmum: p.hargaUmum || p.hargaPabrik || 0,
       stokReady: p.stokReady || 0,
       deskripsi: p.deskripsi || '',
       status: p.status || 'Tersedia'
@@ -434,8 +438,16 @@ export default function KatalogProdukSalesTab({
                   <input className="form-input" value={form.gramasi} onChange={e => setForm(f => ({ ...f, gramasi: e.target.value }))} placeholder="Contoh: 250 gram, 500 gram (12 Pcs)" />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Harga Pabrik (Rp) *</label>
+                  <label className="form-label">Harga Pabrik Standard (Rp) *</label>
                   <input className="form-input" type="number" min={0} value={form.hargaPabrik} onChange={e => setForm(f => ({ ...f, hargaPabrik: e.target.value }))} placeholder="35000" required />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Harga Modal Top Market (Rp)</label>
+                  <input className="form-input" type="number" min={0} value={form.hargaTopMarket} onChange={e => setForm(f => ({ ...f, hargaTopMarket: e.target.value }))} placeholder="Harga modal Top Market" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Harga Modal Umum (Rp)</label>
+                  <input className="form-input" type="number" min={0} value={form.hargaUmum} onChange={e => setForm(f => ({ ...f, hargaUmum: e.target.value }))} placeholder="Harga modal Umum" />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Stok Siap Jual (Pcs)</label>
