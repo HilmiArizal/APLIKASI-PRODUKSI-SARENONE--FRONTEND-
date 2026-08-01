@@ -146,22 +146,30 @@ export default function PenjualanTab({
     const foundProd = produkSalesList.find(p => (p.id || p._id) === prodId);
 
     if (foundProd) {
+      const selectedCust = pelangganList.find(c => (c.id || c._id) === form.pelangganId || c.nama === form.namaPelanggan);
+      const isTopMarket = selectedCust?.kategoriCustomer === 'Top Market';
+      const defaultPrice = isTopMarket
+        ? (foundProd.hargaTopMarket || foundProd.hargaUmum || foundProd.hargaPabrik || 0)
+        : (foundProd.hargaUmum || foundProd.hargaTopMarket || foundProd.hargaPabrik || 0);
+
       items[idx] = {
         ...items[idx],
         produkId: prodId,
         namaProduk: foundProd.namaProduk,
         sku: foundProd.sku || '',
         brand: foundProd.brand || '',
-        hargaPabrik: foundProd.hargaPabrik || 0,
-        hargaSatuan: foundProd.hargaJual || foundProd.hargaPabrik || 0, // default suggestion, can be edited manually!
-        subtotal: (Number(items[idx].qty) || 1) * (Number(foundProd.hargaJual || foundProd.hargaPabrik) || 0)
+        hargaTopMarket: foundProd.hargaTopMarket || 0,
+        hargaUmum: foundProd.hargaUmum || 0,
+        hargaSatuan: defaultPrice,
+        subtotal: (Number(items[idx].qty) || 1) * defaultPrice
       };
     } else {
       items[idx] = {
         ...items[idx],
         produkId: '',
-        namaProduk: prodId, // manual custom name if typed
-        hargaPabrik: 0
+        namaProduk: prodId,
+        hargaTopMarket: 0,
+        hargaUmum: 0
       };
     }
     setForm(f => ({ ...f, items }));
@@ -367,8 +375,9 @@ export default function PenjualanTab({
                           ))}
                         </select>
                         {currentProd && (
-                          <div style={{ fontSize: '0.73rem', color: 'var(--cyan)', marginTop: '3px' }}>
-                            <span>Harga Pabrik (Modal): {formatRp(currentProd.hargaPabrik)}</span>
+                          <div style={{ fontSize: '0.73rem', marginTop: '4px', display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+                            <span style={{ color: '#f59e0b', fontWeight: 600 }}>⭐ Modal Top Market: {formatRp(currentProd.hargaTopMarket || currentProd.hargaPabrik)}</span>
+                            <span style={{ color: '#0ea5e9', fontWeight: 600 }}>🏷️ Modal Umum: {formatRp(currentProd.hargaUmum || currentProd.hargaPabrik)}</span>
                           </div>
                         )}
                       </div>

@@ -678,7 +678,8 @@ export default function KatalogProdukSalesTab({
                 ['Nama Produk', showDetail.namaProduk],
                 ['Brand Produk', showDetail.brand || 'SAREN ONE'],
                 ['Gramasi / Ukuran', showDetail.gramasi || '-'],
-                ['Harga Pabrik (Modal)', formatRp(showDetail.hargaPabrik || showDetail.hargaJual)],
+                ['Modal Top Market', formatRp(showDetail.hargaTopMarket || showDetail.hargaPabrik)],
+                ['Modal Umum', formatRp(showDetail.hargaUmum || showDetail.hargaPabrik)],
                 ['Stok Siap Jual', `${showDetail.stokReady} Pcs`],
                 ['Status', showDetail.status],
                 ['Dibuat Oleh', showDetail.createdBy || '-']
