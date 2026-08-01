@@ -162,17 +162,33 @@ export default function KatalogProdukSalesTab({
 
   // Export handlers
   const handleExportExcel = () => {
-    const headers = ['SKU', 'Nama Produk', 'Brand', 'Gramasi / Ukuran', 'Harga Pabrik (Rp)', 'Stok Ready (Pcs)', 'Status'];
-    const rows = filtered.map(p => [p.sku, p.namaProduk, p.brand || 'SAREN ONE', p.gramasi || '-', p.hargaPabrik || 0, p.stokReady, p.status]);
+    const headers = ['SKU', 'Nama Produk', 'Brand', 'Gramasi / Ukuran', 'Harga Modal Top Market (Rp)', 'Harga Modal Umum (Rp)', 'Stok Ready (Pcs)', 'Status'];
+    const rows = filtered.map(p => [
+      p.sku,
+      p.namaProduk,
+      p.brand || 'SAREN ONE',
+      p.gramasi || '-',
+      p.hargaTopMarket || p.hargaPabrik || 0,
+      p.hargaUmum || p.hargaPabrik || 0,
+      p.stokReady,
+      p.status
+    ]);
     exportToExcel('Katalog_Produk_Penjualan', headers, rows);
   };
 
   const handleExportPDF = () => {
-    const headers = ['SKU', 'Nama Produk & Brand', 'Gramasi', 'Harga Pabrik', 'Stok Ready'];
-    const rows = filtered.map(p => [p.sku, `${p.namaProduk}\nBrand: ${p.brand || 'SAREN ONE'}`, p.gramasi || '-', formatRp(p.hargaPabrik), `${p.stokReady} Pcs`]);
+    const headers = ['SKU', 'Nama Produk & Brand', 'Gramasi', 'Modal Top Market', 'Modal Umum', 'Stok Ready'];
+    const rows = filtered.map(p => [
+      p.sku,
+      `${p.namaProduk}\nBrand: ${p.brand || 'SAREN ONE'}`,
+      p.gramasi || '-',
+      formatRp(p.hargaTopMarket || p.hargaPabrik),
+      formatRp(p.hargaUmum || p.hargaPabrik),
+      `${p.stokReady} Pcs`
+    ]);
     const config = {
       title: 'Katalog Produk Penjualan & Brand',
-      subtitle: `Daftar produk, brand, harga pabrik, dan stok siap jual Saren One.`,
+      subtitle: `Daftar produk, brand, harga modal Top Market, harga modal Umum, dan stok siap jual.`,
       headers,
       rows,
       summaryText: `Total Produk: ${filtered.length} | Total Stok Ready: ${filtered.reduce((a, b) => a + (b.stokReady || 0), 0)} Pcs`,
@@ -190,7 +206,8 @@ export default function KatalogProdukSalesTab({
         'Nama Produk': 'Red Cocktail Sausage 500gr',
         'Brand': 'SAREN ONE',
         'Gramasi / Ukuran': '500 gram (12 Pcs)',
-        'Harga Pabrik (Rp)': 35000,
+        'Harga Modal Top Market (Rp)': 35000,
+        'Harga Modal Umum (Rp)': 38000,
         'Stok Siap Jual': 100,
         'Status': 'Tersedia',
         'Deskripsi': 'Sosis daging sapi pilihan berkualitas tinggi.'
@@ -200,7 +217,8 @@ export default function KatalogProdukSalesTab({
         'Nama Produk': 'Sosis Cocktail Merah 500gr',
         'Brand': 'EAT GOW',
         'Gramasi / Ukuran': '500 gram',
-        'Harga Pabrik (Rp)': 22000,
+        'Harga Modal Top Market (Rp)': 22000,
+        'Harga Modal Umum (Rp)': 24000,
         'Stok Siap Jual': 80,
         'Status': 'Tersedia',
         'Deskripsi': 'Sosis daging sapi pilihan berkualitas tinggi.'
@@ -213,7 +231,7 @@ export default function KatalogProdukSalesTab({
 
     worksheet['!cols'] = [
       { wch: 12 }, { wch: 28 }, { wch: 20 }, { wch: 20 },
-      { wch: 16 }, { wch: 14 }, { wch: 12 }, { wch: 35 }
+      { wch: 26 }, { wch: 24 }, { wch: 14 }, { wch: 12 }, { wch: 35 }
     ];
 
     XLSX.writeFile(workbook, 'Template_Import_Katalog_Produk_SarenOne.xlsx');
@@ -238,12 +256,16 @@ export default function KatalogProdukSalesTab({
           const namaProduk = row['Nama Produk'] || row['Nama'] || '';
           const brand = row['Brand'] || 'SAREN ONE';
           const gramasi = row['Gramasi / Ukuran'] || row['Gramasi'] || '';
-          const hargaPabrik = Number(row['Harga Pabrik (Rp)'] || row['Harga Pabrik'] || 0);
+          
+          const hargaPabrikRaw = Number(row['Harga Pabrik (Rp)'] || row['Harga Pabrik'] || 0);
+          const hargaTopMarket = Number(row['Harga Modal Top Market (Rp)'] || row['Harga Modal Top Market'] || row['Harga Top Market'] || hargaPabrikRaw || 0);
+          const hargaUmum = Number(row['Harga Modal Umum (Rp)'] || row['Harga Modal Umum'] || row['Harga Umum'] || hargaPabrikRaw || 0);
+
           const stokReady = Number(row['Stok Siap Jual'] || row['Stok'] || 0);
           const status = row['Status'] || 'Tersedia';
           const deskripsi = row['Deskripsi'] || '';
 
-          const isValid = !!namaProduk && hargaPabrik > 0;
+          const isValid = !!namaProduk && (hargaTopMarket > 0 || hargaUmum > 0 || hargaPabrikRaw > 0);
 
           return {
             id: `import_${idx}_${Date.now()}`,
@@ -251,12 +273,14 @@ export default function KatalogProdukSalesTab({
             namaProduk,
             brand,
             gramasi,
-            hargaPabrik,
+            hargaTopMarket,
+            hargaUmum,
+            hargaPabrik: hargaUmum || hargaTopMarket || hargaPabrikRaw,
             stokReady,
             status,
             deskripsi,
             isValid,
-            errorMsg: !namaProduk ? 'Nama Produk kosong' : (hargaPabrik <= 0 ? 'Harga Pabrik 0' : '')
+            errorMsg: !namaProduk ? 'Nama Produk kosong' : ((hargaTopMarket <= 0 && hargaUmum <= 0 && hargaPabrikRaw <= 0) ? 'Harga Modal 0' : '')
           };
         });
 
@@ -284,7 +308,9 @@ export default function KatalogProdukSalesTab({
         namaProduk: r.namaProduk,
         brand: r.brand,
         gramasi: r.gramasi,
-        hargaPabrik: r.hargaPabrik,
+        hargaTopMarket: r.hargaTopMarket,
+        hargaUmum: r.hargaUmum,
+        hargaPabrik: r.hargaUmum || r.hargaTopMarket || 0,
         stokReady: r.stokReady,
         status: r.status,
         deskripsi: r.deskripsi
@@ -598,7 +624,8 @@ export default function KatalogProdukSalesTab({
                           <th>SKU</th>
                           <th>Nama Produk</th>
                           <th>Brand</th>
-                          <th>Harga Pabrik (Rp)</th>
+                          <th>Modal Top Market</th>
+                          <th>Modal Umum</th>
                           <th>Stok Siap Jual</th>
                         </tr>
                       </thead>
@@ -615,7 +642,8 @@ export default function KatalogProdukSalesTab({
                             <td style={{ fontFamily: 'monospace' }}>{r.sku}</td>
                             <td><strong>{r.namaProduk}</strong></td>
                             <td>{r.brand}</td>
-                            <td style={{ color: '#0ea5e9', fontWeight: 600 }}>{formatRp(r.hargaPabrik)}</td>
+                            <td style={{ color: '#f59e0b', fontWeight: 600 }}>{formatRp(r.hargaTopMarket)}</td>
+                            <td style={{ color: '#0ea5e9', fontWeight: 600 }}>{formatRp(r.hargaUmum)}</td>
                             <td>{r.stokReady} Pcs</td>
                           </tr>
                         ))}
