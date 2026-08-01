@@ -422,13 +422,13 @@ export default function PiutangPelangganTab({
       {/* MODAL 1: CATAT PEMBAYARAN MASUK */}
       {showPayModal && (
         <div className="modal-overlay" onClick={() => setShowPayModal(false)}>
-          <div className="modal-card modal-md" onClick={e => e.stopPropagation()} style={{ maxWidth: '520px' }}>
-            <div className="modal-header">
+          <div className="modal-card modal-md" onClick={e => e.stopPropagation()} style={{ maxWidth: '540px', display: 'flex', flexDirection: 'column', maxHeight: '90vh' }}>
+            <div className="modal-header" style={{ flexShrink: 0 }}>
               <h3><ArrowDownLeft size={20} style={{ color: '#10b981' }} /> Catat Pembayaran Masuk Customer</h3>
               <button className="modal-close" onClick={() => setShowPayModal(false)}><X size={18} /></button>
             </div>
-            <form onSubmit={handleProcessPayment}>
-              <div className="modal-body">
+            <form onSubmit={handleProcessPayment} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+              <div className="modal-body" style={{ flex: 1, overflowY: 'auto', paddingRight: '4px' }}>
                 <div className="form-group">
                   <label className="form-label">Pilih Pelanggan / Customer *</label>
                   <select className="form-select" value={formPay.pelangganId} onChange={handleSelectCustChange} required>
@@ -489,9 +489,9 @@ export default function PiutangPelangganTab({
                 </div>
               </div>
 
-              <div className="modal-footer">
+              <div className="modal-footer" style={{ marginTop: '1rem', paddingTop: '0.85rem', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', flexShrink: 0 }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setShowPayModal(false)}>Batal</button>
-                <button type="submit" className="btn btn-primary" style={{ background: 'linear-gradient(135deg,#10b981,#059669)', border: 'none' }}>
+                <button type="submit" className="btn btn-primary" style={{ background: 'linear-gradient(135deg,#10b981,#059669)', border: 'none', minWidth: '170px', color: '#fff', fontWeight: 600 }}>
                   <Check size={16} /> Simpan Pembayaran
                 </button>
               </div>
