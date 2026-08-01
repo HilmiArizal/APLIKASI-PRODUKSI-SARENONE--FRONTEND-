@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Boxes, Search, AlertTriangle, Plus, Edit3, ArrowUpRight, ArrowDownRight, Package, Tag, Check, X, RefreshCw } from 'lucide-react';
+import { Boxes, Search, AlertTriangle, Plus, Edit3, ArrowUpRight, ArrowDownRight, Package, Tag, Check, X, RefreshCw, Star } from 'lucide-react';
 
 const formatRp = (n) => 'Rp ' + (Number(n) || 0).toLocaleString('id-ID');
 
@@ -48,8 +48,9 @@ export default function StokProdukSalesTab({
   const totalItem = produkSalesList.length;
   const totalStokPcs = useMemo(() => produkSalesList.reduce((s, p) => s + (Number(p.stokReady) || 0), 0), [produkSalesList]);
   const lowStockItems = useMemo(() => produkSalesList.filter(p => (Number(p.stokReady) || 0) < 20), [produkSalesList]);
-  const totalNilaiModal = useMemo(() => produkSalesList.reduce((s, p) => s + ((Number(p.stokReady) || 0) * (Number(p.hargaPabrik || p.hargaJual) || 0)), 0), [produkSalesList]);
-  const totalNilaiJual = useMemo(() => produkSalesList.reduce((s, p) => s + ((Number(p.stokReady) || 0) * (Number(p.hargaJual) || 0)), 0), [produkSalesList]);
+  
+  const totalNilaiModalTopMarket = useMemo(() => produkSalesList.reduce((s, p) => s + ((Number(p.stokReady) || 0) * (Number(p.hargaTopMarket || p.hargaPabrik || p.hargaJual) || 0)), 0), [produkSalesList]);
+  const totalNilaiModalUmum = useMemo(() => produkSalesList.reduce((s, p) => s + ((Number(p.stokReady) || 0) * (Number(p.hargaUmum || p.hargaPabrik || p.hargaJual) || 0)), 0), [produkSalesList]);
 
   const openAdjustModal = (p, type = 'MASUK') => {
     setSelectedProduk(p);
@@ -121,17 +122,17 @@ export default function StokProdukSalesTab({
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#0ea5e9,#0284c7)' }}><Package size={20} /></div>
+          <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#f59e0b,#d97706)' }}><Star size={20} /></div>
           <div className="stat-info">
-            <p className="stat-label">Nilai Modal Persediaan</p>
-            <h3 className="stat-value" style={{ fontSize: '1rem' }}>{formatRp(totalNilaiModal)}</h3>
+            <p className="stat-label">Modal Persediaan Top Market</p>
+            <h3 className="stat-value" style={{ fontSize: '0.98rem', color: '#f59e0b' }}>{formatRp(totalNilaiModalTopMarket)}</h3>
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#8b5cf6,#7c3aed)' }}><ArrowUpRight size={20} /></div>
+          <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#0ea5e9,#0284c7)' }}><Package size={20} /></div>
           <div className="stat-info">
-            <p className="stat-label">Est. Omzet Persediaan</p>
-            <h3 className="stat-value" style={{ fontSize: '1rem', color: '#10b981' }}>{formatRp(totalNilaiJual)}</h3>
+            <p className="stat-label">Modal Persediaan Umum</p>
+            <h3 className="stat-value" style={{ fontSize: '0.98rem', color: '#0ea5e9' }}>{formatRp(totalNilaiModalUmum)}</h3>
           </div>
         </div>
       </div>
@@ -164,8 +165,8 @@ export default function StokProdukSalesTab({
               <th>Nama Produk</th>
               <th>Brand</th>
               <th>Gramasi</th>
-              <th>Harga Pabrik</th>
-              <th>Harga Jual</th>
+              <th>Modal Top Market</th>
+              <th>Modal Umum</th>
               <th>Stok Ready</th>
               <th>Status Stock</th>
               {canEdit && <th style={{ textAlign: 'right' }}>Aksi Penyesuaian</th>}
@@ -189,8 +190,8 @@ export default function StokProdukSalesTab({
                     <td><strong>{p.namaProduk}</strong></td>
                     <td><span className="badge" style={{ background: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.3)' }}>🏷️ {p.brand || 'SAREN ONE'}</span></td>
                     <td style={{ color: 'var(--text-muted)' }}>{p.gramasi || '-'}</td>
-                    <td style={{ color: '#0ea5e9' }}>{formatRp(p.hargaPabrik)}</td>
-                    <td style={{ color: '#10b981', fontWeight: 600 }}>{formatRp(p.hargaJual)}</td>
+                    <td style={{ color: '#f59e0b', fontWeight: 600 }}>{formatRp(p.hargaTopMarket || p.hargaPabrik || p.hargaJual)}</td>
+                    <td style={{ color: '#0ea5e9', fontWeight: 600 }}>{formatRp(p.hargaUmum || p.hargaPabrik || p.hargaJual)}</td>
                     <td>
                       <strong style={{ fontSize: '1.05rem', color: isLow ? '#ef4444' : 'var(--text-primary)' }}>{stokVal} Pcs</strong>
                     </td>
