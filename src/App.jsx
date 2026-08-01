@@ -193,6 +193,7 @@ export default function App() {
   const [suppliersList, setSuppliersList] = useState([]);
   const [penjualanList, setPenjualanList] = useState([]);
   const [pelangganList, setPelangganList] = useState(() => safeGetStorage(STORAGE_KEYS.PELANGGAN, []));
+  const [pembayaranMasukList, setPembayaranMasukList] = useState([]);
   const [marketingList, setMarketingList] = useState([]);
   const [produkSalesList, setProdukSalesList] = useState([]);
   const [brandList, setBrandList] = useState([
