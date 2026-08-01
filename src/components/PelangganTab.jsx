@@ -1,5 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { Users, Plus, Search, Edit3, Trash2, Phone, MapPin, Tag, Check, X, Building2, AlertTriangle, ShieldCheck, CreditCard, Star } from 'lucide-react';
+import * as XLSX from 'xlsx';
+import { Users, Plus, Search, Edit3, Trash2, Phone, MapPin, Tag, Check, X, Building2, AlertTriangle, CreditCard, Star, Download, Upload, FileText, AlertCircle } from 'lucide-react';
+import { exportToExcel, exportToPDF } from '../utils/exportUtils';
 
 const TIPE_PELANGGAN = ['Retail', 'Reseller', 'Distributor', 'Agent', 'Outlet'];
 const KATEGORI_CUSTOMER = ['Top Market', 'Umum'];
@@ -13,13 +15,15 @@ export default function PelangganTab({
   onCreatePelanggan,
   onUpdatePelanggan,
   onDeletePelanggan,
+  onBulkCreatePelanggan,
+  onOpenPdfPreview,
   showAlert
 }) {
   const [search, setSearch] = useState('');
   const [kategoriFilter, setKategoriFilter] = useState('');
   const [sistemBayarFilter, setSistemBayarFilter] = useState('');
 
-  // Modal State
+  // Modal Form State
   const [showModal, setShowModal] = useState(false);
   const [editData, setEditData] = useState(null);
   const [form, setForm] = useState({
@@ -34,8 +38,13 @@ export default function PelangganTab({
     catatan: ''
   });
 
-  // Delete Confirm State
+  // Modal Delete Confirm State
   const [deleteTarget, setDeleteTarget] = useState(null);
+
+  // Modal Import Excel State
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importedRows, setImportedRows] = useState([]);
+  const [isImporting, setIsImporting] = useState(false);
 
   const canEdit = ['ADMIN_PRODUK', 'TIM_PENJUALAN', 'TIM_MARKETING'].includes(activeRoleView);
 
@@ -49,6 +58,185 @@ export default function PelangganTab({
       return matchQ && matchK && matchS;
     });
   }, [pelangganList, search, kategoriFilter, sistemBayarFilter]);
+
+  // Export Excel
+  const handleExportExcel = () => {
+    const headers = ['Kode', 'Nama Pelanggan / Toko', 'Kategori Customer', 'Sistem Pembayaran', 'WhatsApp / HP', 'Tipe', 'Alamat Pengiriman', 'Total Piutang (Rp)', 'Catatan'];
+    const rows = filtered.map(p => [
+      p.kode || '-',
+      p.nama,
+      p.kategoriCustomer || 'Umum',
+      p.sistemPembayaran || 'COD',
+      p.noHp || '-',
+      p.tipe || 'Retail',
+      p.alamat || '-',
+      p.totalPiutang || 0,
+      p.catatan || '-'
+    ]);
+    exportToExcel('Data_Pelanggan_Customer_SarenOne', headers, rows);
+  };
+
+  // Export PDF
+  const handleExportPDF = () => {
+    const headers = ['Kode', 'Nama & Toko', 'Kategori', 'Sistem Bayar', 'Kontak HP', 'Alamat Pengiriman', 'Piutang'];
+    const rows = filtered.map(p => [
+      p.kode || '-',
+      `${p.nama}\n(${p.tipe || 'Retail'})`,
+      p.kategoriCustomer || 'Umum',
+      p.sistemPembayaran || 'COD',
+      p.noHp || '-',
+      p.alamat || '-',
+      formatRp(p.totalPiutang)
+    ]);
+    const config = {
+      title: 'Master Data Pelanggan & Customer Saren One',
+      subtitle: `Daftar pelanggan, kategori, sistem bayar, dan status piutang aktif.`,
+      headers,
+      rows,
+      summaryText: `Total Pelanggan: ${filtered.length} | Total Piutang Aktif: ${formatRp(filtered.reduce((s, p) => s + (p.totalPiutang || 0), 0))}`,
+      filename: 'Data_Pelanggan_Customer_SarenOne'
+    };
+    if (onOpenPdfPreview) onOpenPdfPreview(config);
+    else exportToPDF(config.title, config.subtitle, config.headers, config.rows, config.summaryText, config.filename);
+  };
+
+  // Download Excel Import Template
+  const handleDownloadTemplate = () => {
+    const templateData = [
+      {
+        'Kode Pelanggan': 'C1',
+        'Nama Pelanggan / Toko': 'Rajawali Sosis Baso',
+        'Kategori Customer': 'Top Market',
+        'Sistem Pembayaran': 'Tempo',
+        'No. WhatsApp / HP': '081234567890',
+        'Tipe Kemitraan': 'Distributor',
+        'Alamat Lengkap Pengiriman': 'Jl. Rajawali Barat No. 45, Bandung',
+        'Total Piutang (Rp)': 0,
+        'Catatan': 'Mitra utama agen wilayah Bandung'
+      },
+      {
+        'Kode Pelanggan': 'C2',
+        'Nama Pelanggan / Toko': 'Toko Berkah Frozen',
+        'Kategori Customer': 'Umum',
+        'Sistem Pembayaran': 'COD',
+        'No. WhatsApp / HP': '089876543210',
+        'Tipe Kemitraan': 'Retail',
+        'Alamat Lengkap Pengiriman': 'Jl. Soekarno Hatta No. 102, Bandung',
+        'Total Piutang (Rp)': 0,
+        'Catatan': 'Pengiriman hari Selasa dan Jumat'
+      }
+    ];
+
+    const worksheet = XLSX.utils.json_to_sheet(templateData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Template_Pelanggan');
+
+    worksheet['!cols'] = [
+      { wch: 14 }, { wch: 28 }, { wch: 18 }, { wch: 18 },
+      { wch: 18 }, { wch: 16 }, { wch: 35 }, { wch: 18 }, { wch: 30 }
+    ];
+
+    XLSX.writeFile(workbook, 'Template_Import_Pelanggan_SarenOne.xlsx');
+  };
+
+  // Handle Excel Upload & Parsing
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const bstr = evt.target.result;
+        const wb = XLSX.read(bstr, { type: 'binary' });
+        const wsName = wb.SheetNames[0];
+        const ws = wb.Sheets[wsName];
+        const rawJson = XLSX.utils.sheet_to_json(ws);
+
+        const parsed = rawJson.map((row, idx) => {
+          const kode = row['Kode Pelanggan'] || row['Kode'] || `C${pelangganList.length + idx + 1}`;
+          const nama = row['Nama Pelanggan / Toko'] || row['Nama Pelanggan'] || row['Nama Toko'] || row['Nama'] || '';
+          
+          let kategoriCustomer = row['Kategori Customer'] || row['Kategori'] || 'Umum';
+          if (!['Top Market', 'Umum'].includes(kategoriCustomer)) kategoriCustomer = 'Umum';
+
+          let sistemPembayaran = row['Sistem Pembayaran'] || row['Sistem Bayar'] || 'COD';
+          if (!['COD', 'CBD', 'Tempo'].includes(sistemPembayaran)) sistemPembayaran = 'COD';
+
+          const noHp = String(row['No. WhatsApp / HP'] || row['No HP'] || row['Telepon'] || '');
+          const tipe = row['Tipe Kemitraan'] || row['Tipe'] || 'Retail';
+          const alamat = row['Alamat Lengkap Pengiriman'] || row['Alamat'] || '';
+          const totalPiutang = Number(row['Total Piutang (Rp)'] || row['Total Piutang'] || row['Piutang'] || 0);
+          const catatan = row['Catatan'] || '';
+
+          const isValid = !!nama.trim();
+
+          return {
+            id: `import_${idx}_${Date.now()}`,
+            kode,
+            nama,
+            kategoriCustomer,
+            sistemPembayaran,
+            noHp,
+            tipe,
+            alamat,
+            totalPiutang,
+            catatan,
+            isValid,
+            errorMsg: !nama.trim() ? 'Nama Pelanggan kosong' : ''
+          };
+        });
+
+        setImportedRows(parsed);
+        setShowImportModal(true);
+      } catch (err) {
+        if (showAlert) showAlert(`Gagal membaca file Excel: ${err.message}`, 'error');
+      }
+    };
+    reader.readAsBinaryString(file);
+  };
+
+  // Confirm Excel Import
+  const handleConfirmImport = async () => {
+    const validRows = importedRows.filter(r => r.isValid);
+    if (validRows.length === 0) {
+      if (showAlert) showAlert('Tidak ada data pelanggan valid untuk di-import!', 'warning');
+      return;
+    }
+
+    setIsImporting(true);
+    try {
+      if (onBulkCreatePelanggan) {
+        await onBulkCreatePelanggan(validRows);
+      } else {
+        for (const r of validRows) {
+          if (onCreatePelanggan) {
+            await onCreatePelanggan({
+              kode: r.kode,
+              nama: r.nama,
+              kategoriCustomer: r.kategoriCustomer,
+              sistemPembayaran: r.sistemPembayaran,
+              noHp: r.noHp,
+              tipe: r.tipe,
+              alamat: r.alamat,
+              totalPiutang: r.totalPiutang,
+              catatan: r.catatan
+            });
+          }
+        }
+      }
+
+      if (showAlert) {
+        showAlert(`Berhasil meng-import ${validRows.length} data pelanggan baru! 🎉`, 'success', 'Import Berhasil');
+      }
+      setShowImportModal(false);
+      setImportedRows([]);
+    } catch (err) {
+      if (showAlert) showAlert(`Gagal meng-import data pelanggan: ${err.message}`, 'error');
+    } finally {
+      setIsImporting(false);
+    }
+  };
 
   const openAdd = () => {
     setEditData(null);
@@ -120,14 +308,27 @@ export default function PelangganTab({
           <h2 className="tab-title"><Users size={24} /> Kelola Pelanggan / Customer</h2>
           <p className="tab-subtitle">Master data pelanggan, Kode (C1, C2...), Kategori (Top Market vs Umum), Sistem Bayar (COD, CBD, Tempo)</p>
         </div>
-        {canEdit && (
-          <button className="btn btn-primary" onClick={openAdd}>
-            <Plus size={16} /> Tambah Pelanggan
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <button className="btn btn-secondary" onClick={handleExportExcel} title="Export ke Excel">
+            <Download size={16} style={{ color: 'var(--emerald)' }} /> Excel
           </button>
-        )}
+          <button className="btn btn-secondary" onClick={handleExportPDF} title="Export ke PDF">
+            <FileText size={16} style={{ color: '#ef4444' }} /> PDF
+          </button>
+          {canEdit && (
+            <>
+              <button className="btn btn-secondary" onClick={() => setShowImportModal(true)}>
+                <Upload size={16} style={{ color: 'var(--cyan)' }} /> Import Excel
+              </button>
+              <button className="btn btn-primary" onClick={openAdd}>
+                <Plus size={16} /> Tambah Pelanggan
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
-      {/* STATS */}
+      {/* STATS SUMMARY */}
       <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', marginBottom: '1.5rem' }}>
         <div className="stat-card">
           <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}><Users size={20} /></div>
@@ -184,7 +385,7 @@ export default function PelangganTab({
             {filtered.length === 0 ? (
               <tr>
                 <td colSpan={canEdit ? 8 : 7} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
-                  Belum ada data pelanggan. Klik "+ Tambah Pelanggan" di atas untuk menambahkan pelanggan baru.
+                  Belum ada data pelanggan. Klik "+ Tambah Pelanggan" atau "Import Excel" di atas untuk menambahkan pelanggan baru.
                 </td>
               </tr>
             ) : (
@@ -235,7 +436,102 @@ export default function PelangganTab({
         </table>
       </div>
 
-      {/* MODAL FORM PELANGGAN */}
+      {/* MODAL 1: IMPORT EXCEL PELANGGAN */}
+      {showImportModal && (
+        <div className="modal-overlay" onClick={() => { setShowImportModal(false); setImportedRows([]); }}>
+          <div className="modal-card modal-lg" onClick={e => e.stopPropagation()} style={{ maxWidth: '850px' }}>
+            <div className="modal-header">
+              <h3><Upload size={20} style={{ color: 'var(--cyan)' }} /> Import Data Pelanggan / Customer Excel</h3>
+              <button className="modal-close" onClick={() => { setShowImportModal(false); setImportedRows([]); }}><X size={18} /></button>
+            </div>
+            <div className="modal-body">
+              {importedRows.length === 0 ? (
+                <div style={{ padding: '1.5rem', background: 'var(--bg-secondary)', borderRadius: 12, border: '1px dashed var(--border-color)', textAlign: 'center' }}>
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <Download size={36} style={{ color: 'var(--emerald)', marginBottom: '0.5rem' }} />
+                    <h4 style={{ margin: '0 0 0.25rem', color: '#fff' }}>1. Unduh Template Excel Pelanggan</h4>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>
+                      Gunakan format template resmi agar data Kode (C1, C2), Nama Toko, Kategori (Top Market/Umum), dan Sistem Bayar (COD/CBD/Tempo) terisi dengan benar.
+                    </p>
+                    <button className="btn btn-outline" onClick={handleDownloadTemplate} style={{ marginTop: '0.75rem' }}>
+                      <Download size={16} style={{ color: 'var(--emerald)' }} /> Download Template Excel Pelanggan (.xlsx)
+                    </button>
+                  </div>
+
+                  <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1.5rem' }}>
+                    <Upload size={36} style={{ color: 'var(--cyan)', marginBottom: '0.5rem' }} />
+                    <h4 style={{ margin: '0 0 0.25rem', color: '#fff' }}>2. Upload File Excel Yang Sudah Diisi</h4>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+                      Pilih file .xlsx, .xls, atau .csv dari komputer Anda.
+                    </p>
+                    <label className="btn btn-primary" style={{ cursor: 'pointer', display: 'inline-flex' }}>
+                      <Upload size={16} /> Pilih File Excel...
+                      <input type="file" accept=".xlsx, .xls, .csv" onChange={handleFileUpload} style={{ display: 'none' }} />
+                    </label>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div style={{ background: 'var(--bg-secondary)', padding: '0.75rem 1rem', borderRadius: 10, marginBottom: '1rem', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                      Total Pelanggan Terbaca: <strong style={{ color: '#fff' }}>{importedRows.length}</strong> | Valid: <strong style={{ color: '#10b981' }}>{importedRows.filter(r => r.isValid).length}</strong>
+                    </span>
+                    <label className="btn btn-sm btn-outline" style={{ cursor: 'pointer' }}>
+                      🔄 Pilih File Lain
+                      <input type="file" accept=".xlsx, .xls, .csv" onChange={handleFileUpload} style={{ display: 'none' }} />
+                    </label>
+                  </div>
+
+                  <div className="table-responsive" style={{ maxHeight: '350px' }}>
+                    <table className="table" style={{ fontSize: '0.82rem' }}>
+                      <thead>
+                        <tr>
+                          <th>Status</th>
+                          <th>Kode</th>
+                          <th>Nama Pelanggan</th>
+                          <th>Kategori</th>
+                          <th>Sistem Bayar</th>
+                          <th>No. WhatsApp</th>
+                          <th>Tipe</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {importedRows.map((r, i) => (
+                          <tr key={i} style={{ opacity: r.isValid ? 1 : 0.6 }}>
+                            <td>
+                              {r.isValid ? (
+                                <span className="badge badge-emerald">✓ Valid</span>
+                              ) : (
+                                <span className="badge badge-danger" title={r.errorMsg}><AlertCircle size={12} /> {r.errorMsg}</span>
+                              )}
+                            </td>
+                            <td style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--accent-primary)' }}>{r.kode}</td>
+                            <td><strong>{r.nama}</strong></td>
+                            <td><span className="badge">{r.kategoriCustomer}</span></td>
+                            <td><span className="badge">{r.sistemPembayaran}</span></td>
+                            <td>{r.noHp || '-'}</td>
+                            <td>{r.tipe}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => { setShowImportModal(false); setImportedRows([]); }}>Batal</button>
+              {importedRows.length > 0 && (
+                <button className="btn btn-primary" onClick={handleConfirmImport} disabled={isImporting || importedRows.filter(r => r.isValid).length === 0}>
+                  <Check size={16} /> {isImporting ? 'Meng-import Data...' : `Import ${importedRows.filter(r => r.isValid).length} Pelanggan`}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 2: ADD / EDIT PELANGGAN FORM */}
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal-card" onClick={e => e.stopPropagation()} style={{ maxWidth: '560px', width: '92%', maxHeight: '90vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-card)', borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
@@ -311,7 +607,7 @@ export default function PelangganTab({
         </div>
       )}
 
-      {/* MODAL KONFIRMASI HAPUS PELANGGAN */}
+      {/* MODAL 3: KONFIRMASI HAPUS PELANGGAN */}
       {deleteTarget && (
         <div className="modal-overlay" onClick={() => setDeleteTarget(null)}>
           <div className="modal-card modal-sm" onClick={e => e.stopPropagation()} style={{ maxWidth: '420px', width: '90%', borderRadius: '16px', padding: '1.5rem', textAlign: 'center', background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>

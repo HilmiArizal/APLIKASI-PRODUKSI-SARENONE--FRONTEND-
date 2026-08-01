@@ -505,3 +505,11 @@ export async function deletePelangganApi(id, activeUser) {
   });
 }
 
+export async function bulkCreatePelangganApi(customers, activeUser) {
+  return request('/pelanggan/bulk', {
+    method: 'POST',
+    body: JSON.stringify({ customers, user: activeUser })
+  });
+}
+
+

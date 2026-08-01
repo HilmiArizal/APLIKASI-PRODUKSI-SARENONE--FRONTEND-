@@ -125,7 +125,8 @@ import {
   getPelangganApi,
   createPelangganApi,
   updatePelangganApi,
-  deletePelangganApi
+  deletePelangganApi,
+  bulkCreatePelangganApi
 } from './services/api';
 
 const STORAGE_KEYS = {
@@ -1466,6 +1467,18 @@ export default function App() {
     showAlert('Pelanggan baru ditambahkan! 🎉', 'success');
   };
 
+  const handleBulkCreatePelanggan = async (customers) => {
+    try {
+      const res = await bulkCreatePelangganApi(customers, activeUser);
+      if (res?.success) {
+        fetchAllDataFromBackend(true);
+        return;
+      }
+    } catch { /* fallback local */ }
+
+    setPelangganList(prev => [...customers, ...prev]);
+  };
+
   const handleUpdatePelanggan = async (id, pelangganData) => {
     try {
       const res = await updatePelangganApi(id, pelangganData, activeUser);
@@ -1803,6 +1816,8 @@ export default function App() {
               onCreatePelanggan={handleCreatePelanggan}
               onUpdatePelanggan={handleUpdatePelanggan}
               onDeletePelanggan={handleDeletePelanggan}
+              onBulkCreatePelanggan={handleBulkCreatePelanggan}
+              onOpenPdfPreview={setPdfPreviewData}
               showAlert={showAlert}
             />
           )}
