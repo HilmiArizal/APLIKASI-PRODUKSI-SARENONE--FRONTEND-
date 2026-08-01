@@ -41,35 +41,37 @@ export default function PiutangPelangganTab({
 
   // Calculate exact dynamic net piutang for any customer
   const getNetPiutangForCustomer = (p) => {
+    const custId = (p.id || p._id || '').toString();
     const custName = p.nama?.trim().toLowerCase();
 
-    // 1. Sum of sales invoices for this customer where payment is Tempo / Cicilan / Pending
+    // 1. Sum of credit sales invoices for this customer
     const totalSalesTempo = (penjualanList || [])
       .filter(pj => {
-        const matchId = (pj.pelangganId && (pj.pelangganId === p.id || pj.pelangganId === p._id));
+        const pjCustId = (pj.pelangganId || '').toString();
+        const matchId = (pjCustId && pjCustId === custId);
         const matchName = (pj.namaPelanggan && custName && pj.namaPelanggan.trim().toLowerCase() === custName);
         return matchId || matchName;
       })
-      .filter(pj => (
-        pj.metodePembayaran === 'Tempo' ||
-        pj.statusPembayaran === 'Tempo' ||
-        pj.statusPembayaran === 'Cicilan' ||
-        pj.statusPembayaran === 'Pending' ||
-        (p.sistemPembayaran === 'Tempo' && pj.statusPembayaran !== 'Lunas')
-      ))
-      .reduce((sum, pj) => sum + (Number(pj.totalBersih) || 0), 0);
+      .filter(pj => {
+        const isTempoMethod = pj.metodePembayaran === 'Tempo';
+        const isTempoStatus = ['Tempo', 'Cicilan', 'Pending'].includes(pj.statusPembayaran);
+        const isTempoSystemCust = p.sistemPembayaran === 'Tempo';
+        return isTempoMethod || isTempoStatus || isTempoSystemCust;
+      })
+      .reduce((sum, pj) => sum + (Number(pj.totalBersih) || Number(pj.totalHarga) || 0), 0);
 
     // 2. Sum of payment receipts for this customer
     const totalPayments = (pembayaranMasukList || [])
       .filter(pm => {
-        const matchId = (pm.pelangganId && (pm.pelangganId === p.id || pm.pelangganId === p._id));
+        const pmCustId = (pm.pelangganId || '').toString();
+        const matchId = (pmCustId && pmCustId === custId);
         const matchName = (pm.namaPelanggan && custName && pm.namaPelanggan.trim().toLowerCase() === custName);
         return matchId || matchName;
       })
       .reduce((sum, pm) => sum + (Number(pm.jumlahBayar) || 0), 0);
 
     const basePiutang = Number(p.totalPiutang) || 0;
-    const grossCredit = totalSalesTempo + basePiutang;
+    const grossCredit = (totalSalesTempo > 0) ? (totalSalesTempo + basePiutang) : basePiutang;
     return Math.max(0, grossCredit - totalPayments);
   };
 

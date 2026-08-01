@@ -270,10 +270,26 @@ export default function PenjualanTab({
 
   const handleSubmit = async () => {
     if (!form.namaPelanggan.trim()) { showAlert('Nama pelanggan wajib diisi/dipilih!', 'error'); return; }
-    if (!form.items.some(it => it.namaProduk)) { showAlert('Minimal 1 produk harus diisi/dipilih!', 'error'); return; }
+    if (!form.items.some(it => it.namaProduk)) { showAlert('Minimal 1 produk wajib diisi/dipilih!', 'error'); return; }
+
+    const matchedCust = (pelangganList || []).find(c => {
+      const cId = c.id || c._id;
+      if (cId && form.pelangganId && String(cId) === String(form.pelangganId)) return true;
+      if (c.nama && form.namaPelanggan && c.nama.trim().toLowerCase() === form.namaPelanggan.trim().toLowerCase()) return true;
+      return false;
+    });
+
+    const isTempoCust = matchedCust?.sistemPembayaran === 'Tempo';
+    const finalMetode = (isTempoCust && form.metodePembayaran === 'Tunai') ? 'Tempo' : form.metodePembayaran;
+    const finalStatus = (isTempoCust && form.statusPembayaran === 'Lunas') ? 'Tempo' : form.statusPembayaran;
+
     const processed = calcItems(form.items);
     const payload = {
       ...form,
+      pelangganId: matchedCust ? (matchedCust.id || matchedCust._id) : form.pelangganId,
+      namaPelanggan: matchedCust ? matchedCust.nama : form.namaPelanggan,
+      metodePembayaran: finalMetode,
+      statusPembayaran: finalStatus,
       items: processed,
       totalHarga,
       totalBersih,
