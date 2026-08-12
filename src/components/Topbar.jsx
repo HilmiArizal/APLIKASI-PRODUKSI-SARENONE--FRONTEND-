@@ -75,9 +75,11 @@ export default function Topbar({ activeUser, activeRoleView, onChangeRoleView, a
           </div>
         )}
 
-        <button className="btn btn-outline btn-icon" title="Ubah Kata Sandi Akun" onClick={onOpenChangePassword}>
-          <KeyRound size={16} style={{ color: 'var(--amber)' }} /> <span className="btn-text-hide-mobile">Ubah Password</span>
-        </button>
+        {activeRoleView !== 'SALES' && (
+          <button className="btn btn-outline btn-icon" title="Ubah Kata Sandi Akun" onClick={onOpenChangePassword}>
+            <KeyRound size={16} style={{ color: 'var(--amber)' }} /> <span className="btn-text-hide-mobile">Ubah Password</span>
+          </button>
+        )}
       </div>
     </header>
   );
