@@ -9,6 +9,43 @@ export default function AbsensiTab({ activeUser, absensiList, onRefresh }) {
   const [selectedItem, setSelectedItem] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState('list'); // 'list' | 'rekap'
+  const [geoNames, setGeoNames] = useState({});
+
+  React.useEffect(() => {
+    (absensiList || []).forEach(item => {
+      if (!item.lokasiNama && item.latitude && item.longitude && !geoNames[item.id]) {
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${item.latitude}&lon=${item.longitude}&zoom=16`, {
+          headers: { 'User-Agent': 'SarenOneApp/1.0' }
+        })
+          .then(r => r.json())
+          .then(data => {
+            if (data?.address) {
+              const a = data.address;
+              const parts = [
+                a.amenity || a.building || a.shop || a.road || a.pedestrian,
+                a.suburb || a.village || a.quarter || a.neighbourhood || a.city_district,
+                a.city || a.regency || a.town || a.county
+              ].filter(Boolean);
+              const locStr = parts.join(', ') || data.display_name?.split(',').slice(0, 3).join(',');
+              if (locStr) {
+                setGeoNames(prev => ({ ...prev, [item.id]: locStr }));
+              }
+            }
+          })
+          .catch(() => {});
+      }
+    });
+  }, [absensiList]);
+
+  const getLocName = (item) => {
+    if (!item) return '';
+    if (item.lokasiNama) return item.lokasiNama;
+    if (geoNames[item.id]) return geoNames[item.id];
+    if (item.latitude && item.longitude) {
+      return `${parseFloat(item.latitude).toFixed(4)}, ${parseFloat(item.longitude).toFixed(4)}`;
+    }
+    return '';
+  };
 
   const canDelete = activeUser?.role === 'ADMIN_PRODUK';
 
@@ -255,14 +292,14 @@ export default function AbsensiTab({ activeUser, absensiList, onRefresh }) {
                   </td>
                   <td style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{item.tanggal}</td>
                   <td>
-                    {item.lokasiNama || (item.latitude && item.longitude ? `${parseFloat(item.latitude).toFixed(4)}, ${parseFloat(item.longitude).toFixed(4)}` : '') ? (
+                    {getLocName(item) ? (
                       <button
                         className="btn btn-outline"
                         style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', textTransform: 'capitalize' }}
                         onClick={e => { e.stopPropagation(); openMaps(item.latitude, item.longitude); }}
                         title="Klik untuk buka lokasi di Maps"
                       >
-                        <MapPin size={12} style={{ flexShrink: 0 }} /> {item.lokasiNama || `${parseFloat(item.latitude).toFixed(4)}, ${parseFloat(item.longitude).toFixed(4)}`}
+                        <MapPin size={12} style={{ flexShrink: 0 }} /> {getLocName(item)}
                       </button>
                     ) : (
                       <span className="text-muted" style={{ fontSize: '0.8rem' }}>Tidak ada GPS</span>
@@ -401,13 +438,13 @@ export default function AbsensiTab({ activeUser, absensiList, onRefresh }) {
                     <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{selectedItem.tanggal}</div>
                   </div>
                 </div>
-                {(selectedItem.lokasiNama || (selectedItem.latitude && selectedItem.longitude)) && (
+                {getLocName(selectedItem) && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', background: 'var(--bg-card)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}>
                     <MapPin size={16} style={{ color: '#10b981', flexShrink: 0 }} />
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Lokasi Absensi</div>
                       <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>
-                        {selectedItem.lokasiNama || `${parseFloat(selectedItem.latitude).toFixed(6)}, ${parseFloat(selectedItem.longitude).toFixed(6)}`}
+                        {getLocName(selectedItem)}
                       </div>
                     </div>
                     {selectedItem.latitude && selectedItem.longitude && (
