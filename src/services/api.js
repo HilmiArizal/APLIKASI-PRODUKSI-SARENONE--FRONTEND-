@@ -531,4 +531,23 @@ export async function deletePembayaranMasukApi(id, activeUser) {
   });
 }
 
+// 17. ABSENSI SPG / SALES
+export async function getAbsensiApi(params = {}) {
+  const query = new URLSearchParams(params).toString();
+  return request(`/absensi${query ? '?' + query : ''}`);
+}
+
+export async function deleteAbsensiApi(id) {
+  return request(`/absensi/${id}`, {
+    method: 'DELETE'
+  });
+}
+
+export async function clearAllAbsensiApi() {
+  return request('/absensi/all', {
+    method: 'DELETE'
+  });
+}
+
+
 

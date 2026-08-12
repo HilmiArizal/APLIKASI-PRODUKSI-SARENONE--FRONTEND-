@@ -1,10 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { ClipboardCheck, Clock, MapPin, User, Camera, CheckCircle, XCircle, AlertCircle, RefreshCw, Download, Search, Filter, X, ChevronDown, ChevronUp } from 'lucide-react';
-
-const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+import { ClipboardCheck, Clock, MapPin, User, Camera, CheckCircle, XCircle, AlertCircle, RefreshCw, Download, Search, Filter, X, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
+import { deleteAbsensiApi, clearAllAbsensiApi } from '../services/api';
 
 export default function AbsensiTab({ activeUser, absensiList, onRefresh }) {
-  const [filterTanggal, setFilterTanggal] = useState(() => new Date().toISOString().substring(0, 10));
+  const [filterTanggal, setFilterTanggal] = useState(''); // Empty string = show ALL dates by default
   const [filterName, setFilterName] = useState('');
   const [filterType, setFilterType] = useState('');
   const [selectedItem, setSelectedItem] = useState(null);
@@ -52,8 +51,12 @@ export default function AbsensiTab({ activeUser, absensiList, onRefresh }) {
   const handleDelete = async (id) => {
     if (!window.confirm('Hapus data absensi ini?')) return;
     try {
-      await fetch(`${API}/api/absensi/${id}`, { method: 'DELETE' });
-      if (onRefresh) await onRefresh();
+      const res = await deleteAbsensiApi(id);
+      if (res?.success) {
+        if (onRefresh) await onRefresh();
+      } else {
+        alert(res?.message || 'Gagal menghapus absensi');
+      }
     } catch (e) {
       alert('Gagal menghapus: ' + e.message);
     }

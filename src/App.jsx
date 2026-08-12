@@ -131,7 +131,10 @@ import {
   bulkCreatePelangganApi,
   getPembayaranMasukApi,
   createPembayaranMasukApi,
-  deletePembayaranMasukApi
+  deletePembayaranMasukApi,
+  getAbsensiApi,
+  deleteAbsensiApi,
+  clearAllAbsensiApi
 } from './services/api';
 
 const STORAGE_KEYS = {
@@ -321,20 +324,15 @@ export default function App() {
 
       // Fetch domain produk data
       try {
-        const [pjRes, mktRes, psRes, brRes, kpsRes, pelRes, pmRes] = await Promise.all([
-          getPenjualanApi(), getMarketingApi(), getProdukSalesApi(), getBrandProdukApi(), getKategoriProdukSalesApi(), getPelangganApi(), getPembayaranMasukApi()
+        const [pjRes, mktRes, psRes, brRes, kpsRes, pelRes, pmRes, absRes] = await Promise.all([
+          getPenjualanApi(), getMarketingApi(), getProdukSalesApi(), getBrandProdukApi(), getKategoriProdukSalesApi(), getPelangganApi(), getPembayaranMasukApi(), getAbsensiApi()
         ]);
         if (pjRes?.success) setPenjualanList(pjRes.data || []);
         if (mktRes?.success) setMarketingList(mktRes.data || []);
         if (psRes?.success) setProdukSalesList(psRes.data || []);
         if (pelRes?.success) setPelangganList(pelRes.data || []);
         if (pmRes?.success) setPembayaranMasukList(pmRes.data || []);
-
-        // Fetch absensi SPG/Sales
-        try {
-          const absRes = await fetch(`${API_URL}/api/absensi`).then(r => r.json());
-          if (absRes?.success) setAbsensiList(absRes.data || []);
-        } catch (e) { /* ignore */ }
+        if (absRes?.success) setAbsensiList(absRes.data || []);
         if (brRes?.success && (brRes.data || []).length > 0) {
           const cleanedBr = (brRes.data || []).filter(b => !['Saren Bakery', 'Saren Frozen', 'Dapur Saren', 'Saren One Original'].includes(b.nama));
           if (cleanedBr.length > 0) setBrandList(cleanedBr);
