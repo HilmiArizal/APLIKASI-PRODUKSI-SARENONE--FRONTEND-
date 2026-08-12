@@ -171,7 +171,7 @@ export default function App() {
       const saved = localStorage.getItem(STORAGE_KEYS.ACTIVE_TAB);
       if (saved && saved !== 'null' && saved !== 'undefined') return saved;
     } catch { /* ignore */ }
-    return (['ADMIN_PRODUK', 'TIM_PENJUALAN', 'TIM_MARKETING', 'SALES'].includes(activeUser?.role)) ? 'dashboard-produk' : 'dashboard';
+    return (['ADMIN_PRODUK', 'TIM_PENJUALAN', 'TIM_MARKETING'].includes(activeUser?.role)) ? 'dashboard-produk' : (activeUser?.role === 'SALES' ? 'absensi-spg' : 'dashboard');
   });
 
   useEffect(() => {
@@ -431,9 +431,9 @@ export default function App() {
         setActiveTab('dashboard-produk');
       }
     } else if (activeRoleView === 'SALES') {
-      const allowed = ['dashboard-produk', 'katalog-produk', 'stok-produk', 'pelanggan', 'piutang-pelanggan', 'pembayaran-masuk', 'kategori-produk-sales', 'penjualan', 'absensi-spg'];
+      const allowed = ['absensi-spg'];
       if (!allowed.includes(activeTab)) {
-        setActiveTab('dashboard-produk');
+        setActiveTab('absensi-spg');
       }
     }
   }, [activeRoleView, activeTab]);

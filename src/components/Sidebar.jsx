@@ -26,8 +26,8 @@ export default function Sidebar({ activeUser, activeRoleView, activeTab, onSwitc
   const showAudit = !isProdukDomain && activeRoleView === 'ADMIN';
 
   // Domain Produk
-  const showKatalogProduk = isProdukDomain;
-  const showPenjualan = isProdukDomain && ['ADMIN_PRODUK', 'TIM_PENJUALAN', 'SALES'].includes(activeRoleView);
+  const showKatalogProduk = isProdukDomain && ['ADMIN_PRODUK', 'TIM_PENJUALAN'].includes(activeRoleView);
+  const showPenjualan = isProdukDomain && ['ADMIN_PRODUK', 'TIM_PENJUALAN'].includes(activeRoleView);
   const showMarketing = isProdukDomain && ['ADMIN_PRODUK', 'TIM_MARKETING'].includes(activeRoleView);
   const showUserApprovalProduk = isProdukDomain && activeRoleView === 'ADMIN_PRODUK';
   const showAuditProduk = isProdukDomain && activeRoleView === 'ADMIN_PRODUK';
@@ -137,9 +137,11 @@ export default function Sidebar({ activeUser, activeRoleView, activeTab, onSwitc
           {/* ===== DOMAIN PRODUK ===== */}
           {isProdukDomain && (
             <>
-              <a href="#dashboard-produk" className={mi('dashboard-produk')} onClick={e => { e.preventDefault(); nav('dashboard-produk'); }}>
-                <LayoutDashboard size={18} /><span>Dashboard Produk</span>
-              </a>
+              {['ADMIN_PRODUK', 'TIM_PENJUALAN', 'TIM_MARKETING'].includes(activeRoleView) && (
+                <a href="#dashboard-produk" className={mi('dashboard-produk')} onClick={e => { e.preventDefault(); nav('dashboard-produk'); }}>
+                  <LayoutDashboard size={18} /><span>Dashboard Produk</span>
+                </a>
+              )}
 
               {showKatalogProduk && (
                 <>
