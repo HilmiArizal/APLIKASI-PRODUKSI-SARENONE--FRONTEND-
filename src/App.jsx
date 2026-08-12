@@ -26,6 +26,7 @@ import KategoriSalesBrandTab from './components/KategoriSalesBrandTab';
 import PelangganTab from './components/PelangganTab';
 import PiutangPelangganTab from './components/PiutangPelangganTab';
 import PembayaranMasukTab from './components/PembayaranMasukTab';
+import AbsensiTab from './components/AbsensiTab';
 
 import {
   ModalBahan,
@@ -194,6 +195,7 @@ export default function App() {
   const [penjualanList, setPenjualanList] = useState([]);
   const [pelangganList, setPelangganList] = useState(() => safeGetStorage(STORAGE_KEYS.PELANGGAN, []));
   const [pembayaranMasukList, setPembayaranMasukList] = useState([]);
+  const [absensiList, setAbsensiList] = useState([]);
   const [marketingList, setMarketingList] = useState([]);
   const [produkSalesList, setProdukSalesList] = useState([]);
   const [brandList, setBrandList] = useState([
@@ -327,6 +329,12 @@ export default function App() {
         if (psRes?.success) setProdukSalesList(psRes.data || []);
         if (pelRes?.success) setPelangganList(pelRes.data || []);
         if (pmRes?.success) setPembayaranMasukList(pmRes.data || []);
+
+        // Fetch absensi SPG/Sales
+        try {
+          const absRes = await fetch(`${API_URL}/api/absensi`).then(r => r.json());
+          if (absRes?.success) setAbsensiList(absRes.data || []);
+        } catch (e) { /* ignore */ }
         if (brRes?.success && (brRes.data || []).length > 0) {
           const cleanedBr = (brRes.data || []).filter(b => !['Saren Bakery', 'Saren Frozen', 'Dapur Saren', 'Saren One Original'].includes(b.nama));
           if (cleanedBr.length > 0) setBrandList(cleanedBr);
@@ -410,7 +418,7 @@ export default function App() {
         setActiveTab('bahan-baku');
       }
     } else if (activeRoleView === 'ADMIN_PRODUK') {
-      const allowed = ['dashboard-produk', 'katalog-produk', 'stok-produk', 'pelanggan', 'piutang-pelanggan', 'pembayaran-masuk', 'kategori-produk-sales', 'penjualan', 'marketing', 'user-approval-produk', 'audit-log-produk'];
+      const allowed = ['dashboard-produk', 'katalog-produk', 'stok-produk', 'pelanggan', 'piutang-pelanggan', 'pembayaran-masuk', 'kategori-produk-sales', 'penjualan', 'marketing', 'user-approval-produk', 'audit-log-produk', 'absensi-spg'];
       if (!allowed.includes(activeTab)) {
         setActiveTab('dashboard-produk');
       }
@@ -420,7 +428,7 @@ export default function App() {
         setActiveTab('dashboard-produk');
       }
     } else if (activeRoleView === 'TIM_MARKETING') {
-      const allowed = ['dashboard-produk', 'katalog-produk', 'stok-produk', 'pelanggan', 'piutang-pelanggan', 'pembayaran-masuk', 'kategori-produk-sales', 'marketing'];
+      const allowed = ['dashboard-produk', 'katalog-produk', 'stok-produk', 'pelanggan', 'piutang-pelanggan', 'pembayaran-masuk', 'kategori-produk-sales', 'marketing', 'absensi-spg'];
       if (!allowed.includes(activeTab)) {
         setActiveTab('dashboard-produk');
       }
@@ -1903,6 +1911,14 @@ export default function App() {
               onOpenPdfPreview={handleOpenPdfPreview}
               onDeleteLog={handleDeleteAuditLog}
               onClearAllLogs={handleClearAllAuditLogs}
+            />
+          )}
+
+          {activeTab === 'absensi-spg' && (
+            <AbsensiTab
+              activeUser={activeUser}
+              absensiList={absensiList}
+              onRefresh={fetchAllDataFromBackend}
             />
           )}
         </main>

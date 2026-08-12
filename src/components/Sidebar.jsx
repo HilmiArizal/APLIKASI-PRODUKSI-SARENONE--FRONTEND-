@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Boxes, Package, BookOpen, ChefHat, History, UserCheck, LogOut, X, Layers, Tag, Users, FlaskConical, CreditCard, PackageCheck, Building2, ShoppingCart, Megaphone, TrendingUp, ArrowDownLeft } from 'lucide-react';
+import { LayoutDashboard, Boxes, Package, BookOpen, ChefHat, History, UserCheck, LogOut, X, Layers, Tag, Users, FlaskConical, CreditCard, PackageCheck, Building2, ShoppingCart, Megaphone, TrendingUp, ArrowDownLeft, ClipboardCheck } from 'lucide-react';
 import logoImg from '../assets/logo.png';
 
 export default function Sidebar({ activeUser, activeRoleView, activeTab, onSwitchTab, onLogout, lowStockCount, pendingUserCount, isMobileOpen, onCloseMobile }) {
@@ -184,6 +184,13 @@ export default function Sidebar({ activeUser, activeRoleView, activeTab, onSwitc
               {showAuditProduk && (
                 <a href="#audit-log-produk" className={mi('audit-log-produk')} onClick={e => { e.preventDefault(); nav('audit-log-produk'); }}>
                   <History size={18} /><span>Jurnal Aktivitas</span>
+                </a>
+              )}
+
+              {/* Absensi SPG/Sales — ADMIN_PRODUK & TIM_MARKETING */}
+              {(activeRoleView === 'ADMIN_PRODUK' || activeRoleView === 'TIM_MARKETING') && (
+                <a href="#absensi-spg" className={mi('absensi-spg')} onClick={e => { e.preventDefault(); nav('absensi-spg'); }}>
+                  <ClipboardCheck size={18} /><span>Absensi SPG / Sales</span>
                 </a>
               )}
             </>

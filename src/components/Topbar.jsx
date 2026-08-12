@@ -28,6 +28,7 @@ export default function Topbar({ activeUser, activeRoleView, onChangeRoleView, a
     'supplier': { title: 'Master Data Supplier & Vendor', sub: 'Kelola daftar perusahaan pemasok bahan baku, kemasan, dan bumbu (Khusus Super Admin).' },
     'emulsi': { title: 'Pengolahan Emulsi', sub: 'Proses pembuatan emulsi dari bahan baku yang tersedia' },
     'pemakaian-kemasan': { title: 'Pemakaian Kemasan', sub: 'Pemakaian kemasan berdasarkan hasil produksi sesuai ukuran kemasan' },
+    'absensi-spg': { title: 'Absensi SPG & Sales', sub: 'Pantau data check in & check out tim lapangan secara real-time dari aplikasi mobile PresensiKu.' },
   };
 
   const current = titles[activeTab] || titles['dashboard'];
