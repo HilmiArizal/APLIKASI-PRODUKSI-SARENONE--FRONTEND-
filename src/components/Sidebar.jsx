@@ -16,13 +16,13 @@ export default function Sidebar({ activeUser, activeRoleView, activeTab, onSwitc
     return role;
   };
 
-  const isProdukDomain = ['ADMIN_PRODUK', 'TIM_PENJUALAN', 'TIM_MARKETING', 'SALES'].includes(activeRoleView);
+  const isProdukDomain = ['ADMIN_PRODUK', 'TIM_PENJUALAN', 'TIM_MARKETING'].includes(activeRoleView);
 
   // Domain Bahan Baku
-  const showBahan = !isProdukDomain && ['ADMIN', 'BAHAN_BAKU', 'PEMBELIAN'].includes(activeRoleView);
-  const showEmulsi = !isProdukDomain && ['ADMIN', 'BAHAN_BAKU'].includes(activeRoleView);
-  const showPembelian = !isProdukDomain && ['ADMIN', 'PEMBELIAN'].includes(activeRoleView);
-  const showProdukMenu = !isProdukDomain && ['ADMIN', 'BAHAN_BAKU'].includes(activeRoleView);
+  const showBahan = !isProdukDomain && activeRoleView !== 'SALES' && ['ADMIN', 'BAHAN_BAKU', 'PEMBELIAN'].includes(activeRoleView);
+  const showEmulsi = !isProdukDomain && activeRoleView !== 'SALES' && ['ADMIN', 'BAHAN_BAKU'].includes(activeRoleView);
+  const showPembelian = !isProdukDomain && activeRoleView !== 'SALES' && ['ADMIN', 'PEMBELIAN'].includes(activeRoleView);
+  const showProdukMenu = !isProdukDomain && activeRoleView !== 'SALES' && ['ADMIN', 'BAHAN_BAKU'].includes(activeRoleView);
   const showAudit = !isProdukDomain && activeRoleView === 'ADMIN';
 
   // Domain Produk
@@ -190,13 +190,19 @@ export default function Sidebar({ activeUser, activeRoleView, activeTab, onSwitc
                 </a>
               )}
 
-              {/* Absensi SPG/Sales — ADMIN_PRODUK, TIM_MARKETING, & SALES */}
-              {['ADMIN_PRODUK', 'TIM_MARKETING', 'SALES'].includes(activeRoleView) && (
+              {/* Absensi SPG/Sales — ADMIN_PRODUK & TIM_MARKETING */}
+              {['ADMIN_PRODUK', 'TIM_MARKETING'].includes(activeRoleView) && (
                 <a href="#absensi-spg" className={mi('absensi-spg')} onClick={e => { e.preventDefault(); nav('absensi-spg'); }}>
                   <ClipboardCheck size={18} /><span>Absensi SPG / Sales</span>
                 </a>
               )}
             </>
+          )}
+
+          {activeRoleView === 'SALES' && (
+            <div style={{ padding: '1.25rem 1rem', fontSize: '0.82rem', color: 'var(--text-muted)', textAlign: 'center', background: 'rgba(59,130,246,0.08)', borderRadius: 12, margin: '1rem 0', border: '1px solid rgba(59,130,246,0.2)', lineHeight: '1.5' }}>
+              📱 Akun <strong>Sales / SPG</strong> hanya dapat diakses melalui aplikasi mobile <strong>PresensiKu</strong>.
+            </div>
           )}
         </nav>
 

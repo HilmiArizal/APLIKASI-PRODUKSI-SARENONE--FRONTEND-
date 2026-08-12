@@ -27,6 +27,7 @@ import PelangganTab from './components/PelangganTab';
 import PiutangPelangganTab from './components/PiutangPelangganTab';
 import PembayaranMasukTab from './components/PembayaranMasukTab';
 import AbsensiTab from './components/AbsensiTab';
+import { Smartphone } from 'lucide-react';
 
 import {
   ModalBahan,
@@ -1595,7 +1596,29 @@ export default function App() {
         />
 
         <main className="content-body">
-          {activeTab === 'dashboard' && (
+          {activeRoleView === 'SALES' ? (
+            <div className="tab-pane active" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '65vh', padding: '2rem' }}>
+              <div className="card" style={{ maxWidth: '480px', width: '100%', padding: '2.5rem 2rem', textAlign: 'center', borderRadius: '16px', border: '1px solid var(--border-color)', boxShadow: '0 10px 30px rgba(0,0,0,0.3)', background: 'var(--bg-card)' }}>
+                <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'rgba(59, 130, 246, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem', border: '2px solid rgba(59, 130, 246, 0.3)' }}>
+                  <Smartphone size={36} style={{ color: 'var(--primary)' }} />
+                </div>
+                <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#fff', marginBottom: '0.5rem' }}>
+                  Akses Khusus Mobile App
+                </h3>
+                <p style={{ fontSize: '0.92rem', color: 'var(--text-muted)', lineHeight: '1.6', marginBottom: '1.5rem' }}>
+                  Akun <strong>Sales / SPG</strong> hanya dapat diakses melalui aplikasi mobile <strong>PresensiKu</strong> untuk presensi &amp; geotagging lokasi.
+                </p>
+                <div style={{ padding: '0.85rem 1rem', background: 'var(--bg-secondary)', borderRadius: '10px', fontSize: '0.82rem', color: 'var(--text-muted)', border: '1px solid var(--border-color)', marginBottom: '1.5rem' }}>
+                  📱 Silakan gunakan aplikasi <strong>PresensiKu</strong> di smartphone Anda.
+                </div>
+                <button className="btn btn-danger" style={{ margin: '0 auto', fontSize: '0.85rem' }} onClick={handleLogout}>
+                  Keluar Akun
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              {activeTab === 'dashboard' && (
             <DashboardTab
               bahanBaku={bahanBaku}
               produk={produk}
@@ -1923,6 +1946,8 @@ export default function App() {
               absensiList={absensiList}
               onRefresh={fetchAllDataFromBackend}
             />
+          )}
+            </>
           )}
         </main>
       </div>

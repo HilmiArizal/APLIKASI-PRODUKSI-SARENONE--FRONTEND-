@@ -303,7 +303,7 @@ export default function UserApprovalTab({ users, onApproveUser, onRejectUser, on
                       <option value="PEMBELIAN">🛒 Tim Pembelian (Bahan Baku)</option>
                       <option value="TIM_PENJUALAN">🛍️ Tim Penjualan (Produk)</option>
                       <option value="TIM_MARKETING">📣 Tim Marketing (Produk)</option>
-                      <option value="SALES">💼 Tim Sales (Produk & Absensi)</option>
+                      <option value="SALES">📱 Tim Sales / SPG (Khusus Mobile App)</option>
                       <option value="ADMIN">🔑 Super Admin Bahan Baku</option>
                       <option value="ADMIN_PRODUK">🔑 Super Admin Produk</option>
                     </select>
@@ -349,7 +349,7 @@ export default function UserApprovalTab({ users, onApproveUser, onRejectUser, on
                     <option value="PEMBELIAN">🛒 Tim Pembelian (Bahan Baku)</option>
                     <option value="TIM_PENJUALAN">🛍️ Tim Penjualan (Produk)</option>
                     <option value="TIM_MARKETING">📣 Tim Marketing (Produk)</option>
-                    <option value="SALES">💼 Tim Sales (Produk & Absensi)</option>
+                    <option value="SALES">📱 Tim Sales / SPG (Khusus Mobile App)</option>
                     <option value="ADMIN">🔑 Super Admin Bahan Baku</option>
                     <option value="ADMIN_PRODUK">🔑 Super Admin Produk</option>
                   </select>
