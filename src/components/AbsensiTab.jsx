@@ -118,27 +118,7 @@ export default function AbsensiTab({ activeUser, absensiList, onRefresh }) {
 
   return (
     <div className="tab-content">
-      {/* HEADER */}
-      <div className="section-header" style={{ marginBottom: '1.5rem' }}>
-        <div>
-          <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <ClipboardCheck size={20} style={{ color: 'var(--primary)' }} />
-            Absensi SPG / Sales
-          </h3>
-          <p className="text-muted" style={{ fontSize: '0.85rem', marginTop: '0.25rem' }}>
-            Pantau data check in & check out tim lapangan secara real-time dari app mobile PresensiKu.
-          </p>
-        </div>
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <button className="btn btn-outline" onClick={handleRefresh} disabled={isRefreshing}>
-            <RefreshCw size={15} style={{ animation: isRefreshing ? 'spin 1s linear infinite' : 'none' }} />
-            Refresh
-          </button>
-          <button className="btn btn-outline" onClick={handleExportCSV}>
-            <Download size={15} /> Export CSV
-          </button>
-        </div>
-      </div>
+
 
       {/* STAT CARDS — HARI INI */}
       <div className="stats-grid" style={{ marginBottom: '1.5rem' }}>
@@ -177,6 +157,28 @@ export default function AbsensiTab({ activeUser, absensiList, onRefresh }) {
             <div className="stat-value">{todayNames.length}</div>
             <div className="stat-label">Total SPG/Sales Hari Ini</div>
           </div>
+        </div>
+      </div>
+
+            {/* HEADER */}
+      <div className="section-header" style={{ marginBottom: '1.5rem' }}>
+        {/* <div>
+          <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <ClipboardCheck size={20} style={{ color: 'var(--primary)' }} />
+            Absensi SPG / Sales
+          </h3>
+          <p className="text-muted" style={{ fontSize: '0.85rem', marginTop: '0.25rem' }}>
+            Pantau data check in & check out tim lapangan secara real-time dari app mobile PresensiKu.
+          </p>
+        </div> */}
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <button className="btn btn-outline" onClick={handleRefresh} disabled={isRefreshing}>
+            <RefreshCw size={15} style={{ animation: isRefreshing ? 'spin 1s linear infinite' : 'none' }} />
+            Refresh
+          </button>
+          <button className="btn btn-outline" onClick={handleExportCSV}>
+            <Download size={15} /> Export CSV
+          </button>
         </div>
       </div>
 
