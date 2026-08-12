@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { ClipboardCheck, Clock, MapPin, User, Camera, CheckCircle, XCircle, AlertCircle, RefreshCw, Download, Search, Filter, X, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
+import { ClipboardCheck, Clock, MapPin, User, Camera, CheckCircle, XCircle, AlertCircle, RefreshCw, Download, Search, Filter, X, ChevronDown, ChevronUp, Trash2, FileText } from 'lucide-react';
 import { deleteAbsensiApi, clearAllAbsensiApi } from '../services/api';
 
 export default function AbsensiTab({ activeUser, absensiList, onRefresh }) {
@@ -101,9 +101,9 @@ export default function AbsensiTab({ activeUser, absensiList, onRefresh }) {
 
   const handleExportCSV = () => {
     if (!filtered.length) return alert('Tidak ada data untuk diexport.');
-    const header = 'Nama,Tipe,Waktu,Tanggal,Latitude,Longitude,FotoUrl';
+    const header = 'Nama,Tipe,Waktu,Tanggal,Lokasi,Keterangan,FotoUrl';
     const rows = filtered.map(d =>
-      `"${d.name}","${d.type}","${d.time}","${d.tanggal}","${d.latitude || ''}","${d.longitude || ''}","${d.photoUrl || ''}"`
+      `"${d.name}","${d.type}","${d.time}","${d.tanggal}","${(d.lokasiNama || '').replace(/"/g, '""')}","${(d.keterangan || '').replace(/"/g, '""')}","${d.photoUrl || ''}"`
     ).join('\n');
     const blob = new Blob([header + '\n' + rows], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -251,6 +251,7 @@ export default function AbsensiTab({ activeUser, absensiList, onRefresh }) {
                 <th>Waktu</th>
                 <th>Tanggal</th>
                 <th>Lokasi GPS</th>
+                <th>Keterangan</th>
                 <th>Foto</th>
                 {canDelete && <th>Aksi</th>}
               </tr>
@@ -258,7 +259,7 @@ export default function AbsensiTab({ activeUser, absensiList, onRefresh }) {
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={canDelete ? 7 : 6} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+                  <td colSpan={canDelete ? 8 : 7} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
                     <ClipboardCheck size={32} style={{ display: 'block', margin: '0 auto 0.5rem', opacity: 0.3 }} />
                     Belum ada data absensi untuk filter ini.
                   </td>
@@ -304,6 +305,11 @@ export default function AbsensiTab({ activeUser, absensiList, onRefresh }) {
                     ) : (
                       <span className="text-muted" style={{ fontSize: '0.8rem' }}>Tidak ada GPS</span>
                     )}
+                  </td>
+                  <td>
+                    <span style={{ fontSize: '0.83rem', color: item.keterangan ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                      {item.keterangan || '-'}
+                    </span>
                   </td>
                   <td>
                     {item.photoUrl ? (
@@ -453,6 +459,15 @@ export default function AbsensiTab({ activeUser, absensiList, onRefresh }) {
                         Buka Maps
                       </button>
                     )}
+                  </div>
+                )}
+                {selectedItem.keterangan && (
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.75rem', background: 'var(--bg-card)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}>
+                    <FileText size={16} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 2 }} />
+                    <div>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Keterangan / Catatan</div>
+                      <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>{selectedItem.keterangan}</div>
+                    </div>
                   </div>
                 )}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', background: selectedItem.type === 'Check-In' ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)', borderRadius: 'var(--radius-sm)', border: `1px solid ${selectedItem.type === 'Check-In' ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}` }}>
