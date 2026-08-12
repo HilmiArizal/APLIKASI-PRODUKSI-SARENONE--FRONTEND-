@@ -255,13 +255,14 @@ export default function AbsensiTab({ activeUser, absensiList, onRefresh }) {
                   </td>
                   <td style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{item.tanggal}</td>
                   <td>
-                    {item.latitude && item.longitude ? (
+                    {item.lokasiNama || (item.latitude && item.longitude ? `${parseFloat(item.latitude).toFixed(4)}, ${parseFloat(item.longitude).toFixed(4)}` : '') ? (
                       <button
                         className="btn btn-outline"
-                        style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem' }}
+                        style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', textTransform: 'capitalize' }}
                         onClick={e => { e.stopPropagation(); openMaps(item.latitude, item.longitude); }}
+                        title="Klik untuk buka lokasi di Maps"
                       >
-                        <MapPin size={12} /> {parseFloat(item.latitude).toFixed(4)}, {parseFloat(item.longitude).toFixed(4)}
+                        <MapPin size={12} style={{ flexShrink: 0 }} /> {item.lokasiNama || `${parseFloat(item.latitude).toFixed(4)}, ${parseFloat(item.longitude).toFixed(4)}`}
                       </button>
                     ) : (
                       <span className="text-muted" style={{ fontSize: '0.8rem' }}>Tidak ada GPS</span>
@@ -400,19 +401,21 @@ export default function AbsensiTab({ activeUser, absensiList, onRefresh }) {
                     <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{selectedItem.tanggal}</div>
                   </div>
                 </div>
-                {selectedItem.latitude && selectedItem.longitude && (
+                {(selectedItem.lokasiNama || (selectedItem.latitude && selectedItem.longitude)) && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', background: 'var(--bg-card)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}>
                     <MapPin size={16} style={{ color: '#10b981', flexShrink: 0 }} />
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Lokasi GPS</div>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Lokasi Absensi</div>
                       <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>
-                        {parseFloat(selectedItem.latitude).toFixed(6)}, {parseFloat(selectedItem.longitude).toFixed(6)}
+                        {selectedItem.lokasiNama || `${parseFloat(selectedItem.latitude).toFixed(6)}, ${parseFloat(selectedItem.longitude).toFixed(6)}`}
                       </div>
                     </div>
-                    <button className="btn btn-outline" style={{ fontSize: '0.78rem' }}
-                      onClick={() => openMaps(selectedItem.latitude, selectedItem.longitude)}>
-                      Buka Maps
-                    </button>
+                    {selectedItem.latitude && selectedItem.longitude && (
+                      <button className="btn btn-outline" style={{ fontSize: '0.78rem' }}
+                        onClick={() => openMaps(selectedItem.latitude, selectedItem.longitude)}>
+                        Buka Maps
+                      </button>
+                    )}
                   </div>
                 )}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', background: selectedItem.type === 'Check-In' ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)', borderRadius: 'var(--radius-sm)', border: `1px solid ${selectedItem.type === 'Check-In' ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}` }}>
