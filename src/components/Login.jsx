@@ -340,6 +340,7 @@ export default function Login({ onLogin, onRegister, showAlert }) {
               >
                 <option value="TIM_PENJUALAN">🛍️ Tim Penjualan (Domain Produk)</option>
                 <option value="TIM_MARKETING">📣 Tim Marketing (Domain Produk)</option>
+                <option value="SALES">💼 Tim Sales / SPG (Domain Produk)</option>
                 <option value="BAHAN_BAKU">🏭 Tim Produksi (Domain Bahan Baku)</option>
                 <option value="PEMBELIAN">🛒 Tim Pembelian (Domain Bahan Baku)</option>
               </select>

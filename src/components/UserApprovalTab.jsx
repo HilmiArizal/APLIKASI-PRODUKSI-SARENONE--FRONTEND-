@@ -45,13 +45,14 @@ export default function UserApprovalTab({ users, onApproveUser, onRejectUser, on
     if (role === 'PEMBELIAN') return 'Tim Pembelian';
     if (role === 'TIM_PENJUALAN') return 'Tim Penjualan';
     if (role === 'TIM_MARKETING') return 'Tim Marketing';
+    if (role === 'SALES') return 'Tim Sales';
     if (role === 'PENDING') return 'Menunggu ACC';
     return role;
   };
 
   const getRoleBadgeClass = (role) => {
     if (role === 'ADMIN' || role === 'ADMIN_PRODUK') return 'badge-amber';
-    if (role === 'PEMBELIAN' || role === 'TIM_PENJUALAN') return 'badge-emerald';
+    if (role === 'PEMBELIAN' || role === 'TIM_PENJUALAN' || role === 'SALES') return 'badge-emerald';
     if (role === 'TIM_MARKETING') return 'badge-indigo';
     return 'badge-cyan';
   };
@@ -302,6 +303,7 @@ export default function UserApprovalTab({ users, onApproveUser, onRejectUser, on
                       <option value="PEMBELIAN">🛒 Tim Pembelian (Bahan Baku)</option>
                       <option value="TIM_PENJUALAN">🛍️ Tim Penjualan (Produk)</option>
                       <option value="TIM_MARKETING">📣 Tim Marketing (Produk)</option>
+                      <option value="SALES">💼 Tim Sales (Produk & Absensi)</option>
                       <option value="ADMIN">🔑 Super Admin Bahan Baku</option>
                       <option value="ADMIN_PRODUK">🔑 Super Admin Produk</option>
                     </select>
@@ -347,6 +349,7 @@ export default function UserApprovalTab({ users, onApproveUser, onRejectUser, on
                     <option value="PEMBELIAN">🛒 Tim Pembelian (Bahan Baku)</option>
                     <option value="TIM_PENJUALAN">🛍️ Tim Penjualan (Produk)</option>
                     <option value="TIM_MARKETING">📣 Tim Marketing (Produk)</option>
+                    <option value="SALES">💼 Tim Sales (Produk & Absensi)</option>
                     <option value="ADMIN">🔑 Super Admin Bahan Baku</option>
                     <option value="ADMIN_PRODUK">🔑 Super Admin Produk</option>
                   </select>

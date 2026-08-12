@@ -20,8 +20,10 @@ export default function AuditLogTab({ auditLog, activeRoleView, onOpenPdfPreview
   });
 
   const getRoleBadge = (role) => {
-    if (role === 'ADMIN') return <span className="badge badge-amber">Super Admin</span>;
+    if (role === 'ADMIN' || role === 'ADMIN_PRODUK') return <span className="badge badge-amber">Super Admin</span>;
     if (role === 'BAHAN_BAKU') return <span className="badge badge-cyan">Tim Bahan Baku</span>;
+    if (role === 'TIM_PENJUALAN' || role === 'SALES') return <span className="badge badge-emerald">Tim Sales</span>;
+    if (role === 'TIM_MARKETING') return <span className="badge badge-indigo">Tim Marketing</span>;
     return <span className="badge badge-indigo">{role}</span>;
   };
 

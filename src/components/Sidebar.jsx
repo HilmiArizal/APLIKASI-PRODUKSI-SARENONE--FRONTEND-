@@ -11,11 +11,12 @@ export default function Sidebar({ activeUser, activeRoleView, activeTab, onSwitc
     if (role === 'PEMBELIAN') return 'Tim Pembelian';
     if (role === 'TIM_PENJUALAN') return 'Tim Penjualan';
     if (role === 'TIM_MARKETING') return 'Tim Marketing';
+    if (role === 'SALES') return 'Tim Sales';
     if (role === 'PENDING') return 'Menunggu Approval';
     return role;
   };
 
-  const isProdukDomain = ['ADMIN_PRODUK', 'TIM_PENJUALAN', 'TIM_MARKETING'].includes(activeRoleView);
+  const isProdukDomain = ['ADMIN_PRODUK', 'TIM_PENJUALAN', 'TIM_MARKETING', 'SALES'].includes(activeRoleView);
 
   // Domain Bahan Baku
   const showBahan = !isProdukDomain && ['ADMIN', 'BAHAN_BAKU', 'PEMBELIAN'].includes(activeRoleView);
@@ -26,7 +27,7 @@ export default function Sidebar({ activeUser, activeRoleView, activeTab, onSwitc
 
   // Domain Produk
   const showKatalogProduk = isProdukDomain;
-  const showPenjualan = isProdukDomain && ['ADMIN_PRODUK', 'TIM_PENJUALAN'].includes(activeRoleView);
+  const showPenjualan = isProdukDomain && ['ADMIN_PRODUK', 'TIM_PENJUALAN', 'SALES'].includes(activeRoleView);
   const showMarketing = isProdukDomain && ['ADMIN_PRODUK', 'TIM_MARKETING'].includes(activeRoleView);
   const showUserApprovalProduk = isProdukDomain && activeRoleView === 'ADMIN_PRODUK';
   const showAuditProduk = isProdukDomain && activeRoleView === 'ADMIN_PRODUK';
@@ -187,8 +188,8 @@ export default function Sidebar({ activeUser, activeRoleView, activeTab, onSwitc
                 </a>
               )}
 
-              {/* Absensi SPG/Sales — ADMIN_PRODUK & TIM_MARKETING */}
-              {(activeRoleView === 'ADMIN_PRODUK' || activeRoleView === 'TIM_MARKETING') && (
+              {/* Absensi SPG/Sales — ADMIN_PRODUK, TIM_MARKETING, & SALES */}
+              {['ADMIN_PRODUK', 'TIM_MARKETING', 'SALES'].includes(activeRoleView) && (
                 <a href="#absensi-spg" className={mi('absensi-spg')} onClick={e => { e.preventDefault(); nav('absensi-spg'); }}>
                   <ClipboardCheck size={18} /><span>Absensi SPG / Sales</span>
                 </a>

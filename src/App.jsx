@@ -430,6 +430,11 @@ export default function App() {
       if (!allowed.includes(activeTab)) {
         setActiveTab('dashboard-produk');
       }
+    } else if (activeRoleView === 'SALES') {
+      const allowed = ['dashboard-produk', 'katalog-produk', 'stok-produk', 'pelanggan', 'piutang-pelanggan', 'pembayaran-masuk', 'kategori-produk-sales', 'penjualan', 'absensi-spg'];
+      if (!allowed.includes(activeTab)) {
+        setActiveTab('dashboard-produk');
+      }
     }
   }, [activeRoleView, activeTab]);
 
@@ -1898,13 +1903,13 @@ export default function App() {
               onSaveUser={handleSaveUser}
               onResetUserPassword={handleResetUserPassword}
               showAlert={showAlert}
-              domainRoles={['BAHAN_BAKU', 'PEMBELIAN', 'TIM_PENJUALAN', 'TIM_MARKETING']}
+              domainRoles={['BAHAN_BAKU', 'PEMBELIAN', 'TIM_PENJUALAN', 'TIM_MARKETING', 'SALES']}
             />
           )}
 
           {activeTab === 'audit-log-produk' && (
             <AuditLogTab
-              auditLog={auditLog.filter(l => ['TIM_PENJUALAN', 'TIM_MARKETING', 'ADMIN_PRODUK'].includes(l.role))}
+              auditLog={auditLog.filter(l => ['TIM_PENJUALAN', 'TIM_MARKETING', 'SALES', 'ADMIN_PRODUK'].includes(l.role))}
               activeRoleView={activeRoleView}
               onOpenPdfPreview={handleOpenPdfPreview}
               onDeleteLog={handleDeleteAuditLog}
