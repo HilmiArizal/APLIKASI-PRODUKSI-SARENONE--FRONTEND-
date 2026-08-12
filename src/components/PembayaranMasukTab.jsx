@@ -37,7 +37,7 @@ export default function PembayaranMasukTab({
     catatan: ''
   });
 
-  const canEdit = ['ADMIN_PRODUK', 'TIM_PENJUALAN'].includes(activeRoleView);
+  const canEdit = ['ADMIN_PRODUK', 'TIM_PENJUALAN', 'SALES'].includes(activeRoleView);
 
   const availableMonths = useMemo(() => {
     const monthsSet = new Set();

@@ -38,7 +38,7 @@ export default function KatalogProdukSalesTab({
   const [importedRows, setImportedRows] = useState([]);
   const [isImporting, setIsImporting] = useState(false);
 
-  const canEdit = ['ADMIN_PRODUK', 'TIM_PENJUALAN'].includes(activeRoleView);
+  const canEdit = ['ADMIN_PRODUK', 'TIM_PENJUALAN', 'SALES'].includes(activeRoleView);
 
   const safeBrandList = useMemo(() => {
     if (!Array.isArray(brandList)) return [];

@@ -19,7 +19,7 @@ export default function ProdukTab({
   const [kategoriFilter, setKategoriFilter] = useState('');
   const isSuperAdmin = (activeRoleView === 'ADMIN' || activeRoleView === 'ADMIN_PRODUK');
   const canEdit = (activeRoleView === 'ADMIN' || activeRoleView === 'BAHAN_BAKU' || activeRoleView === 'ADMIN_PRODUK' || activeRoleView === 'TIM_PENJUALAN');
-  const isProdukDomain = ['ADMIN_PRODUK', 'TIM_PENJUALAN', 'TIM_MARKETING'].includes(activeRoleView);
+  const isProdukDomain = ['ADMIN_PRODUK', 'TIM_PENJUALAN', 'TIM_MARKETING', 'SALES'].includes(activeRoleView);
 
   const filtered = produk
     .filter(p => {

@@ -20,7 +20,7 @@ export default function StokProdukSalesTab({
   const [adjustJumlah, setAdjustJumlah] = useState(0);
   const [adjustCatatan, setAdjustCatatan] = useState('');
 
-  const canEdit = ['ADMIN_PRODUK', 'TIM_PENJUALAN'].includes(activeRoleView);
+  const canEdit = ['ADMIN_PRODUK', 'TIM_PENJUALAN', 'SALES'].includes(activeRoleView);
 
   const safeBrandList = useMemo(() => {
     if (!Array.isArray(brandList)) return [];

@@ -31,7 +31,7 @@ export default function PenjualanTab({
   const [showDetail, setShowDetail] = useState(null);
   const [editData, setEditData] = useState(null);
 
-  const canEdit = ['ADMIN_PRODUK', 'TIM_PENJUALAN'].includes(activeRoleView);
+  const canEdit = ['ADMIN_PRODUK', 'TIM_PENJUALAN', 'SALES'].includes(activeRoleView);
 
   const availableMonths = useMemo(() => {
     const monthsSet = new Set();

@@ -171,7 +171,7 @@ export default function App() {
       const saved = localStorage.getItem(STORAGE_KEYS.ACTIVE_TAB);
       if (saved && saved !== 'null' && saved !== 'undefined') return saved;
     } catch { /* ignore */ }
-    return (activeUser?.role === 'ADMIN_PRODUK' || activeUser?.role === 'TIM_PENJUALAN') ? 'dashboard-produk' : 'dashboard';
+    return (['ADMIN_PRODUK', 'TIM_PENJUALAN', 'TIM_MARKETING', 'SALES'].includes(activeUser?.role)) ? 'dashboard-produk' : 'dashboard';
   });
 
   useEffect(() => {

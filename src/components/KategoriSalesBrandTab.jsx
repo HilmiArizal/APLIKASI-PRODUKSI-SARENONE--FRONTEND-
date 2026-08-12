@@ -15,7 +15,7 @@ export default function KategoriSalesBrandTab({
   const [editBrandData, setEditBrandData] = useState(null);
   const [brandForm, setBrandForm] = useState({ nama: '', deskripsi: '' });
 
-  const canEdit = ['ADMIN_PRODUK', 'TIM_PENJUALAN', 'TIM_MARKETING'].includes(activeRoleView);
+  const canEdit = ['ADMIN_PRODUK', 'TIM_PENJUALAN', 'TIM_MARKETING', 'SALES'].includes(activeRoleView);
 
   // Safe normalized brand list
   const safeBrandList = useMemo(() => {

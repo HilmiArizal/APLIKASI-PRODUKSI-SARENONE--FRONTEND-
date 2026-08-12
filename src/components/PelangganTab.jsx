@@ -46,7 +46,7 @@ export default function PelangganTab({
   const [importedRows, setImportedRows] = useState([]);
   const [isImporting, setIsImporting] = useState(false);
 
-  const canEdit = ['ADMIN_PRODUK', 'TIM_PENJUALAN', 'TIM_MARKETING'].includes(activeRoleView);
+  const canEdit = ['ADMIN_PRODUK', 'TIM_PENJUALAN', 'TIM_MARKETING', 'SALES'].includes(activeRoleView);
 
   const filtered = useMemo(() => {
     return (pelangganList || []).filter(p => {
