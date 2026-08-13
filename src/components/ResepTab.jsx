@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, BookOpen, Edit3, Upload, FileSpreadsheet } from 'lucide-react';
+import { Plus, Trash2, BookOpen, Edit3, Upload, FileSpreadsheet, Search } from 'lucide-react';
 import { formatNumber } from '../data/initialData';
 import { ModalImportResepExcel } from './Modals';
 
@@ -15,9 +15,16 @@ export default function ResepTab({
   showAlert
 }) {
   const [isImportExcelOpen, setIsImportExcelOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const sortedProduk = [...produk].sort((a, b) => (a.sku || '').localeCompare(b.sku || '', undefined, { numeric: true, sensitivity: 'base' }));
   const [selectedProdukId, setSelectedProdukId] = useState(sortedProduk[0]?.id || '');
   const canEdit = (activeRoleView === 'ADMIN' || activeRoleView === 'BAHAN_BAKU');
+
+  const filteredProduk = sortedProduk.filter(p => {
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) return true;
+    return (p.sku && p.sku.toLowerCase().includes(q)) || (p.nama && p.nama.toLowerCase().includes(q));
+  });
 
   const getRecipeForProduk = (p) => {
     if (!p || !resep) return [];
@@ -61,42 +68,62 @@ export default function ResepTab({
     <div className="tab-pane active">
       <div className="resep-grid-layout">
         {/* Left Side: Select Product */}
-        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1.25rem' }}>
-          <h4 style={{ fontSize: '0.95rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1.25rem', display: 'flex', flexDirection: 'column' }}>
+          <h4 style={{ fontSize: '0.95rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <BookOpen size={18} style={{ color: 'var(--primary)' }} /> Pilih Produk Jadi
           </h4>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            {sortedProduk.map(p => {
-              const isSelected = p.id === (selectedProduk?.id);
-              const itemsCount = getRecipeForProduk(p).length;
+          {/* Search Input Box */}
+          <div style={{ marginBottom: '0.85rem', position: 'relative' }}>
+            <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+            <input
+              type="text"
+              className="form-control"
+              placeholder="Cari SKU / Nama Produk..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              style={{ paddingLeft: '2.25rem', fontSize: '0.85rem' }}
+            />
+          </div>
 
-              return (
-                <button
-                  key={p.id}
-                  onClick={() => setSelectedProdukId(p.id)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '0.85rem 1rem',
-                    borderRadius: 'var(--radius-sm)',
-                    border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border-color)',
-                    background: isSelected ? 'rgba(249, 115, 22, 0.12)' : 'transparent',
-                    color: isSelected ? 'var(--primary)' : 'var(--text-main)',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    transition: 'all 0.2s ease'
-                  }}
-                >
-                  <div>
-                    <div style={{ fontSize: '0.72rem', opacity: 0.8 }}>{p.sku}</div>
-                    <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{p.nama}</div>
-                  </div>
-                  <span className="badge badge-amber">{itemsCount} Bahan</span>
-                </button>
-              );
-            })}
+          {/* Scrollable Container (Shows ~7 items up to PR7) */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '480px', overflowY: 'auto', paddingRight: '0.25rem' }}>
+            {filteredProduk.length === 0 ? (
+              <div style={{ padding: '1.5rem 0.5rem', textAlign: 'center', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                Produk tidak ditemukan.
+              </div>
+            ) : (
+              filteredProduk.map(p => {
+                const isSelected = p.id === (selectedProduk?.id);
+                const itemsCount = getRecipeForProduk(p).length;
+
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => setSelectedProdukId(p.id)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '0.85rem 1rem',
+                      borderRadius: 'var(--radius-sm)',
+                      border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border-color)',
+                      background: isSelected ? 'rgba(249, 115, 22, 0.12)' : 'transparent',
+                      color: isSelected ? 'var(--primary)' : 'var(--text-main)',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: '0.72rem', opacity: 0.8 }}>{p.sku}</div>
+                      <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{p.nama}</div>
+                    </div>
+                    <span className="badge badge-amber">{itemsCount} Bahan</span>
+                  </button>
+                );
+              })
+            )}
           </div>
         </div>
 
