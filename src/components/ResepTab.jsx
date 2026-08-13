@@ -69,12 +69,12 @@ export default function ResepTab({
       <div className="resep-grid-layout">
         {/* Left Side: Select Product */}
         <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1.25rem', display: 'flex', flexDirection: 'column' }}>
-          <h4 style={{ fontSize: '0.95rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          {/* <h4 style={{ fontSize: '0.95rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <BookOpen size={18} style={{ color: 'var(--primary)' }} /> Pilih Produk Jadi
-          </h4>
+          </h4> */}
 
           {/* Search Input Box */}
-          <div style={{ marginBottom: '0.85rem', position: 'relative' }}>
+          <div style={{ marginBottom: '0.85rem' }}>
             <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input
               type="text"
