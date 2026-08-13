@@ -1368,9 +1368,10 @@ body {
   background: linear-gradient(150deg, #131c31 0%, #0f172a 100%);
   border: 1px solid rgba(255, 255, 255, 0.15) !important;
   border-radius: 16px !important;
-  padding: 1.75rem !important;
+  padding: 1.5rem !important;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 40px rgba(99, 102, 241, 0.2) !important;
   max-height: 90vh;
+  max-height: 90dvh;
   display: flex;
   flex-direction: column;
   color: #f8fafc;
@@ -1378,15 +1379,26 @@ body {
   overflow: hidden;
 }
 
+/* Ensure forms inside modals flex properly so footer buttons are NEVER clipped */
+.modal-card form,
+.modal-container form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .modal-lg { max-width: 780px !important; }
 .modal-sm { max-width: 440px !important; }
 
 .modal-header {
+  flex-shrink: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-bottom: 1rem;
-  margin-bottom: 1.25rem;
+  padding-bottom: 0.85rem;
+  margin-bottom: 1rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -1430,8 +1442,11 @@ body {
 
 .modal-body {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
-  padding-right: 0.35rem;
+  padding-right: 0.5rem;
+  margin-bottom: 0.5rem;
+  -webkit-overflow-scrolling: touch;
 }
 
 .modal-body::-webkit-scrollbar {
@@ -1447,13 +1462,15 @@ body {
 }
 
 .modal-footer {
+  flex-shrink: 0;
   display: flex;
   justify-content: flex-end;
   align-items: center;
   gap: 0.75rem;
-  margin-top: 1.5rem;
+  margin-top: auto;
   padding-top: 1rem;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
+  flex-wrap: wrap;
 }
 
 .form-grid {
@@ -1536,12 +1553,26 @@ textarea.form-input {
 @media (max-width: 640px) {
   .modal-card,
   .modal-container {
-    padding: 1.25rem !important;
-    max-width: 95vw !important;
+    padding: 1.15rem !important;
+    max-width: 96vw !important;
+    max-height: 94vh !important;
+    max-height: 94dvh !important;
     border-radius: 12px !important;
   }
   .form-grid {
     grid-template-columns: 1fr !important;
+  }
+  .modal-body [style*="grid-template-columns"],
+  .modal-body [style*="gridTemplateColumns"] {
+    grid-template-columns: 1fr !important;
+  }
+  .modal-footer {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .modal-footer .btn {
+    flex: 1;
+    min-width: 120px;
   }
 }
 
