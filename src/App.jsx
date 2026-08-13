@@ -211,10 +211,6 @@ export default function App() {
     { id: 'kps_1', nama: 'Sosis', deskripsi: 'Kategori berbagai varian sosis' },
     { id: 'kps_2', nama: 'Nugget', deskripsi: 'Kategori berbagai produk nugget' },
     { id: 'kps_3', nama: 'Baso', deskripsi: 'Kategori baso sapi & olahan daging' },
-    { id: 'kps_4', nama: 'Roti & Pastry', deskripsi: 'Kategori olahan roti dan kue' },
-    { id: 'kps_5', nama: 'Daging Olahan', deskripsi: 'Kategori olahan daging lain' },
-    { id: 'kps_6', nama: 'Bumbu & Rempah', deskripsi: 'Kategori bumbu siap pakai' },
-    { id: 'kps_7', nama: 'Lainnya', deskripsi: 'Kategori produk umum' }
   ]);
 
   // Modal Control States
@@ -318,7 +314,7 @@ export default function App() {
       if (logRes?.success) setAuditLog(logRes.data);
       if (utgRes?.success) setUtangList(utgRes.data);
       if (supRes?.success) {
-        const sampleNames = ['PT Marksoy Indonesia', 'CV Daging Utama', 'PT Plastik & Kemasan Nusantara', 'Toko Rempah & Bumbu Berkah', 'Pabrik Es Batu Kristal Saren'];
+        const sampleNames = ['PT. So Good Indonesia...'];
         const cleaned = (supRes.data || []).filter(x => !['sup_1', 'sup_2', 'sup_3', 'sup_4', 'sup_5'].includes(x.id) && !sampleNames.includes(x.nama));
         setSuppliersList(cleaned);
       }

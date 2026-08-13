@@ -52,7 +52,7 @@ export default function ProdukTab({
     ]);
     const config = {
       title: 'Laporan Katalog & Stok Produk Jadi',
-      subtitle: `Menampilkan ${filtered.length} varian produk roti & kue Saren One.`,
+      subtitle: `Menampilkan ${filtered.length} varian sosis`,
       headers,
       rows,
       summaryText: `Total Varian Produk: ${filtered.length} | Total Persediaan Siap Jual: ${filtered.reduce((acc, curr) => acc + curr.stok, 0)} Batch`,
