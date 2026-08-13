@@ -1166,6 +1166,23 @@ export function ModalTambahUtangSupplier({ isOpen, onClose, bahanList = [], supp
   const totalTagihan = (parseFloat(jumlah) || 0) * (parseFloat(hargaSatuan) || 0);
   const sisaUtang = Math.max(0, totalTagihan - (parseFloat(dp) || 0));
 
+  const handleTanggalChange = (val) => {
+    setTanggal(val);
+    if (val) {
+      try {
+        const parts = val.split('-');
+        if (parts.length === 3) {
+          const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+          d.setDate(d.getDate() + 30);
+          const yyyy = d.getFullYear();
+          const mm = String(d.getMonth() + 1).padStart(2, '0');
+          const dd = String(d.getDate()).padStart(2, '0');
+          setJatuhTempo(`${yyyy}-${mm}-${dd}`);
+        }
+      } catch (e) {}
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!supplier || !noFaktur || parseFloat(jumlah) <= 0) {
@@ -1298,10 +1315,10 @@ export function ModalTambahUtangSupplier({ isOpen, onClose, bahanList = [], supp
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
               <div className="form-group">
                 <label>Tanggal Faktur / Pembelian *</label>
-                <input type="date" className="form-control" value={tanggal} onChange={e => setTanggal(e.target.value)} required />
+                <input type="date" className="form-control" value={tanggal} onChange={e => handleTanggalChange(e.target.value)} required />
               </div>
               <div className="form-group">
-                <label>Tanggal Jatuh Tempo (Default 1 Bulan) *</label>
+                <label>Tanggal Jatuh Tempo (+30 Hari) *</label>
                 <input type="date" className="form-control" value={jatuhTempo} onChange={e => setJatuhTempo(e.target.value)} required />
               </div>
             </div>
