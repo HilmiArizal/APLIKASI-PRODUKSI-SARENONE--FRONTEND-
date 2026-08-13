@@ -13,6 +13,7 @@ export function ModalBahan({ isOpen, onClose, onSave, editingItem, kategoriList 
   const [harga, setHarga] = useState(0);
 
   useEffect(() => {
+    if (!isOpen) return;
     if (editingItem) {
       setSku(editingItem.sku || '');
       setNama(editingItem.nama || '');
@@ -30,7 +31,8 @@ export function ModalBahan({ isOpen, onClose, onSave, editingItem, kategoriList 
       setSatuan('kg');
       setHarga(15000);
     }
-  }, [editingItem, isOpen, kategoriList]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, editingItem]);
 
   if (!isOpen) return null;
 
@@ -197,6 +199,7 @@ export function ModalProduk({ isOpen, onClose, onSave, editingItem, kategoriList
   const [stok, setStok] = useState(0);
 
   useEffect(() => {
+    if (!isOpen) return;
     if (editingItem) {
       setSku(editingItem.sku || '');
       setNama(editingItem.nama || '');
@@ -204,26 +207,29 @@ export function ModalProduk({ isOpen, onClose, onSave, editingItem, kategoriList
       setHarga(editingItem.harga || 0);
       setStok(editingItem.stok || 0);
     } else {
-      setSku('');
+      setSku('PRD-' + Math.floor(100 + Math.random() * 900));
       setNama('');
       setKategori(kategoriList[0]?.nama || 'Sosis');
       setHarga(0);
       setStok(0);
     }
-  }, [editingItem, isOpen, kategoriList]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, editingItem]);
 
   if (!isOpen) return null;
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!nama || !sku) {
+    const cleanNama = (nama || '').trim();
+    const cleanSku = (sku || '').trim();
+    if (!cleanNama || !cleanSku) {
       alert('Nama produk dan SKU wajib diisi!');
       return;
     }
     onSave({
       id: editingItem ? editingItem.id : null,
-      sku,
-      nama,
+      sku: cleanSku,
+      nama: cleanNama,
       kategori,
       harga: Number(harga),
       stok: Number(stok)
