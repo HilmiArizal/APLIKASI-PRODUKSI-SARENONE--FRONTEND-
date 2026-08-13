@@ -1152,8 +1152,8 @@ export function ModalTambahUtangSupplier({ isOpen, onClose, bahanList = [], supp
       setDp(0);
       const today = new Date().toISOString().split('T')[0];
       setTanggal(today);
-      const in14Days = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-      setJatuhTempo(in14Days);
+      const in1Month = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      setJatuhTempo(in1Month);
       setCatatan('');
       setIsSubmitting(false);
     }
@@ -1301,14 +1301,14 @@ export function ModalTambahUtangSupplier({ isOpen, onClose, bahanList = [], supp
                 <input type="date" className="form-control" value={tanggal} onChange={e => setTanggal(e.target.value)} required />
               </div>
               <div className="form-group">
-                <label>Tanggal Jatuh Tempo *</label>
+                <label>Tanggal Jatuh Tempo (Default 1 Bulan) *</label>
                 <input type="date" className="form-control" value={jatuhTempo} onChange={e => setJatuhTempo(e.target.value)} required />
               </div>
             </div>
 
             <div className="form-group">
               <label>Catatan Pembelian</label>
-              <input type="text" className="form-control" placeholder="Misal: DP 50%, sisa tempo 14 hari" value={catatan} onChange={e => setCatatan(e.target.value)} />
+              <input type="text" className="form-control" placeholder="Misal: DP 50%, sisa tempo 30 hari" value={catatan} onChange={e => setCatatan(e.target.value)} />
             </div>
 
             <div style={{ background: 'rgba(251, 191, 36, 0.08)', border: '1px solid rgba(251, 191, 36, 0.3)', borderRadius: 'var(--radius-sm)', padding: '0.75rem 1rem', marginTop: '0.25rem', fontSize: '0.8rem', color: 'var(--amber)', fontWeight: 600 }}>
