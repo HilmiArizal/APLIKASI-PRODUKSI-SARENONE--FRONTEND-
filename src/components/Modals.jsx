@@ -120,6 +120,7 @@ export function ModalStokMasuk({ isOpen, onClose, onSave, bahanList }) {
 
   const [bahanId, setBahanId] = useState(sortedBahanList[0]?.id || '');
   const [jumlah, setJumlah] = useState(0);
+  const [tanggal, setTanggal] = useState(new Date().toISOString().split('T')[0]);
   const [catatan, setCatatan] = useState('');
 
   useEffect(() => {
@@ -127,6 +128,7 @@ export function ModalStokMasuk({ isOpen, onClose, onSave, bahanList }) {
       setBahanId(sortedBahanList[0].id);
     }
     setJumlah(0);
+    setTanggal(new Date().toISOString().split('T')[0]);
     setCatatan('');
   }, [sortedBahanList, isOpen]);
 
@@ -138,7 +140,7 @@ export function ModalStokMasuk({ isOpen, onClose, onSave, bahanList }) {
       alert('Pilih bahan baku dan masukkan jumlah stok masuk lebih dari 0!');
       return;
     }
-    onSave({ bahanId, jumlah: Number(jumlah), supplier: '', catatan });
+    onSave({ bahanId, jumlah: Number(jumlah), supplier: '', tanggal, catatan });
   };
 
   const selectedBahan = sortedBahanList.find(x => x.id === bahanId);
@@ -152,6 +154,17 @@ export function ModalStokMasuk({ isOpen, onClose, onSave, bahanList }) {
         </div>
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
+              <div className="form-group">
+                <label>Tanggal Transaksi / Restock *</label>
+                <input type="date" className="form-control" value={tanggal} onChange={e => setTanggal(e.target.value)} required />
+              </div>
+              <div className="form-group">
+                <label>Jumlah Tambahan ({selectedBahan?.satuan || 'satuan'}) *</label>
+                <input type="number" step="any" className="form-control" value={jumlah} onChange={e => setJumlah(e.target.value)} required />
+              </div>
+            </div>
+
             <div className="form-group">
               <label>Pilih Bahan Baku Dapur *</label>
               <select className="select-input" value={bahanId} onChange={e => setBahanId(e.target.value)}>
@@ -159,11 +172,6 @@ export function ModalStokMasuk({ isOpen, onClose, onSave, bahanList }) {
                   <option key={b.id} value={b.id}>{b.sku} - {b.nama} (Stok Saat Ini: {b.stok} {b.satuan})</option>
                 ))}
               </select>
-            </div>
-
-            <div className="form-group">
-              <label>Jumlah Tambahan Stok Masuk ({selectedBahan?.satuan || 'satuan'}) *</label>
-              <input type="number" step="any" className="form-control" value={jumlah} onChange={e => setJumlah(e.target.value)} required />
             </div>
 
             <div className="form-group">
@@ -743,11 +751,13 @@ export function ModalImportResepExcel({ isOpen, onClose, onImport, showAlert }) 
 export function ModalPengolahanEmulsi({ isOpen, onClose, onProcess, bahanList = [], showAlert }) {
   const [jenisEmulsi, setJenisEmulsi] = useState('ISP');
   const [jumlahBatch, setJumlahBatch] = useState(1);
+  const [tanggal, setTanggal] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!isOpen) {
+    if (isOpen) {
       setJumlahBatch(1);
+      setTanggal(new Date().toISOString().split('T')[0]);
       setIsSubmitting(false);
     }
   }, [isOpen]);
@@ -811,7 +821,8 @@ export function ModalPengolahanEmulsi({ isOpen, onClose, onProcess, bahanList = 
     setIsSubmitting(true);
     await onProcess({
       jenisEmulsi,
-      jumlahBatch: bNum
+      jumlahBatch: bNum,
+      tanggal
     });
     setIsSubmitting(false);
     onClose();
@@ -826,12 +837,18 @@ export function ModalPengolahanEmulsi({ isOpen, onClose, onProcess, bahanList = 
         </div>
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
-            <div className="form-group">
-              <label>Pilih Jenis Formulasi Emulsi Sosis *</label>
-              <select className="select-input" value={jenisEmulsi} onChange={e => setJenisEmulsi(e.target.value)}>
-                <option value="ISP">Emulsi ISP</option>
-                <option value="TVP">Emulsi TVP</option>
-              </select>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
+              <div className="form-group">
+                <label>Pilih Jenis Formulasi Emulsi Sosis *</label>
+                <select className="select-input" value={jenisEmulsi} onChange={e => setJenisEmulsi(e.target.value)}>
+                  <option value="ISP">Emulsi ISP</option>
+                  <option value="TVP">Emulsi TVP</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Tanggal Pengolahan *</label>
+                <input type="date" className="form-control" value={tanggal} onChange={e => setTanggal(e.target.value)} required />
+              </div>
             </div>
 
             <div className="form-group">
@@ -947,6 +964,7 @@ export function ModalPengolahanEmulsi({ isOpen, onClose, onProcess, bahanList = 
 export function ModalPemakaianKemasan({ isOpen, onClose, onUseKemasan, bahanList = [], selectedBahan: selectedBahanProp = null, totalVacumbagSuggestQty = 0, showAlert }) {
   const [bahanId, setBahanId] = useState('');
   const [jumlah, setJumlah] = useState(1);
+  const [tanggal, setTanggal] = useState('');
   const [keterangan, setKeterangan] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -978,6 +996,7 @@ export function ModalPemakaianKemasan({ isOpen, onClose, onUseKemasan, bahanList
         if (val) setBahanId(val);
       }
       setJumlah(1);
+      setTanggal(new Date().toISOString().split('T')[0]);
       setKeterangan('');
       setIsSubmitting(false);
     }
@@ -1008,6 +1027,7 @@ export function ModalPemakaianKemasan({ isOpen, onClose, onUseKemasan, bahanList
       sku: selectedBahan.sku,
       nama: selectedBahan.nama,
       jumlah: useQty,
+      tanggal,
       keterangan
     });
 
@@ -1039,6 +1059,10 @@ export function ModalPemakaianKemasan({ isOpen, onClose, onUseKemasan, bahanList
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className="form-group">
+                <label>Tanggal Pemakaian *</label>
+                <input type="date" className="form-control" value={tanggal} onChange={e => setTanggal(e.target.value)} required />
+              </div>
               <div className="form-group">
                 <label>Jumlah Pemakaian ({selectedBahan?.satuan || 'satuan'}) *</label>
                 <input type="number" step="any" min="0.1" className="form-control" value={jumlah} onChange={e => setJumlah(e.target.value)} required />
@@ -1100,6 +1124,7 @@ export function ModalTambahUtangSupplier({ isOpen, onClose, bahanList = [], supp
   const [jumlah, setJumlah] = useState(0);
   const [hargaSatuan, setHargaSatuan] = useState(0);
   const [dp, setDp] = useState(0);
+  const [tanggal, setTanggal] = useState('');
   const [jatuhTempo, setJatuhTempo] = useState('');
   const [catatan, setCatatan] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -1125,6 +1150,8 @@ export function ModalTambahUtangSupplier({ isOpen, onClose, bahanList = [], supp
       setJumlah(0);
       setHargaSatuan(0);
       setDp(0);
+      const today = new Date().toISOString().split('T')[0];
+      setTanggal(today);
       const in14Days = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
       setJatuhTempo(in14Days);
       setCatatan('');
@@ -1156,6 +1183,8 @@ export function ModalTambahUtangSupplier({ isOpen, onClose, bahanList = [], supp
       jumlah: parseFloat(jumlah),
       hargaSatuan: parseFloat(hargaSatuan),
       dp: parseFloat(dp) || 0,
+      tanggal,
+      tanggalBeli: tanggal,
       jatuhTempo,
       catatan
     });
@@ -1268,13 +1297,18 @@ export function ModalTambahUtangSupplier({ isOpen, onClose, bahanList = [], supp
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
               <div className="form-group">
+                <label>Tanggal Faktur / Pembelian *</label>
+                <input type="date" className="form-control" value={tanggal} onChange={e => setTanggal(e.target.value)} required />
+              </div>
+              <div className="form-group">
                 <label>Tanggal Jatuh Tempo *</label>
                 <input type="date" className="form-control" value={jatuhTempo} onChange={e => setJatuhTempo(e.target.value)} required />
               </div>
-              <div className="form-group">
-                <label>Catatan Pembelian</label>
-                <input type="text" className="form-control" placeholder="Misal: DP 50%, sisa tempo 14 hari" value={catatan} onChange={e => setCatatan(e.target.value)} />
-              </div>
+            </div>
+
+            <div className="form-group">
+              <label>Catatan Pembelian</label>
+              <input type="text" className="form-control" placeholder="Misal: DP 50%, sisa tempo 14 hari" value={catatan} onChange={e => setCatatan(e.target.value)} />
             </div>
 
             <div style={{ background: 'rgba(251, 191, 36, 0.08)', border: '1px solid rgba(251, 191, 36, 0.3)', borderRadius: 'var(--radius-sm)', padding: '0.75rem 1rem', marginTop: '0.25rem', fontSize: '0.8rem', color: 'var(--amber)', fontWeight: 600 }}>
@@ -1300,6 +1334,7 @@ export function ModalTambahUtangSupplier({ isOpen, onClose, bahanList = [], supp
 export function ModalBayarUtangSupplier({ isOpen, onClose, utangRecord, onSubmitPay, showAlert }) {
   const [jumlahBayar, setJumlahBayar] = useState(0);
   const [metode, setMetode] = useState('Transfer Bank');
+  const [tanggal, setTanggal] = useState('');
   const [keterangan, setKeterangan] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -1307,6 +1342,7 @@ export function ModalBayarUtangSupplier({ isOpen, onClose, utangRecord, onSubmit
     if (isOpen && utangRecord) {
       setJumlahBayar(utangRecord.sisaUtang || 0);
       setMetode('Transfer Bank');
+      setTanggal(new Date().toISOString().split('T')[0]);
       setKeterangan('Pelunasan Utang Supplier');
       setIsSubmitting(false);
     }
@@ -1331,6 +1367,7 @@ export function ModalBayarUtangSupplier({ isOpen, onClose, utangRecord, onSubmit
     await onSubmitPay(targetId, {
       jumlahBayar: payVal,
       metode,
+      tanggal,
       keterangan
     });
     setIsSubmitting(false);
@@ -1375,6 +1412,10 @@ export function ModalBayarUtangSupplier({ isOpen, onClose, utangRecord, onSubmit
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
               <div className="form-group">
+                <label>Tanggal Pembayaran / Transfer *</label>
+                <input type="date" className="form-control" value={tanggal} onChange={e => setTanggal(e.target.value)} required />
+              </div>
+              <div className="form-group">
                 <label>Metode Pembayaran</label>
                 <select className="select-input" value={metode} onChange={e => setMetode(e.target.value)}>
                   <option value="Transfer Bank">Transfer Bank</option>
@@ -1382,10 +1423,10 @@ export function ModalBayarUtangSupplier({ isOpen, onClose, utangRecord, onSubmit
                   <option value="Giro / Cek">Giro / Cek</option>
                 </select>
               </div>
-              <div className="form-group">
-                <label>Keterangan Pembayaran</label>
-                <input type="text" className="form-control" placeholder="Misal: Cicilan ke-2" value={keterangan} onChange={e => setKeterangan(e.target.value)} />
-              </div>
+            <div className="form-group">
+              <label>Keterangan Pembayaran</label>
+              <input type="text" className="form-control" placeholder="Misal: Cicilan ke-2" value={keterangan} onChange={e => setCatatan ? setCatatan(e.target.value) : setKeterangan(e.target.value)} />
+            </div>
             </div>
           </div>
 
@@ -1474,6 +1515,7 @@ export function ModalRiwayatBayarSupplier({ isOpen, onClose, utangRecord }) {
 // ----------------------------------------------------
 export function ModalTerimaBahanSupplier({ isOpen, onClose, utangRecord, onSubmitReceive, showAlert }) {
   const [jumlahTerima, setJumlahTerima] = useState(0);
+  const [tanggal, setTanggal] = useState('');
   const [penerima, setPenerima] = useState('');
   const [catatan, setCatatan] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -1485,6 +1527,7 @@ export function ModalTerimaBahanSupplier({ isOpen, onClose, utangRecord, onSubmi
       const pending = utangRecord.sisaBelumDiterima !== undefined ? utangRecord.sisaBelumDiterima : Math.max(0, total - diterim);
 
       setJumlahTerima(pending);
+      setTanggal(new Date().toISOString().split('T')[0]);
       setPenerima('');
       setCatatan('Verifikasi Fisik & Penerimaan Gudang');
       setIsSubmitting(false);
@@ -1513,6 +1556,7 @@ export function ModalTerimaBahanSupplier({ isOpen, onClose, utangRecord, onSubmi
     await onSubmitReceive(utangRecord.id, {
       jumlahTerima: receiveVal,
       penerima,
+      tanggal,
       catatan
     });
     setIsSubmitting(false);
@@ -1557,13 +1601,18 @@ export function ModalTerimaBahanSupplier({ isOpen, onClose, utangRecord, onSubmi
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
               <div className="form-group">
+                <label>Tanggal Penerimaan Barangan *</label>
+                <input type="date" className="form-control" value={tanggal} onChange={e => setTanggal(e.target.value)} required />
+              </div>
+              <div className="form-group">
                 <label>Nama Penerima / Verifikator</label>
                 <input type="text" className="form-control" placeholder="Misal: Siti Gudang" value={penerima} onChange={e => setPenerima(e.target.value)} />
               </div>
-              <div className="form-group">
-                <label>Catatan Fisik Barang</label>
-                <input type="text" className="form-control" placeholder="Kondisi barang baik &amp; segel utuh" value={catatan} onChange={e => setCatatan(e.target.value)} />
-              </div>
+            </div>
+
+            <div className="form-group">
+              <label>Catatan Fisik Barang</label>
+              <input type="text" className="form-control" placeholder="Kondisi barang baik &amp; segel utuh" value={catatan} onChange={e => setCatatan(e.target.value)} />
             </div>
 
             <div style={{ background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: 'var(--radius-sm)', padding: '0.75rem 1rem', marginTop: '0.25rem', fontSize: '0.8rem', color: 'var(--emerald)', fontWeight: 600 }}>

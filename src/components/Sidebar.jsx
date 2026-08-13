@@ -22,6 +22,7 @@ export default function Sidebar({ activeUser, activeRoleView, activeTab, onSwitc
   const showBahan = !isProdukDomain && activeRoleView !== 'SALES' && ['ADMIN', 'BAHAN_BAKU', 'PEMBELIAN'].includes(activeRoleView);
   const showEmulsi = !isProdukDomain && activeRoleView !== 'SALES' && ['ADMIN', 'BAHAN_BAKU'].includes(activeRoleView);
   const showPembelian = !isProdukDomain && activeRoleView !== 'SALES' && ['ADMIN', 'PEMBELIAN'].includes(activeRoleView);
+  const showSupplier = !isProdukDomain && activeRoleView !== 'SALES' && ['ADMIN', 'PEMBELIAN'].includes(activeRoleView);
   const showProdukMenu = !isProdukDomain && activeRoleView !== 'SALES' && ['ADMIN', 'BAHAN_BAKU'].includes(activeRoleView);
   const showAudit = !isProdukDomain && activeRoleView === 'ADMIN';
 
@@ -109,15 +110,16 @@ export default function Sidebar({ activeUser, activeRoleView, activeTab, onSwitc
                 </>
               )}
 
+              {showSupplier && (
+                <a href="#supplier" className={mi('supplier')} onClick={e => { e.preventDefault(); nav('supplier'); }}>
+                  <Building2 size={18} /><span>Kelola Supplier</span>
+                </a>
+              )}
+
               {activeRoleView === 'ADMIN' && (
-                <>
-                  <a href="#supplier" className={mi('supplier')} onClick={e => { e.preventDefault(); nav('supplier'); }}>
-                    <Building2 size={18} /><span>Kelola Supplier</span>
-                  </a>
-                  <a href="#kategori" className={mi('kategori')} onClick={e => { e.preventDefault(); nav('kategori'); }}>
-                    <Layers size={18} /><span>Kelola Brand</span>
-                  </a>
-                </>
+                <a href="#kategori" className={mi('kategori')} onClick={e => { e.preventDefault(); nav('kategori'); }}>
+                  <Layers size={18} /><span>Kelola Brand</span>
+                </a>
               )}
 
               {showAudit && (

@@ -407,7 +407,7 @@ export default function App() {
 
   useEffect(() => {
     if (activeRoleView === 'PEMBELIAN') {
-      const allowed = ['dashboard', 'bahan-baku', 'pembelian-bahan', 'utang-supplier', 'penerimaan-bahan'];
+      const allowed = ['dashboard', 'bahan-baku', 'pembelian-bahan', 'utang-supplier', 'penerimaan-bahan', 'supplier'];
       if (!allowed.includes(activeTab)) {
         setActiveTab('pembelian-bahan');
       }
