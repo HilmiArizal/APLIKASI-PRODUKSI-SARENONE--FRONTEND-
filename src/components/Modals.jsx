@@ -242,18 +242,18 @@ export function ModalProduk({ isOpen, onClose, onSave, editingItem, kategoriList
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1rem' }}>
               <div className="form-group">
                 <label>SKU Kode *</label>
-                <input type="text" className="form-control" placeholder="PR1" required />
+                <input type="text" className="form-control" placeholder="PR1" onChange={e => setSku(e.target.value)} required />
               </div>
               <div className="form-group">
                 <label>Nama Produk Jadi *</label>
-                <input type="text" className="form-control" placeholder="Misal: RCS..." required />
+                <input type="text" className="form-control" placeholder="Misal: RCS..." onChange={e => setNama(e.target.value)} required />
               </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
               <div className="form-group">
                 <label>Kategori *</label>
-                <select className="select-input" value={kategori} onChange={e => setKategori(e.target.value)}>
+                <select className="select-input" onChange={e => setKategori(e.target.value)}>
                   {kategoriList.map(k => (
                     <option key={k.id} value={k.nama}>{k.nama}</option>
                   ))}
