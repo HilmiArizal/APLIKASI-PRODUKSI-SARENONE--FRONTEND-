@@ -1206,33 +1206,37 @@ export default function App() {
   };
 
   const handleUpdateSupplier = async (id, data) => {
+    const targetIdStr = String(id);
+    setSuppliersList(prev => prev.map(s => (String(s.id) === targetIdStr || String(s._id) === targetIdStr) ? { ...s, ...data } : s));
     try {
       const res = await updateSupplierApi(id, data, activeUser);
       if (res?.success) {
-        showAlert(res.message, 'success', 'Supplier Berhasil Diupdate');
-        fetchAllDataFromBackend();
+        showAlert(res.message || 'Supplier berhasil diupdate!', 'success', 'Supplier Diupdate');
+        if (res.data) {
+          const updatedDoc = res.data;
+          setSuppliersList(prev => prev.map(s => (String(s.id) === targetIdStr || String(s._id) === targetIdStr) ? { ...s, ...updatedDoc } : s));
+        } else {
+          fetchAllDataFromBackend();
+        }
         return;
       }
-      setSuppliersList(prev => prev.map(s => (s.id === id || s._id === id) ? { ...s, ...data } : s));
       showAlert('Supplier berhasil diupdate!', 'success', 'Supplier Diupdate');
     } catch (err) {
-      setSuppliersList(prev => prev.map(s => (s.id === id || s._id === id) ? { ...s, ...data } : s));
       showAlert('Supplier berhasil diupdate!', 'success', 'Supplier Diupdate');
     }
   };
 
   const handleDeleteSupplier = async (id) => {
+    const targetIdStr = String(id);
+    setSuppliersList(prev => prev.filter(s => String(s.id) !== targetIdStr && String(s._id) !== targetIdStr));
     try {
       const res = await deleteSupplierApi(id, activeUser);
       if (res?.success) {
-        showAlert(res.message, 'success', 'Supplier Berhasil Dihapus');
-        fetchAllDataFromBackend();
+        showAlert(res.message || 'Supplier berhasil dihapus.', 'success', 'Supplier Dihapus');
         return;
       }
-      setSuppliersList(prev => prev.filter(s => s.id !== id && s._id !== id));
       showAlert('Supplier berhasil dihapus dari master data.', 'success', 'Supplier Dihapus');
     } catch (err) {
-      setSuppliersList(prev => prev.filter(s => s.id !== id && s._id !== id));
       showAlert('Supplier berhasil dihapus dari master data.', 'success', 'Supplier Dihapus');
     }
   };
