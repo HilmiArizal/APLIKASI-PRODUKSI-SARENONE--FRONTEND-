@@ -97,13 +97,13 @@ export default function ProdukTab({
             </button>
           )}
 
-          <button className="btn btn-outline" onClick={handleExportExcel} title="Export Data ke Excel (.csv)">
+          {/* <button className="btn btn-outline" onClick={handleExportExcel} title="Export Data ke Excel (.csv)">
             <FileSpreadsheet size={16} style={{ color: 'var(--emerald)' }} /> Excel
           </button>
 
           <button className="btn btn-outline" onClick={handleExportPDF} title="Cetak / Simpan Laporan PDF">
             <FileText size={16} style={{ color: 'var(--amber)' }} /> Cetak PDF
-          </button>
+          </button> */}
 
           {canEdit && (
             <>
