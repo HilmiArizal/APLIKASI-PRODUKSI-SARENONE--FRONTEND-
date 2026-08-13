@@ -246,7 +246,7 @@ export function ModalProduk({ isOpen, onClose, onSave, editingItem, kategoriList
               </div>
               <div className="form-group">
                 <label>Nama Produk Jadi *</label>
-                <input type="text" className="form-control" placeholder="Misal: RCS..." value={nama} onChange={e => setNama(e.target.value)} required />
+                <input type="text" className="form-control" placeholder="Misal: RCS..." required />
               </div>
             </div>
 
