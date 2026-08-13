@@ -3,7 +3,7 @@ import { X, Save, ArrowDownLeft, Play, Plus, Edit3, Upload, Download, FileSpread
 import * as XLSX from 'xlsx';
 import { formatNumber } from '../data/initialData';
 
-export function ModalBahan({ isOpen, onClose, onSave, editingItem, kategoriList = [] }) {
+export function ModalBahan({ isOpen, onClose, onSave, editingItem, kategoriList = [], bahanList = [] }) {
   const [sku, setSku] = useState('');
   const [nama, setNama] = useState('');
   const [kategori, setKategori] = useState('Bahan Utama');
@@ -23,7 +23,21 @@ export function ModalBahan({ isOpen, onClose, onSave, editingItem, kategoriList 
       setSatuan(editingItem.satuan || 'kg');
       setHarga(editingItem.harga || 0);
     } else {
-      setSku('BHN-' + Math.floor(100 + Math.random() * 900));
+      let maxNum = 0;
+      let prefix = 'BB';
+      (bahanList || []).forEach(b => {
+        const skuStr = String(b.sku || '').trim();
+        const match = skuStr.match(/\d+/);
+        if (match) {
+          const num = parseInt(match[0], 10);
+          if (num > maxNum) maxNum = num;
+        }
+        if (skuStr.startsWith('BB') || skuStr.startsWith('BHN')) {
+          prefix = skuStr.replace(/\d+/g, '');
+        }
+      });
+      const nextSku = `${prefix || 'BB'}${maxNum + 1}`;
+      setSku(nextSku);
       setNama('');
       setKategori(kategoriList[0]?.nama || 'Bahan Utama');
       setStok(10);
@@ -70,11 +84,11 @@ export function ModalBahan({ isOpen, onClose, onSave, editingItem, kategoriList 
               </div>
               <div className="form-group">
                 <label>Nama Bahan Baku *</label>
-                <input type="text" className="form-control" placeholder="Misal: Tepung Terigu..." value={nama} onChange={e => setNama(e.target.value)} required />
+                <input type="text" className="form-control" placeholder="Misal: Daging Sapi Trim..." value={nama} onChange={e => setNama(e.target.value)} required />
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
               <div className="form-group">
                 <label>Kategori *</label>
                 <select className="select-input" value={kategori} onChange={e => setKategori(e.target.value)}>
@@ -84,30 +98,38 @@ export function ModalBahan({ isOpen, onClose, onSave, editingItem, kategoriList 
                 </select>
               </div>
               <div className="form-group">
-                <label>Satuan Unit *</label>
-                <select className="select-input" value={satuan} onChange={e => setSatuan(e.target.value)}>
-                  <option value="kg">kg (Kilogram)</option>
-                  <option value="gr">gr (Gram)</option>
-                  <option value="liter">liter (Liter)</option>
-                  <option value="pcs">pcs (Pieces/Dus)</option>
-                </select>
+                <label>Stok Awal ({satuan})</label>
+                <input type="number" step="any" className="form-control" value={stok} onChange={e => setStok(e.target.value)} required />
+              </div>
+              <div className="form-group">
+                <label>Batas Min. Stok</label>
+                <input type="number" step="any" className="form-control" value={minStok} onChange={e => setMinStok(e.target.value)} required />
               </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
               <div className="form-group">
-                <label>Stok Awal</label>
-                <input type="number" step="any" className="form-control" value={stok} onChange={e => setStok(e.target.value)} required />
+                <label>Satuan Unit *</label>
+                <select className="select-input" value={satuan} onChange={e => setSatuan(e.target.value)}>
+                  <option value="kg">kg (Kilogram)</option>
+                  <option value="gram">gram</option>
+                  <option value="liter">liter</option>
+                  <option value="pouch">pouch</option>
+                  <option value="pcs">pcs / meter</option>
+                  <option value="roll">roll</option>
+                  <option value="box">box / dus</option>
+                  <option value="pack">pack</option>
+                </select>
               </div>
               <div className="form-group">
-                <label>Batas Min. Perlu Restock</label>
-                <input type="number" step="any" className="form-control" value={minStok} onChange={e => setMinStok(e.target.value)} required />
+                <label>Estimasi Harga Satuan (Rp)</label>
+                <input type="number" step="any" className="form-control" value={harga} onChange={e => setHarga(e.target.value)} />
               </div>
             </div>
           </div>
           <div className="modal-footer">
             <button type="button" className="btn btn-secondary" onClick={onClose}>Batal</button>
-            <button type="submit" className="btn btn-primary"><Save size={16} /> Simpan Bahan Baku</button>
+            <button type="submit" className="btn btn-primary"><Save size={16} /> Simpan Bahan</button>
           </div>
         </form>
       </div>
@@ -191,7 +213,7 @@ export function ModalStokMasuk({ isOpen, onClose, onSave, bahanList }) {
   );
 }
 
-export function ModalProduk({ isOpen, onClose, onSave, editingItem, kategoriList = [] }) {
+export function ModalProduk({ isOpen, onClose, onSave, editingItem, kategoriList = [], produkList = [] }) {
   const [sku, setSku] = useState('');
   const [nama, setNama] = useState('');
   const [kategori, setKategori] = useState('Sosis');
@@ -207,7 +229,21 @@ export function ModalProduk({ isOpen, onClose, onSave, editingItem, kategoriList
       setHarga(editingItem.harga || 0);
       setStok(editingItem.stok || 0);
     } else {
-      setSku('PRD-' + Math.floor(100 + Math.random() * 900));
+      let maxNum = 0;
+      let prefix = 'PR';
+      (produkList || []).forEach(p => {
+        const skuStr = String(p.sku || '').trim();
+        const match = skuStr.match(/\d+/);
+        if (match) {
+          const num = parseInt(match[0], 10);
+          if (num > maxNum) maxNum = num;
+        }
+        if (skuStr.startsWith('PR')) {
+          prefix = skuStr.replace(/\d+/g, '');
+        }
+      });
+      const nextSku = `${prefix || 'PR'}${maxNum + 1}`;
+      setSku(nextSku);
       setNama('');
       setKategori(kategoriList[0]?.nama || 'Sosis');
       setHarga(0);

@@ -1959,6 +1959,7 @@ export default function App() {
         onSave={handleSaveBahan}
         editingItem={editingBahan}
         kategoriList={kategoriBahanBaku}
+        bahanList={bahanBaku}
       />
 
       <ModalStokMasuk
@@ -1982,6 +1983,7 @@ export default function App() {
         onSave={handleSaveProduk}
         editingItem={editingProduk}
         kategoriList={kategoriProduk}
+        produkList={produk}
       />
 
       <ModalProduksi
