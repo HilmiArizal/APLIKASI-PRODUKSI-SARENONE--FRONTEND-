@@ -143,13 +143,14 @@ export default function ResepTab({
                   ) : (
                     sortedFormula.map((item, idx) => {
                       const b = getBahanItem(item.bahanId);
+                      const displayTakaran = Number(Math.round(parseFloat(item.takaran || 0) + 'e6') + 'e-6');
 
                       return (
                         <tr key={idx}>
                           <td>{idx + 1}</td>
                           <td style={{ fontWeight: 600 }}>{b ? b.nama : 'Bahan tidak ditemukan'}</td>
                           <td>
-                            <strong style={{ color: 'var(--primary)' }}>{item.takaran}</strong> {b?.satuan || 'satuan'}
+                            <strong style={{ color: 'var(--primary)' }}>{displayTakaran}</strong> {b?.satuan || 'satuan'}
                           </td>
                           {canEdit && (
                             <td style={{ textAlign: 'right' }}>

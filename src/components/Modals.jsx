@@ -648,6 +648,12 @@ export function ModalImportResepExcel({ isOpen, onClose, onImport, showAlert }) 
         const ws = wb.Sheets[wsName];
         const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
 
+        const cleanFloat = (val) => {
+          const num = parseFloat(val);
+          if (isNaN(num)) return 0;
+          return Number(Math.round(num + 'e6') + 'e-6');
+        };
+
         const mapped = json.map((row, index) => {
           const pSkuKey = Object.keys(row).find(k => k.toLowerCase().includes('sku produk') || k.toLowerCase().includes('kode produk') || k.toLowerCase() === 'produk sku') || '';
           const pNamaKey = Object.keys(row).find(k => k.toLowerCase().includes('nama produk') || k.toLowerCase() === 'produk') || '';
@@ -661,7 +667,7 @@ export function ModalImportResepExcel({ isOpen, onClose, onImport, showAlert }) 
             produkNama: String(row[pNamaKey] || '').trim(),
             bahanSku: String(row[bSkuKey] || '').trim(),
             bahanNama: String(row[bNamaKey] || '').trim(),
-            takaran: parseFloat(row[takaranKey]) || 0
+            takaran: cleanFloat(row[takaranKey])
           };
         }).filter(item => (item.produkSku || item.produkNama) && (item.bahanSku || item.bahanNama) && item.takaran > 0);
 
