@@ -192,23 +192,23 @@ export function ModalStokMasuk({ isOpen, onClose, onSave, bahanList }) {
 export function ModalProduk({ isOpen, onClose, onSave, editingItem, kategoriList = [] }) {
   const [sku, setSku] = useState('');
   const [nama, setNama] = useState('');
-  const [kategori, setKategori] = useState('Roti Manis');
-  const [harga, setHarga] = useState(15000);
+  const [kategori, setKategori] = useState('Sosis');
+  const [harga, setHarga] = useState(0);
   const [stok, setStok] = useState(0);
 
   useEffect(() => {
     if (editingItem) {
       setSku(editingItem.sku || '');
       setNama(editingItem.nama || '');
-      setKategori(editingItem.kategori || (kategoriList[0]?.nama || 'Roti Manis'));
-      setHarga(editingItem.harga || 15000);
+      setKategori(editingItem.kategori || (kategoriList[0]?.nama || 'Sosis'));
+      setHarga(editingItem.harga || 0);
       setStok(editingItem.stok || 0);
     } else {
-      setSku('PRD-' + Math.floor(100 + Math.random() * 900));
+      setSku('');
       setNama('');
-      setKategori(kategoriList[0]?.nama || 'Roti Manis');
-      setHarga(18000);
-      setStok(20);
+      setKategori(kategoriList[0]?.nama || 'Sosis');
+      setHarga(0);
+      setStok(0);
     }
   }, [editingItem, isOpen, kategoriList]);
 
@@ -242,11 +242,11 @@ export function ModalProduk({ isOpen, onClose, onSave, editingItem, kategoriList
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1rem' }}>
               <div className="form-group">
                 <label>SKU Kode *</label>
-                <input type="text" className="form-control" value={sku} onChange={e => setSku(e.target.value)} required />
+                <input type="text" className="form-control" placeholder="PR1" required />
               </div>
               <div className="form-group">
                 <label>Nama Produk Jadi *</label>
-                <input type="text" className="form-control" placeholder="Misal: Roti Keju Spesial..." value={nama} onChange={e => setNama(e.target.value)} required />
+                <input type="text" className="form-control" placeholder="Misal: RCS..." value={nama} onChange={e => setNama(e.target.value)} required />
               </div>
             </div>
 
