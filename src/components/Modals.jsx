@@ -277,7 +277,8 @@ export function ModalProduk({ isOpen, onClose, onSave, editingItem, kategoriList
 
 export function ModalProduksi({ isOpen, onClose, onExecute, produkList, bahanList, resep, defaultProdukId }) {
   const [selectedProdukId, setSelectedProdukId] = useState(defaultProdukId || produkList[0]?.id || '');
-  const [targetQty, setTargetQty] = useState(25);
+  const [targetQty, setTargetQty] = useState(0);
+  const [tanggal, setTanggal] = useState(new Date().toISOString().split('T')[0]);
 
   useEffect(() => {
     if (defaultProdukId) {
@@ -285,6 +286,8 @@ export function ModalProduksi({ isOpen, onClose, onExecute, produkList, bahanLis
     } else if (produkList.length > 0) {
       setSelectedProdukId(produkList[0].id);
     }
+    setTargetQty(0);
+    setTanggal(new Date().toISOString().split('T')[0]);
   }, [defaultProdukId, produkList, isOpen]);
 
   if (!isOpen) return null;
@@ -294,12 +297,12 @@ export function ModalProduksi({ isOpen, onClose, onExecute, produkList, bahanLis
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!selectedProdukId || targetQty <= 0) {
-      alert('Pilih produk dan tentukan jumlah target produksi!');
+    if (!selectedProdukId || Number(targetQty) <= 0) {
+      alert('Pilih produk dan tentukan jumlah target produksi (>0)!');
       return;
     }
 
-    onExecute({ produkId: selectedProdukId, targetQty: Number(targetQty) });
+    onExecute({ produkId: selectedProdukId, targetQty: Number(targetQty), tanggal });
   };
 
   return (
@@ -311,20 +314,25 @@ export function ModalProduksi({ isOpen, onClose, onExecute, produkList, bahanLis
         </div>
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem', marginBottom: '0.85rem' }}>
               <div className="form-group" style={{ marginBottom: 0 }}>
-                <label>Pilih Varian Produk Jadi *</label>
-                <select className="select-input" value={selectedProdukId} onChange={e => setSelectedProdukId(e.target.value)}>
-                  {produkList.map(p => (
-                    <option key={p.id} value={p.id}>{p.sku} - {p.nama} (Stok Saat Ini: {p.stok} Batch)</option>
-                  ))}
-                </select>
+                <label>Tanggal Pemrosesan Produksi *</label>
+                <input type="date" className="form-control" value={tanggal} onChange={e => setTanggal(e.target.value)} required />
               </div>
 
               <div className="form-group" style={{ marginBottom: 0 }}>
-                <label>Jumlah Batch *</label>
+                <label>Jumlah Target Batch *</label>
                 <input type="number" className="form-control" value={targetQty} onChange={e => setTargetQty(e.target.value)} min="1" required />
               </div>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: '1rem' }}>
+              <label>Pilih Varian Produk Jadi *</label>
+              <select className="select-input" value={selectedProdukId} onChange={e => setSelectedProdukId(e.target.value)}>
+                {produkList.map(p => (
+                  <option key={p.id} value={p.id}>{p.sku} - {p.nama} (Stok Saat Ini: {p.stok} Batch)</option>
+                ))}
+              </select>
             </div>
 
             {/* Simulated Material Consumption Preview */}
