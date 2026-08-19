@@ -277,23 +277,22 @@ export default function App() {
     setAlertState(prev => ({ ...prev, isOpen: false }));
   };
 
-  const [isLoadingData, setIsLoadingData] = useState(true);
+  const [isLoadingData, setIsLoadingData] = useState(false);
 
-  // Sync Data from Backend API (Realtime Sync & Mount)
-  const fetchAllDataFromBackend = async (silent = false) => {
+  // Sync Data from Backend API (Fast Single-Batch Parallel Fetch & Silent Background Refresh)
+  const fetchAllDataFromBackend = async (silent = true) => {
     if (!silent) setIsLoadingData(true);
     try {
-      const [uRes, kpRes, kbRes, bRes, pRes, rRes, prodRes, logRes, utgRes, supRes] = await Promise.all([
-        getUsersApi(),
-        getKategoriProdukApi(),
-        getKategoriBahanBakuApi(),
-        getBahanBakuApi(),
-        getProdukApi(),
-        getResepApi(),
-        getRiwayatProduksiApi(),
-        getAuditLogApi(),
-        getUtangSupplierApi(),
-        getSuppliersApi()
+      const [
+        uRes, kpRes, kbRes, bRes, pRes, rRes, prodRes, logRes, utgRes, supRes,
+        pjRes, mktRes, psRes, brRes, kpsRes, pelRes, pmRes, absRes, estRes
+      ] = await Promise.all([
+        getUsersApi(), getKategoriProdukApi(), getKategoriBahanBakuApi(),
+        getBahanBakuApi(), getProdukApi(), getResepApi(), getRiwayatProduksiApi(),
+        getAuditLogApi(), getUtangSupplierApi(), getSuppliersApi(),
+        getPenjualanApi(), getMarketingApi(), getProdukSalesApi(),
+        getBrandProdukApi(), getKategoriProdukSalesApi(), getPelangganApi(),
+        getPembayaranMasukApi(), getAbsensiApi(), getEstimasiPOApi()
       ]);
 
       if (uRes?.success && Array.isArray(uRes.data)) {
@@ -324,32 +323,25 @@ export default function App() {
         const cleaned = (supRes.data || []).filter(x => !['sup_1', 'sup_2', 'sup_3', 'sup_4', 'sup_5'].includes(x.id) && !sampleNames.includes(x.nama));
         setSuppliersList(cleaned);
       }
-
-      // Fetch domain produk data
-      try {
-        const [pjRes, mktRes, psRes, brRes, kpsRes, pelRes, pmRes, absRes, estRes] = await Promise.all([
-          getPenjualanApi(), getMarketingApi(), getProdukSalesApi(), getBrandProdukApi(), getKategoriProdukSalesApi(), getPelangganApi(), getPembayaranMasukApi(), getAbsensiApi(), getEstimasiPOApi()
-        ]);
-        if (pjRes?.success) setPenjualanList(pjRes.data || []);
-        if (mktRes?.success) setMarketingList(mktRes.data || []);
-        if (psRes?.success) setProdukSalesList(psRes.data || []);
-        if (pelRes?.success) setPelangganList(pelRes.data || []);
-        if (pmRes?.success) setPembayaranMasukList(pmRes.data || []);
-        if (absRes?.success) setAbsensiList(absRes.data || []);
-        if (estRes?.success) setEstimasiPOList(estRes.data || []);
-        if (brRes?.success && (brRes.data || []).length > 0) {
-          const cleanedBr = (brRes.data || []).filter(b => !['Saren Bakery', 'Saren Frozen', 'Dapur Saren', 'Saren One Original'].includes(b.nama));
-          if (cleanedBr.length > 0) setBrandList(cleanedBr);
-        }
-        if (kpsRes?.success && (kpsRes.data || []).length > 0) setKategoriSalesList(kpsRes.data);
-      } catch (e) { /* ignore produk domain fetch errors */ }
+      if (pjRes?.success) setPenjualanList(pjRes.data || []);
+      if (mktRes?.success) setMarketingList(mktRes.data || []);
+      if (psRes?.success) setProdukSalesList(psRes.data || []);
+      if (pelRes?.success) setPelangganList(pelRes.data || []);
+      if (pmRes?.success) setPembayaranMasukList(pmRes.data || []);
+      if (absRes?.success) setAbsensiList(absRes.data || []);
+      if (estRes?.success) setEstimasiPOList(estRes.data || []);
+      if (brRes?.success && (brRes.data || []).length > 0) {
+        const cleanedBr = (brRes.data || []).filter(b => !['Saren Bakery', 'Saren Frozen', 'Dapur Saren', 'Saren One Original'].includes(b.nama));
+        if (cleanedBr.length > 0) setBrandList(cleanedBr);
+      }
+      if (kpsRes?.success && (kpsRes.data || []).length > 0) setKategoriSalesList(kpsRes.data);
 
       setBackendConnected(true);
     } catch (err) {
-      if (!silent) console.warn('Backend API Offline, menggunakan LocalStorage:', err);
+      if (!silent) console.warn('Backend API Sync note:', err.message);
       setBackendConnected(false);
     } finally {
-      if (!silent) setIsLoadingData(false);
+      setIsLoadingData(false);
     }
   };
 
