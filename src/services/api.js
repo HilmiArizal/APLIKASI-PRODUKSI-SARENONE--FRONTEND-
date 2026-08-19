@@ -549,5 +549,31 @@ export async function clearAllAbsensiApi() {
   });
 }
 
+// 18. ESTIMASI PO (PURCHASE ORDER ESTIMATION)
+export async function getEstimasiPOApi() {
+  return request('/estimasi-po');
+}
+
+export async function createEstimasiPOApi(data, activeUser) {
+  return request('/estimasi-po', {
+    method: 'POST',
+    body: JSON.stringify({ ...data, user: activeUser })
+  });
+}
+
+export async function updateEstimasiPOStatusApi(id, status, activeUser) {
+  return request(`/estimasi-po/${id}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status, user: activeUser })
+  });
+}
+
+export async function deleteEstimasiPOApi(id, activeUser) {
+  return request(`/estimasi-po/${id}`, {
+    method: 'DELETE',
+    body: JSON.stringify({ user: activeUser })
+  });
+}
+
 
 

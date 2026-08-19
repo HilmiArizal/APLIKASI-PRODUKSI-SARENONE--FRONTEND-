@@ -27,6 +27,7 @@ import PelangganTab from './components/PelangganTab';
 import PiutangPelangganTab from './components/PiutangPelangganTab';
 import PembayaranMasukTab from './components/PembayaranMasukTab';
 import AbsensiTab from './components/AbsensiTab';
+import EstimasiPOTab from './components/EstimasiPOTab';
 import { Smartphone } from 'lucide-react';
 
 import {
@@ -135,7 +136,11 @@ import {
   deletePembayaranMasukApi,
   getAbsensiApi,
   deleteAbsensiApi,
-  clearAllAbsensiApi
+  clearAllAbsensiApi,
+  getEstimasiPOApi,
+  createEstimasiPOApi,
+  updateEstimasiPOStatusApi,
+  deleteEstimasiPOApi
 } from './services/api';
 
 const STORAGE_KEYS = {
@@ -200,6 +205,7 @@ export default function App() {
   const [pelangganList, setPelangganList] = useState(() => safeGetStorage(STORAGE_KEYS.PELANGGAN, []));
   const [pembayaranMasukList, setPembayaranMasukList] = useState([]);
   const [absensiList, setAbsensiList] = useState([]);
+  const [estimasiPOList, setEstimasiPOList] = useState([]);
   const [marketingList, setMarketingList] = useState([]);
   const [produkSalesList, setProdukSalesList] = useState([]);
   const [brandList, setBrandList] = useState([
@@ -321,8 +327,8 @@ export default function App() {
 
       // Fetch domain produk data
       try {
-        const [pjRes, mktRes, psRes, brRes, kpsRes, pelRes, pmRes, absRes] = await Promise.all([
-          getPenjualanApi(), getMarketingApi(), getProdukSalesApi(), getBrandProdukApi(), getKategoriProdukSalesApi(), getPelangganApi(), getPembayaranMasukApi(), getAbsensiApi()
+        const [pjRes, mktRes, psRes, brRes, kpsRes, pelRes, pmRes, absRes, estRes] = await Promise.all([
+          getPenjualanApi(), getMarketingApi(), getProdukSalesApi(), getBrandProdukApi(), getKategoriProdukSalesApi(), getPelangganApi(), getPembayaranMasukApi(), getAbsensiApi(), getEstimasiPOApi()
         ]);
         if (pjRes?.success) setPenjualanList(pjRes.data || []);
         if (mktRes?.success) setMarketingList(mktRes.data || []);
@@ -330,6 +336,7 @@ export default function App() {
         if (pelRes?.success) setPelangganList(pelRes.data || []);
         if (pmRes?.success) setPembayaranMasukList(pmRes.data || []);
         if (absRes?.success) setAbsensiList(absRes.data || []);
+        if (estRes?.success) setEstimasiPOList(estRes.data || []);
         if (brRes?.success && (brRes.data || []).length > 0) {
           const cleanedBr = (brRes.data || []).filter(b => !['Saren Bakery', 'Saren Frozen', 'Dapur Saren', 'Saren One Original'].includes(b.nama));
           if (cleanedBr.length > 0) setBrandList(cleanedBr);
@@ -408,17 +415,17 @@ export default function App() {
         setActiveTab('pembelian-bahan');
       }
     } else if (activeRoleView === 'BAHAN_BAKU') {
-      const allowed = ['dashboard', 'bahan-baku', 'penerimaan-bahan', 'emulsi', 'produk', 'resep', 'pemakaian-kemasan', 'riwayat-produksi'];
+      const allowed = ['dashboard', 'bahan-baku', 'penerimaan-bahan', 'emulsi', 'produk', 'resep', 'pemakaian-kemasan', 'riwayat-produksi', 'estimasi-po'];
       if (!allowed.includes(activeTab)) {
         setActiveTab('bahan-baku');
       }
     } else if (activeRoleView === 'ADMIN_PRODUK') {
-      const allowed = ['dashboard-produk', 'katalog-produk', 'stok-produk', 'pelanggan', 'piutang-pelanggan', 'pembayaran-masuk', 'kategori-produk-sales', 'penjualan', 'marketing', 'user-approval-produk', 'audit-log-produk', 'absensi-spg'];
+      const allowed = ['dashboard-produk', 'katalog-produk', 'stok-produk', 'pelanggan', 'piutang-pelanggan', 'pembayaran-masuk', 'kategori-produk-sales', 'penjualan', 'marketing', 'user-approval-produk', 'audit-log-produk', 'absensi-spg', 'estimasi-po'];
       if (!allowed.includes(activeTab)) {
         setActiveTab('dashboard-produk');
       }
     } else if (activeRoleView === 'TIM_PENJUALAN') {
-      const allowed = ['dashboard-produk', 'katalog-produk', 'stok-produk', 'pelanggan', 'piutang-pelanggan', 'pembayaran-masuk', 'kategori-produk-sales', 'penjualan'];
+      const allowed = ['dashboard-produk', 'katalog-produk', 'stok-produk', 'pelanggan', 'piutang-pelanggan', 'pembayaran-masuk', 'kategori-produk-sales', 'penjualan', 'estimasi-po'];
       if (!allowed.includes(activeTab)) {
         setActiveTab('dashboard-produk');
       }
@@ -1519,6 +1526,48 @@ export default function App() {
     showAlert('Pelanggan berhasil dihapus!', 'info');
   };
 
+  // Estimasi PO Handlers
+  const handleCreateEstimasiPO = async (poData) => {
+    try {
+      const res = await createEstimasiPOApi(poData, activeUser);
+      if (res?.success) {
+        showAlert(res.message || 'Estimasi PO berhasil diajukan! 🎉', 'success', 'Estimasi PO Diajukan! 📋');
+        fetchAllDataFromBackend(true);
+        return;
+      }
+      showAlert(res?.message || 'Gagal mengajukan estimasi PO.', 'error', 'Error Estimasi PO');
+    } catch (err) {
+      showAlert('Terjadi kesalahan: ' + err.message, 'error', 'System Error');
+    }
+  };
+
+  const handleUpdateStatusEstimasiPO = async (id, status) => {
+    try {
+      const res = await updateEstimasiPOStatusApi(id, status, activeUser);
+      if (res?.success) {
+        showAlert(res.message || 'Status PO berhasil diperbarui!', 'success', 'Status PO Diubah 📋');
+        fetchAllDataFromBackend(true);
+        return;
+      }
+      showAlert(res?.message || 'Gagal mengubah status PO.', 'error', 'Error Status');
+    } catch (err) {
+      showAlert('Terjadi kesalahan: ' + err.message, 'error', 'System Error');
+    }
+  };
+
+  const handleDeleteEstimasiPO = async (id) => {
+    try {
+      const res = await deleteEstimasiPOApi(id, activeUser);
+      if (res?.success) {
+        showAlert(res.message || 'Estimasi PO berhasil dihapus!', 'info');
+        fetchAllDataFromBackend(true);
+        return;
+      }
+    } catch { /* ignore */ }
+    setEstimasiPOList(prev => prev.filter(p => p.id !== id && p._id !== id && p.noEstimasi !== id));
+    showAlert('Estimasi PO dihapus!', 'info');
+  };
+
   // Pembayaran Masuk Handlers
   const handleCreatePembayaranMasuk = async (data) => {
     try {
@@ -1871,6 +1920,26 @@ export default function App() {
               onCreatePenjualan={handleCreatePenjualan}
               onUpdatePenjualan={handleUpdatePenjualan}
               onDeletePenjualan={handleDeletePenjualan}
+              showAlert={showAlert}
+            />
+          )}
+
+          {activeTab === 'estimasi-po' && (
+            <EstimasiPOTab
+              estimasiPOList={estimasiPOList}
+              produk={produk}
+              bahanBaku={bahanBaku}
+              resep={resep}
+              pelangganList={pelangganList}
+              activeUser={activeUser}
+              activeRoleView={activeRoleView}
+              onCreateEstimasiPO={handleCreateEstimasiPO}
+              onUpdateStatusPO={handleUpdateStatusEstimasiPO}
+              onDeletePO={handleDeleteEstimasiPO}
+              onOpenModalProduksi={(pId) => {
+                setSelectedProduksiId(pId);
+                setIsModalProduksiOpen(true);
+              }}
               showAlert={showAlert}
             />
           )}

@@ -95,6 +95,9 @@ export default function Sidebar({ activeUser, activeRoleView, activeTab, onSwitc
 
               {showProdukMenu && (
                 <>
+                  <a href="#estimasi-po" className={mi('estimasi-po')} onClick={e => { e.preventDefault(); nav('estimasi-po'); }}>
+                    <FileText size={18} /><span>Estimasi PO (Pesanan)</span>
+                  </a>
                   <a href="#produk" className={mi('produk')} onClick={e => { e.preventDefault(); nav('produk'); }}>
                     <Package size={18} /><span>Katalog &amp; Produksi</span>
                   </a>
@@ -161,6 +164,9 @@ export default function Sidebar({ activeUser, activeRoleView, activeTab, onSwitc
 
               {showPenjualan && (
                 <>
+                  <a href="#estimasi-po" className={mi('estimasi-po')} onClick={e => { e.preventDefault(); nav('estimasi-po'); }}>
+                    <FileText size={18} /><span>Estimasi PO (Pesanan)</span>
+                  </a>
                   <a href="#penjualan" className={mi('penjualan')} onClick={e => { e.preventDefault(); nav('penjualan'); }}>
                     <TrendingUp size={18} /><span>Data Penjualan</span>
                   </a>
