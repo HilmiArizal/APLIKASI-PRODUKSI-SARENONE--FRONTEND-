@@ -355,11 +355,37 @@ export default function App() {
 
   useEffect(() => {
     fetchAllDataFromBackend();
-    // Realtime 5-second background polling auto-sync (Tanpa reload!)
-    const syncTimer = setInterval(() => {
-      fetchAllDataFromBackend(true);
-    }, 5000);
-    return () => clearInterval(syncTimer);
+
+    let syncTimer = null;
+
+    const startSmartPolling = () => {
+      if (syncTimer) clearInterval(syncTimer);
+      // Smart 20-second background polling (Menghemat 75% Bandwidth & Request Vercel)
+      syncTimer = setInterval(() => {
+        if (!document.hidden) {
+          fetchAllDataFromBackend(true);
+        }
+      }, 20000);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // Tab ditinggalkan / di-minimize / locked: Stop polling 100% (0 KB Bandwidth)
+        if (syncTimer) clearInterval(syncTimer);
+      } else {
+        // Tab aktif kembali: Refresh data 1x lalu jalankan smart polling 20s
+        fetchAllDataFromBackend(true);
+        startSmartPolling();
+      }
+    };
+
+    startSmartPolling();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      if (syncTimer) clearInterval(syncTimer);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   // Save to LocalStorage Backup
