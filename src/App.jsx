@@ -28,7 +28,7 @@ import PiutangPelangganTab from './components/PiutangPelangganTab';
 import PembayaranMasukTab from './components/PembayaranMasukTab';
 import AbsensiTab from './components/AbsensiTab';
 import EstimasiPOTab from './components/EstimasiPOTab';
-import { Smartphone } from 'lucide-react';
+import { Smartphone, LogOut } from 'lucide-react';
 
 import {
   ModalBahan,
