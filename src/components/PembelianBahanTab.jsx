@@ -169,23 +169,41 @@ export default function PembelianBahanTab({
         </div> */}
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-          {/* Month Selector Dropdown (Full 12 Months) */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.35rem 0.75rem' }}>
-            <Calendar size={16} style={{ color: 'var(--primary)' }} />
-            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)' }}>Periode:</span>
-            <select
-              className="select-input"
-              style={{ background: 'transparent', border: 'none', color: '#fff', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', padding: '0.2rem 0.4rem' }}
-              value={selectedMonth}
-              onChange={e => setSelectedMonth(e.target.value)}
+          {/* Month Selector Filter Control (Matching Utang Supplier design) */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <Calendar size={15} style={{ color: 'var(--primary)' }} /> Periode Bulan:
+            </span>
+            <input
+              type="month"
+              style={{
+                background: 'rgba(15, 23, 42, 0.85)',
+                border: '1px solid var(--primary)',
+                color: '#f8fafc',
+                borderRadius: 'var(--radius-sm)',
+                padding: '0.45rem 0.75rem',
+                fontSize: '0.85rem',
+                fontWeight: '700',
+                outline: 'none',
+                cursor: 'pointer'
+              }}
+              value={(selectedMonth === 'semua' || selectedMonth === 'ALL') ? currentYM : selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+            />
+
+            <button
+              className={`btn btn-sm ${selectedMonth === currentYM ? 'btn-primary' : 'btn-outline'}`}
+              onClick={() => setSelectedMonth(currentYM)}
             >
-              <option value="semua" style={{ background: '#1e293b' }}>🌐 Semua Periode (All Time)</option>
-              {full12MonthsOptions.map(ym => (
-                <option key={ym} value={ym} style={{ background: '#1e293b' }}>
-                  📅 {formatMonthLabel(ym)} {ym === currentYM ? '(Bulan Berjalan)' : ''}
-                </option>
-              ))}
-            </select>
+              Bulan Berjalan
+            </button>
+
+            <button
+              className={`btn btn-sm ${(selectedMonth === 'semua' || selectedMonth === 'ALL') ? 'btn-primary' : 'btn-outline'}`}
+              onClick={() => setSelectedMonth('semua')}
+            >
+              Semua Periode
+            </button>
           </div>
 
           {canManage && (
