@@ -64,10 +64,11 @@ export default function DashboardTab({
     return Object.values(map).sort((a, b) => b.tanggal.localeCompare(a.tanggal));
   }, [riwayatProduksi]);
 
-  // ===== GRAFIK STOK VS PEMAKAIAN BAHAN BAKU PER HARI (LAST 7 DAYS) =====
+  // ===== GRAFIK STOK VS PEMAKAIAN BAHAN BAKU PER HARI (FULL 1 BULAN / 30 HARI) =====
   const dailyStockUsageChartData = useMemo(() => {
-    const last7Days = [];
-    for (let i = 6; i >= 0; i--) {
+    const daysInMonth = [];
+    const daysCount = 30; // Full 30 days of 1 month
+    for (let i = daysCount - 1; i >= 0; i--) {
       const d = new Date(now);
       d.setDate(now.getDate() - i);
       const yyyy = d.getFullYear();
@@ -75,12 +76,12 @@ export default function DashboardTab({
       const dd = String(d.getDate()).padStart(2, '0');
       const dateStr = `${yyyy}-${mm}-${dd}`;
       const dayLabel = `${dd}/${mm}`;
-      last7Days.push({ dateStr, dayLabel });
+      daysInMonth.push({ dateStr, dayLabel });
     }
 
     const totalCurrentStockQty = (bahanBaku || []).reduce((sum, b) => sum + (Number(b.stok) || 0), 0);
 
-    const chartData = last7Days.map(({ dateStr, dayLabel }) => {
+    const chartData = daysInMonth.map(({ dateStr, dayLabel }) => {
       let dailyUsageQty = 0;
       (riwayatProduksi || []).forEach(r => {
         const rDate = (r.timestamp || r.tanggal || '').substring(0, 10);
@@ -389,26 +390,26 @@ export default function DashboardTab({
           </div>
         </div>
 
-        {/* DUAL BAR CHART GRAPH */}
-        <div style={{ background: 'rgba(15, 23, 42, 0.65)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1.5rem 1rem 1rem 1rem' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-around', height: '220px', gap: '0.75rem', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-color)' }}>
+        {/* DUAL BAR CHART GRAPH (FULL 30 DAYS / 1 BULAN SCROLLABLE) */}
+        <div style={{ background: 'rgba(15, 23, 42, 0.65)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1.5rem 1rem 1rem 1rem', overflowX: 'auto' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', height: '220px', minWidth: '950px', gap: '0.35rem', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-color)' }}>
             {dailyStockUsageChartData.chartData.map(item => {
               const stockHeight = item.stockQty > 0 ? Math.max(15, Math.round((item.stockQty / dailyStockUsageChartData.maxVal) * 100)) : 8;
               const usageHeight = item.usageQty > 0 ? Math.max(15, Math.round((item.usageQty / (dailyStockUsageChartData.maxVal / 2)) * 100)) : 8;
 
               return (
-                <div key={item.dateStr} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
+                <div key={item.dateStr} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', minWidth: '26px' }}>
                   {/* Bars Container */}
-                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: '0.35rem', width: '100%', justifyContent: 'center', height: '85%' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: '2px', width: '100%', justifyContent: 'center', height: '85%' }}>
                     {/* Stock Bar */}
                     <div
                       style={{
-                        width: '38%',
-                        maxWidth: '28px',
+                        width: '45%',
+                        maxWidth: '14px',
                         height: `${stockHeight}%`,
                         background: 'linear-gradient(180deg, #38bdf8 0%, #0284c7 100%)',
-                        borderRadius: '4px 4px 0 0',
-                        boxShadow: item.isToday ? '0 0 12px rgba(56, 189, 248, 0.4)' : 'none',
+                        borderRadius: '3px 3px 0 0',
+                        boxShadow: item.isToday ? '0 0 10px rgba(56, 189, 248, 0.5)' : 'none',
                         transition: 'all 0.3s ease',
                         cursor: 'pointer'
                       }}
@@ -417,12 +418,12 @@ export default function DashboardTab({
                     {/* Usage Bar */}
                     <div
                       style={{
-                        width: '38%',
-                        maxWidth: '28px',
+                        width: '45%',
+                        maxWidth: '14px',
                         height: `${usageHeight}%`,
                         background: item.usageQty > 0 ? 'linear-gradient(180deg, #f43f5e 0%, #be123c 100%)' : 'rgba(148, 163, 184, 0.2)',
-                        borderRadius: '4px 4px 0 0',
-                        boxShadow: item.usageQty > 0 ? '0 0 12px rgba(244, 63, 94, 0.4)' : 'none',
+                        borderRadius: '3px 3px 0 0',
+                        boxShadow: item.usageQty > 0 ? '0 0 10px rgba(244, 63, 94, 0.5)' : 'none',
                         transition: 'all 0.3s ease',
                         cursor: 'pointer'
                       }}
@@ -431,8 +432,8 @@ export default function DashboardTab({
                   </div>
 
                   {/* Date Label X-Axis */}
-                  <div style={{ fontSize: '0.75rem', fontWeight: item.isToday ? 800 : 600, color: item.isToday ? 'var(--cyan)' : 'var(--text-muted)', marginTop: '0.6rem' }}>
-                    {item.dayLabel} {item.isToday ? '(Hari ini)' : ''}
+                  <div style={{ fontSize: '0.68rem', fontWeight: item.isToday ? 800 : 500, color: item.isToday ? 'var(--cyan)' : 'var(--text-muted)', marginTop: '0.5rem', whiteSpace: 'nowrap' }}>
+                    {item.dayLabel}
                   </div>
                 </div>
               );
