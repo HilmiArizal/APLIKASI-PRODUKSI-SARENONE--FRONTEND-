@@ -484,6 +484,17 @@ export default function App() {
   // Auth Handlers
   const handleLogin = async (usernameOrEmail, password) => {
     const res = await loginApi(usernameOrEmail, password);
+
+    // Dual Device Concurrent Login Prevention Check
+    if (res?.isAlreadyLoggedIn) {
+      showAlert(
+        res.message || 'Akun Anda sedang aktif digunakan di perangkat lain! Silakan logout dari perangkat tersebut terlebih dahulu.',
+        'error',
+        '⚠️ Akses Login Ditolak (Dual Device Warning)'
+      );
+      return;
+    }
+
     let targetUser = res?.user || res?.data;
     if (res?.success && targetUser) {
       try {
@@ -564,7 +575,7 @@ export default function App() {
     return { success: true };
   };
 
-  const handleLogout = async () => {
+  const handleLogout = async (isIdle = false) => {
     if (activeUser) {
       try {
         await logoutApi(activeUser);
@@ -574,8 +585,46 @@ export default function App() {
     }
     setActiveUser(null);
     setActiveTab('dashboard');
+    if (isIdle) {
+      showAlert(
+        'Sesi login Anda telah otomatis berakhir karena tidak ada aktivitas selama 30 menit. Silakan login kembali.',
+        'warning',
+        '⏱️ Auto Logout (Tidak Ada Aktivitas)'
+      );
+    } else {
+      showAlert('Anda telah berhasil keluar (logout).', 'info', 'Logout Berhasil');
+    }
     fetchAllDataFromBackend();
   };
+
+  // ===== 30-MINUTE INACTIVITY IDLE AUTO LOGOUT =====
+  useEffect(() => {
+    if (!activeUser) return;
+
+    let idleTimer = null;
+    const IDLE_TIMEOUT_MS = 30 * 60 * 1000; // 30 Menit (1.800.000 ms)
+
+    const resetIdleTimer = () => {
+      if (idleTimer) clearTimeout(idleTimer);
+      idleTimer = setTimeout(() => {
+        handleLogout(true); // Auto logout due to 30 min idle inactivity
+      }, IDLE_TIMEOUT_MS);
+    };
+
+    const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+    activityEvents.forEach(evt => {
+      window.addEventListener(evt, resetIdleTimer);
+    });
+
+    resetIdleTimer();
+
+    return () => {
+      if (idleTimer) clearTimeout(idleTimer);
+      activityEvents.forEach(evt => {
+        window.removeEventListener(evt, resetIdleTimer);
+      });
+    };
+  }, [activeUser]);
 
   // User Approval Handlers
   const handleApproveUser = async (userId, assignedRole) => {
