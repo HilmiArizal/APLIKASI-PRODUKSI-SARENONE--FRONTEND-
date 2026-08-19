@@ -44,6 +44,7 @@ export default function UtangSupplierTab({
     if (nama) {
       supplierAccountingMap[nama] = {
         nama,
+        kode: sup.kode || '',
         saldoAwal: 0,
         kredit: 0,
         debit: 0,
@@ -181,9 +182,22 @@ export default function UtangSupplierTab({
     }
   };
 
+  const parseCodeNumber = (str) => {
+    if (!str) return 999999;
+    const match = String(str).match(/\d+/);
+    return match ? parseInt(match[0], 10) : 999999;
+  };
+
   const sortedSuppliersList = Object.values(supplierAccountingMap).sort((a, b) => {
     if (b.saldoAkhir !== a.saldoAkhir) return b.saldoAkhir - a.saldoAkhir;
-    return a.nama.localeCompare(b.nama);
+
+    const kodeA = a.kode || a.nama || '';
+    const kodeB = b.kode || b.nama || '';
+    const numA = parseCodeNumber(kodeA);
+    const numB = parseCodeNumber(kodeB);
+    if (numA !== numB) return numA - numB;
+
+    return kodeA.localeCompare(kodeB, undefined, { numeric: true, sensitivity: 'base' });
   });
 
   return (
@@ -382,7 +396,10 @@ export default function UtangSupplierTab({
                 className={hasActiveDebt ? 'supplier-card-hover' : ''}
               >
                 <div style={{ marginBottom: '0.6rem' }}>
-                  <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-main)' }}>{sup.nama}</div>
+                  <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    {sup.kode && <span style={{ background: 'rgba(245, 158, 11, 0.15)', color: 'var(--amber)', fontSize: '0.75rem', fontWeight: 800, padding: '0.1rem 0.45rem', borderRadius: '4px', border: '1px solid rgba(245,158,11,0.3)' }}>{sup.kode}</span>}
+                    <span>{sup.nama}</span>
+                  </div>
                   <div className="text-muted" style={{ fontSize: '0.72rem', marginTop: '0.15rem' }}>
                     {sup.fakturCount > 0 ? `${sup.fakturCount} faktur transaksi` : 'Belum ada transaksi'}
                   </div>
