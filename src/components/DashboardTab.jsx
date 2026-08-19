@@ -392,9 +392,9 @@ export default function DashboardTab({
           </div>
         </div>
 
-        {/* DUAL BAR CHART GRAPH (FULL 30 DAYS / 1 BULAN SCROLLABLE) */}
+        {/* DUAL BAR CHART GRAPH (FULL MONTHLY CALENDAR SCROLLABLE) */}
         <div style={{ background: 'rgba(15, 23, 42, 0.65)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1.5rem 1rem 1rem 1rem', overflowX: 'auto' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', height: '220px', minWidth: '950px', gap: '0.35rem', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-color)' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', height: '220px', minWidth: '950px', gap: '0.35rem', paddingBottom: '0.75rem', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
             {dailyStockUsageChartData.chartData.map(item => {
               const stockHeight = item.stockQty > 0 ? Math.max(15, Math.round((item.stockQty / dailyStockUsageChartData.maxVal) * 100)) : 8;
               const usageHeight = item.usageQty > 0 ? Math.max(15, Math.round((item.usageQty / (dailyStockUsageChartData.maxVal / 2)) * 100)) : 8;
@@ -402,7 +402,7 @@ export default function DashboardTab({
               return (
                 <div key={item.dateStr} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', minWidth: '26px' }}>
                   {/* Bars Container */}
-                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: '2px', width: '100%', justifyContent: 'center', height: '85%' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: '2px', width: '100%', justifyContent: 'center', height: '78%' }}>
                     {/* Stock Bar */}
                     <div
                       style={{
@@ -415,7 +415,7 @@ export default function DashboardTab({
                         transition: 'all 0.3s ease',
                         cursor: 'pointer'
                       }}
-                      title={`Tgl ${item.dayLabel}: Total Stok ${formatNumber(item.stockQty)} Items`}
+                      title={`Tanggal ${item.dayNum} ${dailyStockUsageChartData.currentMonthName}: Total Stok ${formatNumber(item.stockQty)} Items`}
                     />
                     {/* Usage Bar */}
                     <div
@@ -429,13 +429,39 @@ export default function DashboardTab({
                         transition: 'all 0.3s ease',
                         cursor: 'pointer'
                       }}
-                      title={`Tgl ${item.dayLabel}: Pemakaian Dapur ${formatNumber(item.usageQty)} Qty`}
+                      title={`Tanggal ${item.dayNum} ${dailyStockUsageChartData.currentMonthName}: Pemakaian Dapur ${formatNumber(item.usageQty)} Qty`}
                     />
                   </div>
 
-                  {/* Date Label X-Axis */}
-                  <div style={{ fontSize: '0.68rem', fontWeight: item.isToday ? 800 : 500, color: item.isToday ? 'var(--cyan)' : 'var(--text-muted)', marginTop: '0.5rem', whiteSpace: 'nowrap' }}>
-                    {item.dayLabel}
+                  {/* Date Pill Label X-Axis */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '0.65rem' }}>
+                    <div
+                      style={{
+                        fontSize: item.isToday ? '0.75rem' : '0.68rem',
+                        fontWeight: item.isToday ? 900 : 700,
+                        color: item.isToday ? '#0f172a' : (item.usageQty > 0 ? '#f8fafc' : 'var(--text-muted)'),
+                        background: item.isToday
+                          ? 'linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)'
+                          : (item.usageQty > 0 ? 'rgba(244, 63, 94, 0.25)' : 'rgba(30, 41, 59, 0.6)'),
+                        border: item.isToday
+                          ? '1px solid #38bdf8'
+                          : (item.usageQty > 0 ? '1px solid rgba(244, 63, 94, 0.45)' : '1px solid rgba(255,255,255,0.08)'),
+                        padding: item.isToday ? '0.12rem 0.45rem' : '0.08rem 0.32rem',
+                        borderRadius: '6px',
+                        boxShadow: item.isToday ? '0 0 10px rgba(56, 189, 248, 0.6)' : 'none',
+                        transition: 'all 0.2s ease',
+                        cursor: 'pointer',
+                        lineHeight: 1
+                      }}
+                      title={`Tanggal ${item.dayNum} ${dailyStockUsageChartData.currentMonthName}`}
+                    >
+                      {item.dayNum}
+                    </div>
+                    {item.isToday && (
+                      <span style={{ fontSize: '0.55rem', fontWeight: 800, color: 'var(--cyan)', marginTop: '0.2rem', textTransform: 'uppercase', letterSpacing: '0.3px', whiteSpace: 'nowrap' }}>
+                        Hari Ini
+                      </span>
+                    )}
                   </div>
                 </div>
               );
