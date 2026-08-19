@@ -64,24 +64,24 @@ export default function DashboardTab({
     return Object.values(map).sort((a, b) => b.tanggal.localeCompare(a.tanggal));
   }, [riwayatProduksi]);
 
-  // ===== GRAFIK STOK VS PEMAKAIAN BAHAN BAKU PER HARI (FULL 1 BULAN / 30 HARI) =====
+  // ===== GRAFIK STOK VS PEMAKAIAN BAHAN BAKU PER HARI (BULAN BERJALAN SAJA) =====
   const dailyStockUsageChartData = useMemo(() => {
-    const daysInMonth = [];
-    const daysCount = 30; // Full 30 days of 1 month
-    for (let i = daysCount - 1; i >= 0; i--) {
-      const d = new Date(now);
-      d.setDate(now.getDate() - i);
-      const yyyy = d.getFullYear();
-      const mm = String(d.getMonth() + 1).padStart(2, '0');
-      const dd = String(d.getDate()).padStart(2, '0');
-      const dateStr = `${yyyy}-${mm}-${dd}`;
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
+
+    const daysInCurrentMonth = [];
+    for (let day = 1; day <= lastDayOfMonth; day++) {
+      const dd = String(day).padStart(2, '0');
+      const mm = String(month + 1).padStart(2, '0');
+      const dateStr = `${year}-${mm}-${dd}`;
       const dayLabel = `${dd}/${mm}`;
-      daysInMonth.push({ dateStr, dayLabel });
+      daysInCurrentMonth.push({ dateStr, dayLabel, dayNum: day });
     }
 
     const totalCurrentStockQty = (bahanBaku || []).reduce((sum, b) => sum + (Number(b.stok) || 0), 0);
 
-    const chartData = daysInMonth.map(({ dateStr, dayLabel }) => {
+    const chartData = daysInCurrentMonth.map(({ dateStr, dayLabel, dayNum }) => {
       let dailyUsageQty = 0;
       (riwayatProduksi || []).forEach(r => {
         const rDate = (r.timestamp || r.tanggal || '').substring(0, 10);
@@ -99,6 +99,7 @@ export default function DashboardTab({
       return {
         dateStr,
         dayLabel,
+        dayNum,
         stockQty: totalCurrentStockQty,
         usageQty: Math.round(dailyUsageQty * 10) / 10,
         isToday: dateStr === todayStr
@@ -108,8 +109,9 @@ export default function DashboardTab({
     const maxStock = Math.max(...chartData.map(d => d.stockQty), 100);
     const maxUsage = Math.max(...chartData.map(d => d.usageQty), 10);
     const maxVal = Math.max(maxStock, maxUsage * 2);
+    const currentMonthName = now.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
 
-    return { chartData, maxVal, totalCurrentStockQty };
+    return { chartData, maxVal, totalCurrentStockQty, currentMonthName };
   }, [bahanBaku, riwayatProduksi, todayStr, now]);
 
   // Default: Filter by current running month (selectedMonth) plus search filter
@@ -373,10 +375,10 @@ export default function DashboardTab({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
           <div>
             <h3 style={{ fontSize: '1.15rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
-              <Activity size={20} style={{ color: 'var(--cyan)' }} /> Grafik Stok vs Pemakaian Bahan Baku Per Hari
+              <Activity size={20} style={{ color: 'var(--cyan)' }} /> Grafik Stok vs Pemakaian Bahan Baku (Bulan Berjalan: {dailyStockUsageChartData.currentMonthName})
             </h3>
             <p className="text-muted" style={{ fontSize: '0.8rem', marginTop: '0.2rem', margin: 0 }}>
-              Perbandingan total persediaan stok bahan baku gudang dengan tingkat pemakaian olahan dapur (7 Hari Terakhir).
+              Perbandingan total persediaan stok bahan baku gudang dengan tingkat pemakaian olahan dapur per hari di bulan berjalan.
             </p>
           </div>
 
