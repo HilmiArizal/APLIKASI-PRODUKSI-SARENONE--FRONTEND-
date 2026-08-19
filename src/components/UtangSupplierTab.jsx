@@ -34,8 +34,8 @@ export default function UtangSupplierTab({
 
   // ===== STANDARD ACCOUNTING CALCULATIONS (KREDIT = PENAMBAHAN UTANG, DEBIT = PEMBAYARAN UTANG) =====
   let globalSaldoAwal = 0;
-  let globalKredit = 0;
-  let globalDebit = 0;
+  let globalKredit = 0; // Kredit = Penambahan Utang (Faktur Pembelian Baru)
+  let globalDebit = 0;  // Debit = Pengurangan Utang (Pembayaran Cicilan/Pelunasan)
   let globalSaldoAkhir = 0;
 
   const supplierAccountingMap = {};
@@ -77,13 +77,11 @@ export default function UtangSupplierTab({
       supplierAccountingMap[supNama].saldoAwal += 0;
       supplierAccountingMap[supNama].kredit += itemTotal;
       supplierAccountingMap[supNama].debit += itemPaidTotal;
-      supplierAccountingMap[supNama].saldoAkhir += itemSisa;
       supplierAccountingMap[supNama].fakturCount += 1;
       if (item.status !== 'LUNAS' && itemSisa > 0) supplierAccountingMap[supNama].fakturBelumLunas += 1;
 
       globalKredit += itemTotal;
       globalDebit += itemPaidTotal;
-      globalSaldoAkhir += itemSisa;
     } else {
       if (itemMonth && itemMonth < selectedMonth) {
         if (itemSisa > 0 || item.status !== 'LUNAS') {
@@ -96,7 +94,7 @@ export default function UtangSupplierTab({
         globalKredit += itemTotal;
 
         let paidThisMonth = itemPaidTotal;
-        if (item.riwayatPembayaran && Array.isArray(item.riwayatPembayaran)) {
+        if (item.riwayatPembayaran && Array.isArray(item.riwayatPembayaran) && item.riwayatPembayaran.length > 0) {
           paidThisMonth = item.riwayatPembayaran
             .filter(r => getMonthFromDateStr(r.tanggal) === selectedMonth)
             .reduce((sum, r) => sum + Number(r.jumlah || 0), 0);
@@ -104,22 +102,24 @@ export default function UtangSupplierTab({
         supplierAccountingMap[supNama].debit += paidThisMonth;
         globalDebit += paidThisMonth;
 
-        const sAkhirItem = itemTotal - paidThisMonth;
-        supplierAccountingMap[supNama].saldoAkhir += sAkhirItem;
-        if (sAkhirItem > 0) supplierAccountingMap[supNama].fakturBelumLunas += 1;
+        if (itemTotal - paidThisMonth > 0) supplierAccountingMap[supNama].fakturBelumLunas += 1;
       }
     }
   });
 
+  // Calculate final Saldo Akhir for each supplier: Saldo Awal + Kredit - Debit
   Object.values(supplierAccountingMap).forEach(sup => {
-    if (selectedMonth !== 'ALL') {
-      sup.saldoAkhir = cleanFloat(sup.saldoAwal + sup.kredit - sup.debit);
-    }
+    sup.saldoAwal = cleanFloat(sup.saldoAwal);
+    sup.kredit = cleanFloat(sup.kredit);
+    sup.debit = cleanFloat(sup.debit);
+    sup.saldoAkhir = cleanFloat(sup.saldoAwal + sup.kredit - sup.debit);
   });
 
-  globalSaldoAkhir = selectedMonth === 'ALL'
-    ? cleanFloat(globalSaldoAkhir)
-    : cleanFloat(globalSaldoAwal + globalKredit - globalDebit);
+  globalSaldoAwal = cleanFloat(globalSaldoAwal);
+  globalKredit = cleanFloat(globalKredit);
+  globalDebit = cleanFloat(globalDebit);
+  // STRICT ACCOUNTING EQUATION: Saldo Akhir = Saldo Awal + Kredit - Debit
+  globalSaldoAkhir = cleanFloat(globalSaldoAwal + globalKredit - globalDebit);
 
   // Filtered Items for Main Table
   const filteredList = utangList.filter(item => {
@@ -189,16 +189,16 @@ export default function UtangSupplierTab({
   return (
     <div className="tab-pane active" style={{ maxWidth: '100%', overflowX: 'hidden' }}>
       {/* ===== HEADER & PERIODE BULAN FILTER BAR ===== */}
-      <div style={{  marginBottom: '1.5rem' }}>
-        <div >
-          {/* <div>
+      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1.25rem', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+          <div>
             <h2 style={{ fontSize: '1.3rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
               <CreditCard size={22} style={{ color: 'var(--amber)' }} /> Jurnal Utang Supplier (Akuntansi)
             </h2>
             <p className="text-muted" style={{ fontSize: '0.82rem', marginTop: '0.2rem', marginBottom: 0 }}>
               Klik kartu supplier untuk membayar cicilan utang langsung. Rekapitulasi Saldo Awal, Kredit, Debit, dan Saldo Akhir.
             </p>
-          </div> */}
+          </div>
 
           {/* Month Selector Filter Control */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
@@ -301,7 +301,7 @@ export default function UtangSupplierTab({
           }}>
             Rp {formatNumber(globalKredit)}
           </div>
-          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Faktur pembelian baru</span>
+          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Faktur pembelian baru (Utang +)</span>
         </div>
 
         {/* Card 3: Debit (Pengurangan Utang / Pembayaran Pelunasan) */}
@@ -330,7 +330,7 @@ export default function UtangSupplierTab({
           }}>
             Rp {formatNumber(globalDebit)}
           </div>
-          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Total cicilan &amp; pelunasan</span>
+          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Total cicilan &amp; pelunasan (Utang -)</span>
         </div>
 
         {/* Card 4: Saldo Akhir Utang */}
@@ -360,7 +360,7 @@ export default function UtangSupplierTab({
             Rp {formatNumber(globalSaldoAkhir)}
           </div>
           <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-            Sisa utang bulan ini
+            Saldo Awal ({formatNumber(globalSaldoAwal)}) + Kredit ({formatNumber(globalKredit)}) - Debit ({formatNumber(globalDebit)})
           </span>
         </div>
       </div>
@@ -412,15 +412,15 @@ export default function UtangSupplierTab({
                     <span>Rp {formatNumber(sup.saldoAwal)}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span className="text-muted">Kredit:</span>
+                    <span className="text-muted">Kredit (Beli Baru / Utang +):</span>
                     <span style={{ color: 'var(--rose)', fontWeight: 600 }}>+ Rp {formatNumber(sup.kredit)}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span className="text-muted">Debit:</span>
+                    <span className="text-muted">Debit (Bayar / Utang -):</span>
                     <span style={{ color: 'var(--emerald)', fontWeight: 600 }}>- Rp {formatNumber(sup.debit)}</span>
                   </div>
                   <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '0.3rem', marginTop: '0.1rem', display: 'flex', justifyContent: 'space-between', fontWeight: 700 }}>
-                    <span>Saldo Akhir:</span>
+                    <span>Saldo Akhir Utang:</span>
                     <span style={{ color: isLunas ? 'var(--emerald)' : 'var(--amber)', fontSize: '0.95rem' }}>
                       Rp {formatNumber(sup.saldoAkhir)}
                     </span>
