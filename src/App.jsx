@@ -568,6 +568,7 @@ export default function App() {
   };
 
   const handleLogout = async (isIdle = false) => {
+    const isIdleLogout = isIdle === true; // Strictly check boolean true (prevents click event object from triggering idle alert)
     if (activeUser) {
       try {
         await logoutApi(activeUser);
@@ -577,7 +578,7 @@ export default function App() {
     }
     setActiveUser(null);
     setActiveTab('dashboard');
-    if (isIdle) {
+    if (isIdleLogout) {
       showAlert(
         'Sesi login Anda telah otomatis berakhir karena tidak ada aktivitas selama 30 menit. Silakan login kembali.',
         'warning',
