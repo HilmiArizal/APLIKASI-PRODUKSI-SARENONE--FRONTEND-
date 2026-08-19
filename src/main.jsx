@@ -18,8 +18,21 @@ class ErrorBoundary extends React.Component {
   }
 
   handleReset = () => {
+    try {
+      if ('caches' in window) {
+        caches.keys().then(names => {
+          names.forEach(name => caches.delete(name));
+        });
+      }
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(registrations => {
+          registrations.forEach(r => r.unregister());
+        });
+      }
+    } catch (e) {}
     localStorage.clear();
-    window.location.reload();
+    sessionStorage.clear();
+    window.location.href = window.location.origin + '?v=' + Date.now();
   };
 
   render() {
