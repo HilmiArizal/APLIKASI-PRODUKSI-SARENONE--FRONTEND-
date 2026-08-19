@@ -1,7 +1,7 @@
 import React from 'react';
-import { Eye, Menu, KeyRound } from 'lucide-react';
+import { Eye, Menu, KeyRound, LogOut } from 'lucide-react';
 
-export default function Topbar({ activeUser, activeRoleView, onChangeRoleView, activeTab, onOpenMobileSidebar, onOpenChangePassword }) {
+export default function Topbar({ activeUser, activeRoleView, onChangeRoleView, activeTab, onOpenMobileSidebar, onOpenChangePassword, onLogout }) {
   const titles = {
     'dashboard': { title: 'Dashboard Ringkasan', sub: 'Pantau kesehatan persediaan dan statistik produksi secara real-time.' },
     'dashboard-produk': { title: 'Dashboard Produk & Penjualan', sub: 'Ringkasan performa omzet, transaksi penjualan, dan program marketing.' },
@@ -76,9 +76,14 @@ export default function Topbar({ activeUser, activeRoleView, onChangeRoleView, a
         )}
 
         {activeRoleView !== 'SALES' && (
-          <button className="btn btn-outline btn-icon" title="Ubah Kata Sandi Akun" onClick={onOpenChangePassword}>
-            <KeyRound size={16} style={{ color: 'var(--amber)' }} /> <span className="btn-text-hide-mobile">Ubah Password</span>
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <button className="btn btn-outline btn-icon" title="Ubah Kata Sandi Akun" onClick={onOpenChangePassword}>
+              <KeyRound size={16} style={{ color: 'var(--amber)' }} /> <span className="btn-text-hide-mobile">Ubah Password</span>
+            </button>
+            <button className="btn btn-outline btn-danger btn-icon" title="Keluar Akun" onClick={onLogout}>
+              <LogOut size={16} /> <span className="btn-text-hide-mobile">Keluar</span>
+            </button>
+          </div>
         )}
       </div>
     </header>

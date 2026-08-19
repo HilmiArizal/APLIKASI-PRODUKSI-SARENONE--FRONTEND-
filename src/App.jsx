@@ -569,17 +569,28 @@ export default function App() {
     return { success: true };
   };
 
-  const handleLogout = async (isIdle = false) => {
+  const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
+
+  const confirmLogoutTrigger = () => {
+    setIsLogoutConfirmOpen(true);
+  };
+
+  const handleLogout = (isIdle = false) => {
     const isIdleLogout = isIdle === true; // Strictly check boolean true (prevents click event object from triggering idle alert)
+    setIsLogoutConfirmOpen(false);
+
     if (activeUser) {
-      try {
-        await logoutApi(activeUser);
-      } catch (e) {
-        console.warn('Logout API note:', e);
-      }
+      // Non-blocking background API call (Instant logout <10ms)
+      logoutApi(activeUser).catch(() => {});
     }
+
+    // Instant local state reset & session clearing
     setActiveUser(null);
     setActiveTab('dashboard');
+    localStorage.removeItem(STORAGE_KEYS.ACTIVE_USER);
+    localStorage.removeItem(STORAGE_KEYS.ROLE_VIEW);
+    sessionStorage.clear();
+
     if (isIdleLogout) {
       showAlert(
         'Sesi login Anda telah otomatis berakhir karena tidak ada aktivitas selama 30 menit. Silakan login kembali.',
@@ -589,7 +600,6 @@ export default function App() {
     } else {
       showAlert('Anda telah berhasil keluar (logout).', 'info', 'Logout Berhasil');
     }
-    fetchAllDataFromBackend();
   };
 
   // ===== 30-MINUTE INACTIVITY IDLE AUTO LOGOUT =====
@@ -1697,7 +1707,7 @@ export default function App() {
         activeRoleView={activeRoleView}
         activeTab={activeTab}
         onSwitchTab={setActiveTab}
-        onLogout={handleLogout}
+        onLogout={confirmLogoutTrigger}
         lowStockCount={lowStockCount}
         pendingUserCount={pendingUserCount}
         isMobileOpen={isMobileSidebarOpen}
@@ -1712,6 +1722,7 @@ export default function App() {
           activeTab={activeTab}
           onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
           onOpenChangePassword={() => setIsModalChangePasswordOpen(true)}
+          onLogout={confirmLogoutTrigger}
         />
 
         <main className="content-body">
@@ -1730,7 +1741,7 @@ export default function App() {
                 <div style={{ padding: '0.85rem 1rem', background: 'var(--bg-secondary)', borderRadius: '10px', fontSize: '0.82rem', color: 'var(--text-muted)', border: '1px solid var(--border-color)', marginBottom: '1.5rem' }}>
                   📱 Silakan gunakan aplikasi <strong>PresensiKu</strong> di smartphone Anda.
                 </div>
-                <button className="btn btn-danger" style={{ margin: '0 auto', fontSize: '0.85rem' }} onClick={handleLogout}>
+                <button className="btn btn-danger" style={{ margin: '0 auto', fontSize: '0.85rem' }} onClick={confirmLogoutTrigger}>
                   Keluar Akun
                 </button>
               </div>
@@ -2173,6 +2184,51 @@ export default function App() {
         bahanBaku={bahanBaku}
         activeUser={activeUser}
       />
+
+      {/* ===== LOGOUT CONFIRMATION MODAL ===== */}
+      {isLogoutConfirmOpen && (
+        <div className="modal-overlay" style={{ zIndex: 99999 }}>
+          <div className="modal-card" style={{ maxWidth: '420px', textAlign: 'center', padding: '1.75rem' }}>
+            <div style={{
+              width: '60px',
+              height: '60px',
+              borderRadius: '50%',
+              background: 'rgba(239, 68, 68, 0.15)',
+              color: 'var(--rose)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 1.25rem',
+              border: '2px solid rgba(239, 68, 68, 0.3)'
+            }}>
+              <LogOut size={30} />
+            </div>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff', marginBottom: '0.4rem' }}>
+              Konfirmasi Keluar Aplikasi
+            </h3>
+            <p className="text-muted" style={{ fontSize: '0.88rem', marginBottom: '1.5rem', lineHeight: '1.5' }}>
+              Apakah Anda yakin ingin keluar dari akun <strong>{activeUser?.name || 'Super Admin'}</strong>?
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
+              <button
+                className="btn btn-outline"
+                style={{ flex: 1, padding: '0.6rem 1rem', fontWeight: 600 }}
+                onClick={() => setIsLogoutConfirmOpen(false)}
+              >
+                Batal
+              </button>
+              <button
+                className="btn btn-rose"
+                style={{ flex: 1, padding: '0.6rem 1rem', fontWeight: 700 }}
+                onClick={() => handleLogout(false)}
+              >
+                Ya, Keluar Akun
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <CustomAlertModal
         isOpen={alertState.isOpen}
