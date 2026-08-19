@@ -189,16 +189,16 @@ export default function UtangSupplierTab({
   return (
     <div className="tab-pane active" style={{ maxWidth: '100%', overflowX: 'hidden' }}>
       {/* ===== HEADER & PERIODE BULAN FILTER BAR ===== */}
-      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1.25rem', marginBottom: '1.5rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-          <div>
+      <div style={{  marginBottom: '1.5rem' }}>
+        <div >
+          {/* <div>
             <h2 style={{ fontSize: '1.3rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
               <CreditCard size={22} style={{ color: 'var(--amber)' }} /> Jurnal Utang Supplier (Akuntansi)
             </h2>
             <p className="text-muted" style={{ fontSize: '0.82rem', marginTop: '0.2rem', marginBottom: 0 }}>
               Klik kartu supplier untuk membayar cicilan utang langsung. Rekapitulasi Saldo Awal, Kredit, Debit, dan Saldo Akhir.
             </p>
-          </div>
+          </div> */}
 
           {/* Month Selector Filter Control */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
@@ -301,7 +301,7 @@ export default function UtangSupplierTab({
           }}>
             Rp {formatNumber(globalKredit)}
           </div>
-          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Faktur pembelian baru (Utang +)</span>
+          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Faktur pembelian baru</span>
         </div>
 
         {/* Card 3: Debit (Pengurangan Utang / Pembayaran Pelunasan) */}
@@ -330,7 +330,7 @@ export default function UtangSupplierTab({
           }}>
             Rp {formatNumber(globalDebit)}
           </div>
-          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Total cicilan &amp; pelunasan (Utang -)</span>
+          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Total cicilan &amp; pelunasan</span>
         </div>
 
         {/* Card 4: Saldo Akhir Utang */}
@@ -360,7 +360,7 @@ export default function UtangSupplierTab({
             Rp {formatNumber(globalSaldoAkhir)}
           </div>
           <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-            {selectedMonth === 'ALL' ? 'Total kewajiban utang aktif' : `Saldo Awal + Kredit - Debit (${selectedMonth})`}
+            Sisa utang bulan ini
           </span>
         </div>
       </div>
@@ -412,15 +412,15 @@ export default function UtangSupplierTab({
                     <span>Rp {formatNumber(sup.saldoAwal)}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span className="text-muted">Kredit (Beli Baru / Utang +):</span>
+                    <span className="text-muted">Kredit:</span>
                     <span style={{ color: 'var(--rose)', fontWeight: 600 }}>+ Rp {formatNumber(sup.kredit)}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span className="text-muted">Debit (Bayar / Utang -):</span>
+                    <span className="text-muted">Debit:</span>
                     <span style={{ color: 'var(--emerald)', fontWeight: 600 }}>- Rp {formatNumber(sup.debit)}</span>
                   </div>
                   <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '0.3rem', marginTop: '0.1rem', display: 'flex', justifyContent: 'space-between', fontWeight: 700 }}>
-                    <span>Saldo Akhir Utang:</span>
+                    <span>Saldo Akhir:</span>
                     <span style={{ color: isLunas ? 'var(--emerald)' : 'var(--amber)', fontSize: '0.95rem' }}>
                       Rp {formatNumber(sup.saldoAkhir)}
                     </span>
