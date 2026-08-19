@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CreditCard, Search, History, CheckCircle, AlertTriangle, DollarSign, Trash2, Calendar, Filter, ArrowUpRight, ArrowDownRight, Wallet } from 'lucide-react';
+import { CreditCard, Search, History, CheckCircle, AlertTriangle, DollarSign, Trash2, Calendar, Filter, ArrowUpRight, ArrowDownRight, Wallet, X } from 'lucide-react';
 import { formatNumber } from '../data/initialData';
 import { ModalBayarUtangSupplier, ModalRiwayatBayarSupplier } from './Modals';
 import { cleanFloat } from '../utils/numberUtils';
@@ -20,6 +20,7 @@ export default function UtangSupplierTab({
   const [statusFilter, setStatusFilter] = useState('semua');
   const [selectedUtangForPay, setSelectedUtangForPay] = useState(null);
   const [selectedUtangForHistory, setSelectedUtangForHistory] = useState(null);
+  const [supplierSelectModal, setSupplierSelectModal] = useState(null); // Supplier name for multi-invoice selection modal
 
   const canManage = (activeRoleView === 'ADMIN' || activeRoleView === 'PEMBELIAN');
 
@@ -33,11 +34,10 @@ export default function UtangSupplierTab({
 
   // ===== STANDARD ACCOUNTING CALCULATIONS (KREDIT = PENAMBAHAN UTANG, DEBIT = PEMBAYARAN UTANG) =====
   let globalSaldoAwal = 0;
-  let globalKredit = 0; // Kredit = Penambahan Utang Pembelian Baru (Accounting Rule: Liability Increases on Credit)
-  let globalDebit = 0;  // Debit = Pengurangan Utang / Pembayaran (Accounting Rule: Liability Decreases on Debit)
+  let globalKredit = 0;
+  let globalDebit = 0;
   let globalSaldoAkhir = 0;
 
-  // Supplier-level map initialization
   const supplierAccountingMap = {};
   suppliersList.forEach(sup => {
     const nama = sup.nama || sup.name || '';
@@ -45,8 +45,8 @@ export default function UtangSupplierTab({
       supplierAccountingMap[nama] = {
         nama,
         saldoAwal: 0,
-        kredit: 0, // Penambahan Utang (Kredit)
-        debit: 0,  // Pembayaran / Pengurangan (Debit)
+        kredit: 0,
+        debit: 0,
         saldoAkhir: 0,
         fakturCount: 0,
         fakturBelumLunas: 0
@@ -74,7 +74,6 @@ export default function UtangSupplierTab({
     const itemSisa = Number(item.sisaUtang || 0);
 
     if (selectedMonth === 'ALL') {
-      // All time view
       supplierAccountingMap[supNama].saldoAwal += 0;
       supplierAccountingMap[supNama].kredit += itemTotal;
       supplierAccountingMap[supNama].debit += itemPaidTotal;
@@ -86,20 +85,16 @@ export default function UtangSupplierTab({
       globalDebit += itemPaidTotal;
       globalSaldoAkhir += itemSisa;
     } else {
-      // Month-filtered accounting calculation
       if (itemMonth && itemMonth < selectedMonth) {
-        // Faktur sebelum bulan yang dipilih (Saldo Awal Utang)
         if (itemSisa > 0 || item.status !== 'LUNAS') {
           supplierAccountingMap[supNama].saldoAwal += itemSisa;
           globalSaldoAwal += itemSisa;
         }
       } else if (itemMonth === selectedMonth) {
-        // Faktur pada bulan yang dipilih (Kredit = Penambahan Utang Pembelian Baru)
         supplierAccountingMap[supNama].kredit += itemTotal;
         supplierAccountingMap[supNama].fakturCount += 1;
         globalKredit += itemTotal;
 
-        // Hitung Debit (Pembayaran/Pelunasan pada bulan ini)
         let paidThisMonth = itemPaidTotal;
         if (item.riwayatPembayaran && Array.isArray(item.riwayatPembayaran)) {
           paidThisMonth = item.riwayatPembayaran
@@ -116,7 +111,6 @@ export default function UtangSupplierTab({
     }
   });
 
-  // Calculate final Saldo Akhir for all suppliers in map: Saldo Awal + Kredit - Debit
   Object.values(supplierAccountingMap).forEach(sup => {
     if (selectedMonth !== 'ALL') {
       sup.saldoAkhir = cleanFloat(sup.saldoAwal + sup.kredit - sup.debit);
@@ -143,6 +137,32 @@ export default function UtangSupplierTab({
 
     return matchSearch && matchMonth && matchStatus;
   });
+
+  // Handle Pay Click directly from Supplier Card
+  const handlePayFromSupplierCard = (supplierNama, e) => {
+    if (e) e.stopPropagation();
+
+    // Get all unpaid invoices for this supplier
+    const unpaidInvoices = utangList.filter(
+      x => (x.supplier || '').trim().toLowerCase() === (supplierNama || '').trim().toLowerCase() &&
+           x.status !== 'LUNAS' &&
+           (x.sisaUtang || 0) > 0
+    );
+
+    if (unpaidInvoices.length === 0) {
+      if (showAlert) showAlert(`Supplier ${supplierNama} tidak memiliki tunggakan utang aktif.`, 'info', 'Status Utang');
+      return;
+    }
+
+    if (unpaidInvoices.length === 1) {
+      setSelectedUtangForPay(unpaidInvoices[0]);
+    } else {
+      setSupplierSelectModal({
+        supplierNama,
+        invoices: unpaidInvoices
+      });
+    }
+  };
 
   const handleDeleteClick = (item) => {
     const targetId = item.id || item._id || item.noFaktur;
@@ -176,7 +196,7 @@ export default function UtangSupplierTab({
               <CreditCard size={22} style={{ color: 'var(--amber)' }} /> Jurnal Utang Supplier (Akuntansi)
             </h2>
             <p className="text-muted" style={{ fontSize: '0.82rem', marginTop: '0.2rem', marginBottom: 0 }}>
-              Rekapitulasi Saldo Awal, Kredit (Penambahan Utang), Debit (Pembayaran Pelunasan), dan Saldo Akhir.
+              Klik kartu supplier untuk membayar cicilan utang langsung. Rekapitulasi Saldo Awal, Kredit, Debit, dan Saldo Akhir.
             </p>
           </div>
 
@@ -353,16 +373,24 @@ export default function UtangSupplierTab({
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1rem' }}>
           {sortedSuppliersList.map(sup => {
             const isLunas = sup.saldoAkhir <= 0;
+            const hasActiveDebt = !isLunas && canManage;
+
             return (
               <div
                 key={sup.nama}
+                onClick={(e) => hasActiveDebt && handlePayFromSupplierCard(sup.nama, e)}
                 style={{
                   background: 'var(--bg-card)',
-                  border: `1px solid ${isLunas ? 'rgba(52,211,153,0.35)' : 'rgba(245,158,11,0.35)'}`,
+                  border: `1px solid ${isLunas ? 'rgba(52,211,153,0.35)' : 'rgba(245,158,11,0.5)'}`,
                   borderLeft: `4px solid ${isLunas ? 'var(--emerald)' : 'var(--amber)'}`,
                   borderRadius: 'var(--radius-md)',
                   padding: '1.1rem 1.25rem',
+                  cursor: hasActiveDebt ? 'pointer' : 'default',
+                  transition: 'all 0.25s ease',
+                  position: 'relative',
+                  boxShadow: hasActiveDebt ? '0 4px 12px rgba(245, 158, 11, 0.1)' : 'none'
                 }}
+                className={hasActiveDebt ? 'supplier-card-hover' : ''}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.6rem' }}>
                   <div>
@@ -398,6 +426,28 @@ export default function UtangSupplierTab({
                     </span>
                   </div>
                 </div>
+
+                {/* ===== ACTION BUTTON INSIDE CARD ===== */}
+                {canManage && !isLunas && (
+                  <button
+                    className="btn btn-emerald btn-block"
+                    style={{
+                      marginTop: '0.85rem',
+                      padding: '0.5rem 0.85rem',
+                      fontSize: '0.8rem',
+                      fontWeight: '700',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justify: 'center',
+                      gap: '0.4rem',
+                      borderRadius: 'var(--radius-sm)',
+                      boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+                    }}
+                    onClick={(e) => handlePayFromSupplierCard(sup.nama, e)}
+                  >
+                    <DollarSign size={15} /> Bayar Utang ({sup.nama})
+                  </button>
+                )}
               </div>
             );
           })}
@@ -550,6 +600,61 @@ export default function UtangSupplierTab({
           </table>
         </div>
       </div>
+
+      {/* ===== MULTI-INVOICE SUPPLIER SELECTOR MODAL ===== */}
+      {supplierSelectModal && (
+        <div className="modal-overlay">
+          <div className="modal-card" style={{ maxWidth: '560px' }}>
+            <div className="modal-header">
+              <h3>💳 Pilih Faktur Tagihan ({supplierSelectModal.supplierNama})</h3>
+              <button className="btn btn-outline btn-sm" onClick={() => setSupplierSelectModal(null)}>
+                <X size={16} />
+              </button>
+            </div>
+            <div className="modal-body" style={{ padding: '1.25rem' }}>
+              <p className="text-muted" style={{ fontSize: '0.85rem', marginBottom: '1rem' }}>
+                Supplier ini memiliki {supplierSelectModal.invoices.length} faktur utang aktif. Pilih faktur yang ingin Anda bayar/cicil:
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '350px', overflowY: 'auto' }}>
+                {supplierSelectModal.invoices.map(inv => (
+                  <div
+                    key={inv.id || inv._id || inv.noFaktur}
+                    style={{
+                      background: 'var(--bg-darker)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: 'var(--radius-sm)',
+                      padding: '0.85rem 1rem',
+                      display: 'flex',
+                      justify: 'space-between',
+                      alignItems: 'center',
+                      gap: '0.75rem'
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontWeight: 700, color: 'var(--amber)', fontSize: '0.9rem' }}>{inv.noFaktur}</div>
+                      <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#fff' }}>{inv.bahanNama}</div>
+                      <div className="text-muted" style={{ fontSize: '0.75rem' }}>Tgl Beli: {inv.tanggalBeli} · Tempo: {inv.jatuhTempo}</div>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--rose)', marginTop: '0.2rem' }}>
+                        Sisa Utang: Rp {formatNumber(inv.sisaUtang)}
+                      </div>
+                    </div>
+                    <button
+                      className="btn btn-emerald btn-sm"
+                      style={{ padding: '0.4rem 0.85rem', fontSize: '0.78rem', fontWeight: 700, flexShrink: 0 }}
+                      onClick={() => {
+                        setSupplierSelectModal(null);
+                        setSelectedUtangForPay(inv);
+                      }}
+                    >
+                      <DollarSign size={14} /> Bayar Faktur Ini
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modals */}
       <ModalBayarUtangSupplier
