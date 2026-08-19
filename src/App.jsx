@@ -279,14 +279,11 @@ export default function App() {
 
   const [isLoadingData, setIsLoadingData] = useState(false);
 
-  // Sync Data from Backend API (Fast Single-Batch Parallel Fetch & Silent Background Refresh)
+  // Sync Data from Backend API (Bulletproof Promise.allSettled & Non-Destructive State Guards)
   const fetchAllDataFromBackend = async (silent = true) => {
     if (!silent) setIsLoadingData(true);
     try {
-      const [
-        uRes, kpRes, kbRes, bRes, pRes, rRes, prodRes, logRes, utgRes, supRes,
-        pjRes, mktRes, psRes, brRes, kpsRes, pelRes, pmRes, absRes, estRes
-      ] = await Promise.all([
+      const results = await Promise.allSettled([
         getUsersApi(), getKategoriProdukApi(), getKategoriBahanBakuApi(),
         getBahanBakuApi(), getProdukApi(), getResepApi(), getRiwayatProduksiApi(),
         getAuditLogApi(), getUtangSupplierApi(), getSuppliersApi(),
@@ -295,7 +292,12 @@ export default function App() {
         getPembayaranMasukApi(), getAbsensiApi(), getEstimasiPOApi()
       ]);
 
-      if (uRes?.success && Array.isArray(uRes.data)) {
+      const [
+        uRes, kpRes, kbRes, bRes, pRes, rRes, prodRes, logRes, utgRes, supRes,
+        pjRes, mktRes, psRes, brRes, kpsRes, pelRes, pmRes, absRes, estRes
+      ] = results.map(r => r.status === 'fulfilled' ? r.value : null);
+
+      if (uRes?.success && Array.isArray(uRes.data) && uRes.data.length > 0) {
         try {
           const savedOverrides = JSON.parse(localStorage.getItem('SAREN_USER_ROLE_OVERRIDES') || '{}');
           const merged = uRes.data.map(u => {
@@ -310,31 +312,31 @@ export default function App() {
           setUsers(uRes.data);
         }
       }
-      if (kpRes?.success) setKategoriProduk(kpRes.data);
-      if (kbRes?.success) setKategoriBahanBaku(kbRes.data);
-      if (bRes?.success) setBahanBaku(bRes.data);
-      if (pRes?.success) setProduk(pRes.data);
-      if (rRes?.success) setResep(rRes.data);
-      if (prodRes?.success) setRiwayatProduksi(prodRes.data);
-      if (logRes?.success) setAuditLog(logRes.data);
-      if (utgRes?.success) setUtangList(utgRes.data);
-      if (supRes?.success) {
+      if (kpRes?.success && Array.isArray(kpRes.data)) setKategoriProduk(kpRes.data);
+      if (kbRes?.success && Array.isArray(kbRes.data)) setKategoriBahanBaku(kbRes.data);
+      if (bRes?.success && Array.isArray(bRes.data)) setBahanBaku(bRes.data);
+      if (pRes?.success && Array.isArray(pRes.data)) setProduk(pRes.data);
+      if (rRes?.success && rRes.data) setResep(rRes.data);
+      if (prodRes?.success && Array.isArray(prodRes.data)) setRiwayatProduksi(prodRes.data);
+      if (logRes?.success && Array.isArray(logRes.data)) setAuditLog(logRes.data);
+      if (utgRes?.success && Array.isArray(utgRes.data)) setUtangList(utgRes.data);
+      if (supRes?.success && Array.isArray(supRes.data)) {
         const sampleNames = ['PT. So Good Indonesia...'];
         const cleaned = (supRes.data || []).filter(x => !['sup_1', 'sup_2', 'sup_3', 'sup_4', 'sup_5'].includes(x.id) && !sampleNames.includes(x.nama));
         setSuppliersList(cleaned);
       }
-      if (pjRes?.success) setPenjualanList(pjRes.data || []);
-      if (mktRes?.success) setMarketingList(mktRes.data || []);
-      if (psRes?.success) setProdukSalesList(psRes.data || []);
-      if (pelRes?.success) setPelangganList(pelRes.data || []);
-      if (pmRes?.success) setPembayaranMasukList(pmRes.data || []);
-      if (absRes?.success) setAbsensiList(absRes.data || []);
-      if (estRes?.success) setEstimasiPOList(estRes.data || []);
-      if (brRes?.success && (brRes.data || []).length > 0) {
+      if (pjRes?.success && Array.isArray(pjRes.data)) setPenjualanList(pjRes.data);
+      if (mktRes?.success && Array.isArray(mktRes.data)) setMarketingList(mktRes.data);
+      if (psRes?.success && Array.isArray(psRes.data)) setProdukSalesList(psRes.data);
+      if (pelRes?.success && Array.isArray(pelRes.data)) setPelangganList(pelRes.data);
+      if (pmRes?.success && Array.isArray(pmRes.data)) setPembayaranMasukList(pmRes.data);
+      if (absRes?.success && Array.isArray(absRes.data)) setAbsensiList(absRes.data);
+      if (estRes?.success && Array.isArray(estRes.data)) setEstimasiPOList(estRes.data);
+      if (brRes?.success && Array.isArray(brRes.data) && brRes.data.length > 0) {
         const cleanedBr = (brRes.data || []).filter(b => !['Saren Bakery', 'Saren Frozen', 'Dapur Saren', 'Saren One Original'].includes(b.nama));
         if (cleanedBr.length > 0) setBrandList(cleanedBr);
       }
-      if (kpsRes?.success && (kpsRes.data || []).length > 0) setKategoriSalesList(kpsRes.data);
+      if (kpsRes?.success && Array.isArray(kpsRes.data) && kpsRes.data.length > 0) setKategoriSalesList(kpsRes.data);
 
       setBackendConnected(true);
     } catch (err) {
