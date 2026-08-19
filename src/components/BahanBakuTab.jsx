@@ -23,19 +23,115 @@ export default function BahanBakuTab({
   showAlert
 }) {
   const now = new Date();
-  const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-
-  const [activeSubTab, setActiveSubTab] = useState('stok'); // 'stok' | 'opname-history'
   const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
+  const [activeSubTab, setActiveSubTab] = useState('stok'); // 'stok' | 'opname-history'
   const [search, setSearch] = useState('');
   const [kategoriFilter, setKategoriFilter] = useState('');
   const [filterTanggal, setFilterTanggal] = useState(todayStr);
   const [isPreviewPdfOpen, setIsPreviewPdfOpen] = useState(false);
   const [isImportExcelOpen, setIsImportExcelOpen] = useState(false);
 
+  // Stock Opname Audit Modal States
+  const [selectedOpnameBahan, setSelectedOpnameBahan] = useState(null);
+  const [stokFisikInput, setStokFisikInput] = useState('');
+  const [catatanOpname, setCatatanOpname] = useState('');
+
   const isSuperAdmin = (activeRoleView === 'ADMIN');
   const canAddOrRestock = (activeRoleView === 'ADMIN' || activeRoleView === 'BAHAN_BAKU');
+
+  // Calculate Historical Stock per Specific Date
+  const getBahanStokOnDate = (b, targetDateStr) => {
+    if (!targetDateStr || targetDateStr === todayStr) return Number(b.stok) || 0;
+
+    let currentStok = Number(b.stok) || 0;
+    const bNameLower = String(b.nama || '').trim().toLowerCase();
+    const bId = String(b.id || b._id || '');
+
+    // 1. Rollback receipts/restocks after target date (Subtract received qty after target date)
+    (utangList || []).forEach(p => {
+      const pDate = (p.tanggalPenerimaan || p.tanggalBeli || p.tanggal || '').substring(0, 10);
+      if (pDate > targetDateStr) {
+        if (p.riwayatPenerimaan && Array.isArray(p.riwayatPenerimaan)) {
+          p.riwayatPenerimaan.forEach(r => {
+            const rDate = (r.tanggal || r.createdAt || pDate).substring(0, 10);
+            if (rDate > targetDateStr) {
+              const itemNm = String(r.namaBahan || p.bahanNama || '').trim().toLowerCase();
+              if (itemNm === bNameLower || p.sku === b.sku) {
+                currentStok -= Number(r.jumlah || r.diterima || 0);
+              }
+            }
+          });
+        } else if (Number(p.jumlahDiterima || 0) > 0) {
+          const itemNm = String(p.bahanNama || '').trim().toLowerCase();
+          if (itemNm === bNameLower || p.sku === b.sku) {
+            currentStok -= Number(p.jumlahDiterima || 0);
+          }
+        }
+      }
+    });
+
+    // 2. Rollback production usage after target date (Add back consumed qty after target date)
+    (riwayatProduksi || []).forEach(r => {
+      const rDate = (r.timestamp || r.tanggal || '').substring(0, 10);
+      if (rDate > targetDateStr) {
+        if (r.bahanDigunakan && Array.isArray(r.bahanDigunakan)) {
+          r.bahanDigunakan.forEach(item => {
+            const itemNm = String(item.bahanNama || item.nama || '').trim().toLowerCase();
+            if (itemNm === bNameLower || item.bahanId === bId) {
+              currentStok += Number(item.jumlah || 0);
+            }
+          });
+        }
+      }
+    });
+
+    return Math.max(0, currentStok);
+  };
+
+  // Open Stock Opname Adjustment Modal for a specific material on target date
+  const handleOpenOpnameModal = (b) => {
+    const stokSistem = getBahanStokOnDate(b, filterTanggal);
+    setSelectedOpnameBahan({ ...b, stokSistem });
+    setStokFisikInput(String(stokSistem));
+    setCatatanOpname('');
+  };
+
+  // Save Stock Opname Adjustment
+  const handleSaveOpname = async () => {
+    if (!selectedOpnameBahan) return;
+
+    const stokSistem = selectedOpnameBahan.stokSistem;
+    const stokFisik = Number(stokFisikInput);
+    if (isNaN(stokFisik) || stokFisik < 0) {
+      showAlert('Masukkan jumlah stok fisik hasil opname yang valid (minimal 0)!', 'error', 'Opname Gagal');
+      return;
+    }
+
+    const selisih = stokFisik - stokSistem;
+    const dateLabel = filterTanggal || todayStr;
+    const newRealStok = Math.max(0, (selectedOpnameBahan.stok || 0) + selisih);
+
+    try {
+      if (onOpenEditBahan) {
+        const updatedItem = {
+          ...selectedOpnameBahan,
+          stok: newRealStok,
+          catatanOpname: catatanOpname ? `[Opname ${dateLabel}]: ${catatanOpname}` : `[Opname ${dateLabel}] Penyesuaian fisik (${selisih >= 0 ? '+' : ''}${selisih})`
+        };
+        await onOpenEditBahan(updatedItem);
+      }
+
+      showAlert(
+        `✅ Stock Opname "${selectedOpnameBahan.nama}" tanggal ${dateLabel} berhasil disesuaikan! (Sistem: ${stokSistem} -> Fisik: ${stokFisik}, Selisih: ${selisih >= 0 ? '+' : ''}${selisih} ${selectedOpnameBahan.satuan})`,
+        'success',
+        'Stock Opname Disesuaikan!'
+      );
+      setSelectedOpnameBahan(null);
+    } catch (err) {
+      showAlert('Gagal menyimpan penyesuaian opname: ' + err.message, 'error', 'Gagal Opname');
+    }
+  };
 
   // ===== UNIFIED RIWAYAT STOCK OPNAME & PERGERAKAN STOK PER TANGGAL =====
   const unifiedStockOpnameLogs = useMemo(() => {
@@ -172,17 +268,20 @@ export default function BahanBakuTab({
       ]);
       exportToExcel(`Riwayat_Stock_Opname_${filterTanggal || 'Semua'}`, headers, rows);
     } else {
-      const headers = ['Kode SKU', 'Nama Bahan Baku', 'Kategori', 'Stok Saat Ini', 'Batas Minimum', 'Satuan', 'Status Persediaan'];
-      const rows = filteredBahan.map(b => [
-        b.sku,
-        b.nama,
-        b.kategori,
-        b.stok,
-        b.minStok,
-        b.satuan,
-        b.stok <= b.minStok ? 'Menipis / Restock' : 'Stok Safe'
-      ]);
-      exportToExcel('Stok_Bahan_Baku_Dapur', headers, rows);
+      const headers = ['Kode SKU', 'Nama Bahan Baku', 'Kategori', filterTanggal ? `Stok Tgl (${filterTanggal})` : 'Stok Saat Ini', 'Batas Minimum', 'Satuan', 'Status Persediaan'];
+      const rows = filteredBahan.map(b => {
+        const stokVal = getBahanStokOnDate(b, filterTanggal);
+        return [
+          b.sku,
+          b.nama,
+          b.kategori,
+          stokVal,
+          b.minStok,
+          b.satuan,
+          stokVal <= b.minStok ? 'Menipis / Restock' : 'Stok Safe'
+        ];
+      });
+      exportToExcel(`Stok_Bahan_Baku_${filterTanggal || 'Saat_Ini'}`, headers, rows);
     }
   };
 
@@ -211,22 +310,25 @@ export default function BahanBakuTab({
         setIsPreviewPdfOpen(true);
       }
     } else {
-      const headers = ['SKU', 'Nama Bahan Baku', 'Kategori', 'Stok Saat Ini', 'Batas Min.', 'Status'];
-      const rows = filteredBahan.map(b => [
-        b.sku,
-        b.nama,
-        b.kategori,
-        `${b.stok} ${b.satuan}`,
-        `${b.minStok} ${b.satuan}`,
-        b.stok <= b.minStok ? 'Menipis / Restock' : 'Stok Safe'
-      ]);
+      const headers = ['SKU', 'Nama Bahan Baku', 'Kategori', filterTanggal ? `Stok (${filterTanggal})` : 'Stok Saat Ini', 'Batas Min.', 'Status'];
+      const rows = filteredBahan.map(b => {
+        const stokVal = getBahanStokOnDate(b, filterTanggal);
+        return [
+          b.sku,
+          b.nama,
+          b.kategori,
+          `${stokVal} ${b.satuan}`,
+          `${b.minStok} ${b.satuan}`,
+          stokVal <= b.minStok ? 'Menipis / Restock' : 'Stok Safe'
+        ];
+      });
       const config = {
         title: 'Laporan Inventaris Stok Bahan Baku Dapur',
-        subtitle: `Menampilkan ${filteredBahan.length} bahan mentah pergerakan stok Saren One.`,
+        subtitle: `Menampilkan posisi stok per tanggal (${filterTanggal || 'Hari Ini'}) - Total ${filteredBahan.length} item bahan mentah Saren One.`,
         headers,
         rows,
         summaryText: `Total Bahan Mentah: ${filteredBahan.length} Item`,
-        filename: 'Stok_Bahan_Baku'
+        filename: `Stok_Bahan_Baku_${filterTanggal || 'Saat_Ini'}`
       };
       if (onOpenPdfPreview) {
         onOpenPdfPreview(config);
@@ -287,7 +389,7 @@ export default function BahanBakuTab({
         {/* PERIODE TANGGAL FILTER BAR */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
           <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <Calendar size={15} style={{ color: 'var(--amber)' }} /> Filter Position / Tanggal:
+            <Calendar size={15} style={{ color: 'var(--amber)' }} /> Filter Audit Tanggal:
           </span>
           <input
             type="date"
@@ -391,10 +493,10 @@ export default function BahanBakuTab({
                 <th>SKU</th>
                 <th>NAMA BAHAN BAKU</th>
                 <th>KATEGORI</th>
-                <th>STOK SAAT INI</th>
+                <th>{filterTanggal ? `STOK TANGGAL (${filterTanggal})` : 'STOK SAAT INI'}</th>
                 <th>BATAS MINIMUM</th>
                 <th>STATUS STOK</th>
-                {isSuperAdmin && <th style={{ textAlign: 'right' }}>AKSI</th>}
+                {isSuperAdmin && <th style={{ textAlign: 'right' }}>AKSI AUDIT &amp; EDIT</th>}
               </tr>
             </thead>
             <tbody>
@@ -405,30 +507,41 @@ export default function BahanBakuTab({
                   </td>
                 </tr>
               ) : (
-                filteredBahan.map(b => (
-                  <tr key={b.id}>
-                    <td><span className="badge badge-amber">{b.sku}</span></td>
-                    <td style={{ fontWeight: 600 }}>{b.nama}</td>
-                    <td><span className="badge badge-cyan">{b.kategori}</span></td>
-                    <td style={{ fontWeight: 700, color: '#f8fafc' }}>
-                      {formatNumber(b.stok)} {b.satuan}
-                    </td>
-                    <td className="text-muted">{formatNumber(b.minStok)} {b.satuan}</td>
-                    <td>{getStatusBadge(b.stok, b.minStok)}</td>
-                    {isSuperAdmin && (
-                      <td style={{ textAlign: 'right' }}>
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem' }}>
-                          <button className="btn btn-icon btn-sm" onClick={() => onOpenEditBahan(b)} title="Edit Bahan Baku">
-                            <Edit3 size={15} />
-                          </button>
-                          <button className="btn btn-icon btn-sm btn-danger" onClick={() => onDeleteBahan(b.id)} title="Hapus Bahan Baku">
-                            <Trash2 size={15} />
-                          </button>
-                        </div>
+                filteredBahan.map(b => {
+                  const stokVal = getBahanStokOnDate(b, filterTanggal);
+                  return (
+                    <tr key={b.id}>
+                      <td><span className="badge badge-amber">{b.sku}</span></td>
+                      <td style={{ fontWeight: 600 }}>{b.nama}</td>
+                      <td><span className="badge badge-cyan">{b.kategori}</span></td>
+                      <td style={{ fontWeight: 700, color: filterTanggal ? 'var(--amber)' : '#f8fafc' }}>
+                        {formatNumber(stokVal)} {b.satuan}
                       </td>
-                    )}
-                  </tr>
-                ))
+                      <td className="text-muted">{formatNumber(b.minStok)} {b.satuan}</td>
+                      <td>{getStatusBadge(stokVal, b.minStok)}</td>
+                      {isSuperAdmin && (
+                        <td style={{ textAlign: 'right' }}>
+                          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem' }}>
+                            <button
+                              className="btn btn-sm btn-outline"
+                              style={{ fontSize: '0.75rem', padding: '0.25rem 0.65rem', borderColor: 'rgba(245,158,11,0.5)', color: 'var(--amber)', fontWeight: 700 }}
+                              onClick={() => handleOpenOpnameModal(b)}
+                              title={`Lakukan Stock Opname & Penyesuaian Fisik untuk Tanggal ${filterTanggal || todayStr}`}
+                            >
+                              <ClipboardCheck size={14} /> Opname
+                            </button>
+                            <button className="btn btn-icon btn-sm" onClick={() => onOpenEditBahan(b)} title="Edit Master Bahan">
+                              <Edit3 size={15} />
+                            </button>
+                            <button className="btn btn-icon btn-sm btn-danger" onClick={() => onDeleteBahan(b.id)} title="Hapus Bahan Baku">
+                              <Trash2 size={15} />
+                            </button>
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -488,6 +601,94 @@ export default function BahanBakuTab({
               )}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* ===== MODAL PENYESUAIAN STOCK OPNAME AUDITING ===== */}
+      {selectedOpnameBahan && (
+        <div className="modal-backdrop" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15,23,42,0.85)', zIndex: 9999 }}>
+          <div className="modal-content" style={{ background: '#0f172a', border: '1px solid rgba(245,158,11,0.4)', borderRadius: '12px', width: '100%', maxWidth: '480px', padding: '1.75rem', boxShadow: '0 20px 40px rgba(0,0,0,0.5)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--amber)', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
+                <ClipboardCheck size={20} /> Penyesuaian Stock Opname (Auditing)
+              </h3>
+              <button className="btn btn-icon btn-sm" onClick={() => setSelectedOpnameBahan(null)} style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}>✕</button>
+            </div>
+
+            {/* Target Info Card */}
+            <div style={{ background: 'rgba(30,41,59,0.7)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '1rem', marginBottom: '1.25rem', fontSize: '0.85rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+                <span className="text-muted">Nama Bahan Baku:</span>
+                <strong style={{ color: '#f8fafc' }}>{selectedOpnameBahan.sku} - {selectedOpnameBahan.nama}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+                <span className="text-muted">Tanggal Audit Opname:</span>
+                <span className="badge badge-amber" style={{ fontSize: '0.78rem' }}>📅 {filterTanggal || todayStr}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span className="text-muted">Stok Sistem Terhitung:</span>
+                <strong style={{ color: 'var(--cyan)' }}>{formatNumber(selectedOpnameBahan.stokSistem)} {selectedOpnameBahan.satuan}</strong>
+              </div>
+            </div>
+
+            {/* Inputs */}
+            <div className="form-group" style={{ marginBottom: '1rem' }}>
+              <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#f8fafc', marginBottom: '0.35rem', display: 'block' }}>
+                Stok Fisik Hasil Opname GUDANG ({selectedOpnameBahan.satuan}):
+              </label>
+              <input
+                type="number"
+                step="any"
+                className="form-control"
+                style={{ background: 'rgba(15,23,42,0.9)', border: '1px solid var(--amber)', color: '#f8fafc', fontSize: '1.05rem', fontWeight: 800, padding: '0.65rem 0.85rem', borderRadius: '8px' }}
+                value={stokFisikInput}
+                onChange={(e) => setStokFisikInput(e.target.value)}
+                placeholder="Masukkan jumlah fisik hasil hitung..."
+              />
+            </div>
+
+            {/* Auto Diff Calculation Badge */}
+            {stokFisikInput !== '' && !isNaN(Number(stokFisikInput)) && (
+              <div style={{ marginBottom: '1.25rem' }}>
+                {Number(stokFisikInput) === selectedOpnameBahan.stokSistem ? (
+                  <div className="badge badge-emerald" style={{ width: '100%', padding: '0.55rem', justifyContent: 'center', fontSize: '0.82rem' }}>
+                    ✓ Stok Sesuai (Selisih 0 {selectedOpnameBahan.satuan})
+                  </div>
+                ) : Number(stokFisikInput) < selectedOpnameBahan.stokSistem ? (
+                  <div className="badge badge-rose" style={{ width: '100%', padding: '0.55rem', justifyContent: 'center', fontSize: '0.82rem' }}>
+                    ⚠️ Selisih Kurang: -{formatNumber(selectedOpnameBahan.stokSistem - Number(stokFisikInput))} {selectedOpnameBahan.satuan}
+                  </div>
+                ) : (
+                  <div className="badge badge-cyan" style={{ width: '100%', padding: '0.55rem', justifyContent: 'center', fontSize: '0.82rem' }}>
+                    📈 Selisih Lebih: +{formatNumber(Number(stokFisikInput) - selectedOpnameBahan.stokSistem)} {selectedOpnameBahan.satuan}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Reason Notes Input */}
+            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+              <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#f8fafc', marginBottom: '0.35rem', display: 'block' }}>
+                Catatan / Alasan Penyesuaian Opname:
+              </label>
+              <textarea
+                className="form-control"
+                rows={3}
+                style={{ background: 'rgba(15,23,42,0.9)', border: '1px solid var(--border-color)', color: '#f8fafc', fontSize: '0.82rem', padding: '0.6rem 0.85rem', borderRadius: '8px' }}
+                value={catatanOpname}
+                onChange={(e) => setCatatanOpname(e.target.value)}
+                placeholder="Contoh: Penyusutan fisik saat penyimpanan gudang / Hasil hitung ulang tim opname"
+              />
+            </div>
+
+            {/* Action Buttons */}
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <button className="btn btn-outline" onClick={() => setSelectedOpnameBahan(null)}>Batal</button>
+              <button className="btn btn-amber" onClick={handleSaveOpname} style={{ fontWeight: 800 }}>
+                <CheckCircle size={16} /> Simpan Penyesuaian Opname
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
