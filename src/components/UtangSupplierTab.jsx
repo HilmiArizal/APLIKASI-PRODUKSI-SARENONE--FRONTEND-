@@ -167,13 +167,13 @@ export default function UtangSupplierTab({
   });
 
   return (
-    <div className="tab-pane active">
+    <div className="tab-pane active" style={{ maxWidth: '100%', overflowX: 'hidden' }}>
       {/* ===== HEADER & PERIODE BULAN FILTER BAR ===== */}
       <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1.25rem', marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
             <h2 style={{ fontSize: '1.3rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
-              <CreditCard size={22} style={{ color: 'var(--amber)' }} /> Jurnal Utang Supplier (Standar Akuntansi)
+              <CreditCard size={22} style={{ color: 'var(--amber)' }} /> Jurnal Utang Supplier (Akuntansi)
             </h2>
             <p className="text-muted" style={{ fontSize: '0.82rem', marginTop: '0.2rem', marginBottom: 0 }}>
               Rekapitulasi Saldo Awal, Kredit (Penambahan Utang), Debit (Pembayaran Pelunasan), dan Saldo Akhir.
@@ -181,7 +181,7 @@ export default function UtangSupplierTab({
           </div>
 
           {/* Month Selector Filter Control */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
             <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
               <Calendar size={15} style={{ color: 'var(--amber)' }} /> Periode Bulan:
             </span>
@@ -192,7 +192,7 @@ export default function UtangSupplierTab({
                 border: '1px solid var(--amber)',
                 color: '#f8fafc',
                 borderRadius: 'var(--radius-sm)',
-                padding: '0.45rem 0.85rem',
+                padding: '0.45rem 0.75rem',
                 fontSize: '0.85rem',
                 fontWeight: '700',
                 outline: 'none',
@@ -219,51 +219,124 @@ export default function UtangSupplierTab({
         </div>
       </div>
 
-      {/* ===== 4 CARDS AKUNTANSI (SALDO AWAL, KREDIT, DEBIT, SALDO AKHIR) ===== */}
-      <div className="stats-grid" style={{ marginBottom: '1.5rem', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+      {/* ===== 4 CARDS AKUNTANSI RESPONSIVE GRID ===== */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
+        gap: '1rem',
+        marginBottom: '1.5rem'
+      }}>
         {/* Card 1: Saldo Awal Utang */}
-        <div className="stat-card" style={{ borderTop: '4px solid var(--cyan)' }}>
+        <div style={{
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-color)',
+          borderTop: '4px solid var(--cyan)',
+          borderRadius: 'var(--radius-md)',
+          padding: '1.15rem',
+          display: 'flex',
+          flexDirection: 'column',
+          justify: 'space-between',
+          gap: '0.5rem'
+        }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="stat-label">Saldo Awal Utang</span>
-            <Wallet size={18} style={{ color: 'var(--cyan)' }} />
+            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)' }}>Saldo Awal Utang</span>
+            <Wallet size={18} style={{ color: 'var(--cyan)', flexShrink: 0 }} />
           </div>
-          <div className="stat-value" style={{ color: 'var(--cyan)' }}>
+          <div style={{
+            fontSize: 'clamp(1.15rem, 2vw, 1.45rem)',
+            fontWeight: 800,
+            color: 'var(--cyan)',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis'
+          }}>
             Rp {formatNumber(globalSaldoAwal)}
           </div>
           <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Sisa utang bulan sebelumnya</span>
         </div>
 
         {/* Card 2: Kredit (Penambahan Utang Pembelian Baru) */}
-        <div className="stat-card" style={{ borderTop: '4px solid var(--rose)' }}>
+        <div style={{
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-color)',
+          borderTop: '4px solid var(--rose)',
+          borderRadius: 'var(--radius-md)',
+          padding: '1.15rem',
+          display: 'flex',
+          flexDirection: 'column',
+          justify: 'space-between',
+          gap: '0.5rem'
+        }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="stat-label">Kredit (Penambahan Utang)</span>
-            <ArrowUpRight size={18} style={{ color: 'var(--rose)' }} />
+            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)' }}>Kredit (Penambahan Utang)</span>
+            <ArrowUpRight size={18} style={{ color: 'var(--rose)', flexShrink: 0 }} />
           </div>
-          <div className="stat-value" style={{ color: 'var(--rose)' }}>
+          <div style={{
+            fontSize: 'clamp(1.15rem, 2vw, 1.45rem)',
+            fontWeight: 800,
+            color: 'var(--rose)',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis'
+          }}>
             Rp {formatNumber(globalKredit)}
           </div>
           <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Faktur pembelian baru (Utang +)</span>
         </div>
 
         {/* Card 3: Debit (Pengurangan Utang / Pembayaran Pelunasan) */}
-        <div className="stat-card" style={{ borderTop: '4px solid var(--emerald)' }}>
+        <div style={{
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-color)',
+          borderTop: '4px solid var(--emerald)',
+          borderRadius: 'var(--radius-md)',
+          padding: '1.15rem',
+          display: 'flex',
+          flexDirection: 'column',
+          justify: 'space-between',
+          gap: '0.5rem'
+        }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="stat-label">Debit (Pembayaran Utang)</span>
-            <ArrowDownRight size={18} style={{ color: 'var(--emerald)' }} />
+            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)' }}>Debit (Pembayaran Utang)</span>
+            <ArrowDownRight size={18} style={{ color: 'var(--emerald)', flexShrink: 0 }} />
           </div>
-          <div className="stat-value" style={{ color: 'var(--emerald)' }}>
+          <div style={{
+            fontSize: 'clamp(1.15rem, 2vw, 1.45rem)',
+            fontWeight: 800,
+            color: 'var(--emerald)',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis'
+          }}>
             Rp {formatNumber(globalDebit)}
           </div>
           <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Total cicilan &amp; pelunasan (Utang -)</span>
         </div>
 
         {/* Card 4: Saldo Akhir Utang */}
-        <div className="stat-card" style={{ borderTop: '4px solid var(--amber)' }}>
+        <div style={{
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-color)',
+          borderTop: '4px solid var(--amber)',
+          borderRadius: 'var(--radius-md)',
+          padding: '1.15rem',
+          display: 'flex',
+          flexDirection: 'column',
+          justify: 'space-between',
+          gap: '0.5rem'
+        }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="stat-label">Saldo Akhir Utang</span>
-            <AlertTriangle size={18} style={{ color: 'var(--amber)' }} />
+            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)' }}>Saldo Akhir Utang</span>
+            <AlertTriangle size={18} style={{ color: 'var(--amber)', flexShrink: 0 }} />
           </div>
-          <div className="stat-value" style={{ color: 'var(--amber)' }}>
+          <div style={{
+            fontSize: 'clamp(1.15rem, 2vw, 1.45rem)',
+            fontWeight: 800,
+            color: 'var(--amber)',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis'
+          }}>
             Rp {formatNumber(globalSaldoAkhir)}
           </div>
           <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
@@ -277,7 +350,7 @@ export default function UtangSupplierTab({
         <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           🏢 Rincian Saldo Akuntansi per Supplier ({selectedMonth === 'ALL' ? 'Semua Periode' : selectedMonth})
         </h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1rem' }}>
           {sortedSuppliersList.map(sup => {
             const isLunas = sup.saldoAkhir <= 0;
             return (
@@ -332,7 +405,7 @@ export default function UtangSupplierTab({
       </div>
 
       {/* ===== MAIN TABLE CONTAINER ===== */}
-      <div className="table-container">
+      <div className="table-container" style={{ width: '100%', overflowX: 'auto' }}>
         <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
           <div>
             <h3 style={{ fontSize: '1.05rem', fontWeight: 700 }}>Daftar Faktur Pembelian &amp; Cicilan Utang</h3>
@@ -363,117 +436,119 @@ export default function UtangSupplierTab({
           </div>
         </div>
 
-        <table className="custom-table">
-          <thead>
-            <tr>
-              <th>FAKTUR &amp; SUPPLIER</th>
-              <th>PEMBELIAN BAHAN BAKU</th>
-              <th>KREDIT (PENAMBAHAN UTANG)</th>
-              <th>DEBIT (PEMBAYARAN DIBAYAR)</th>
-              <th>SALDO AKHIR UTANG</th>
-              <th>JATUH TEMPO</th>
-              <th>STATUS</th>
-              <th style={{ textAlign: 'center' }}>AKSI</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredList.length === 0 ? (
+        <div style={{ overflowX: 'auto', width: '100%' }}>
+          <table className="custom-table" style={{ width: '100%', minWidth: '850px' }}>
+            <thead>
               <tr>
-                <td colSpan={8} style={{ textAlign: 'center', padding: '2.5rem' }} className="text-muted">
-                  Tidak ada catatan tagihan utang supplier pada periode {selectedMonth}.
-                </td>
+                <th>FAKTUR &amp; SUPPLIER</th>
+                <th>PEMBELIAN BAHAN BAKU</th>
+                <th>KREDIT (PENAMBAHAN UTANG)</th>
+                <th>DEBIT (PEMBAYARAN DIBAYAR)</th>
+                <th>SALDO AKHIR UTANG</th>
+                <th>JATUH TEMPO</th>
+                <th>STATUS</th>
+                <th style={{ textAlign: 'center' }}>AKSI</th>
               </tr>
-            ) : (
-              filteredList.map(item => {
-                const isPendingPenerimaan = (item.jumlahDiterima || 0) === 0 && (item.jumlahDibayar || 0) === 0;
-                const isLunas = (item.status === 'LUNAS' || item.sisaUtang === 0) && !isPendingPenerimaan;
+            </thead>
+            <tbody>
+              {filteredList.length === 0 ? (
+                <tr>
+                  <td colSpan={8} style={{ textAlign: 'center', padding: '2.5rem' }} className="text-muted">
+                    Tidak ada catatan tagihan utang supplier pada periode {selectedMonth}.
+                  </td>
+                </tr>
+              ) : (
+                filteredList.map(item => {
+                  const isPendingPenerimaan = (item.jumlahDiterima || 0) === 0 && (item.jumlahDibayar || 0) === 0;
+                  const isLunas = (item.status === 'LUNAS' || item.sisaUtang === 0) && !isPendingPenerimaan;
 
-                return (
-                  <tr key={item.id || item._id || item.noFaktur}>
-                    <td>
-                      <div style={{ fontWeight: 700, color: 'var(--amber)' }}>{item.noFaktur}</div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#fff' }}>{item.supplier}</div>
-                      <div className="text-muted" style={{ fontSize: '0.72rem' }}>Tgl Beli: {item.tanggalBeli}</div>
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: 600 }}>{item.bahanNama}</div>
-                      <div className="text-muted" style={{ fontSize: '0.78rem' }}>
-                        Order: {formatNumber(item.jumlah)} {item.satuan} @ Rp {formatNumber(item.hargaSatuan)}
-                      </div>
-                      <div style={{ fontSize: '0.75rem', fontWeight: 600, color: (item.jumlahDiterima || 0) > 0 ? 'var(--cyan)' : 'var(--amber)', marginTop: '0.15rem' }}>
-                        📥 Diterima: {formatNumber(item.jumlahDiterima || 0)} / {formatNumber(item.jumlah)} {item.satuan}
-                      </div>
-                    </td>
-                    <td>
-                      <strong style={{ fontSize: '0.95rem', color: 'var(--rose)' }}>Rp {formatNumber(item.totalTagihan)}</strong>
-                    </td>
-                    <td>
-                      <span style={{ color: 'var(--emerald)', fontWeight: 600 }}>
-                        Rp {formatNumber(item.jumlahDibayar)}
-                      </span>
-                    </td>
-                    <td>
-                      <strong style={{ fontSize: '1rem', color: isPendingPenerimaan ? 'var(--amber)' : (isLunas ? 'var(--emerald)' : 'var(--amber)') }}>
-                        Rp {formatNumber(item.sisaUtang)}
-                      </strong>
-                      {isPendingPenerimaan && (
-                        <div className="text-muted" style={{ fontSize: '0.7rem' }}>Belum Diterima</div>
-                      )}
-                    </td>
-                    <td>
-                      <div style={{ fontSize: '0.82rem', fontWeight: 600, color: isLunas ? 'var(--text-muted)' : 'var(--amber)' }}>
-                        📅 {item.jatuhTempo}
-                      </div>
-                    </td>
-                    <td>
-                      {isPendingPenerimaan ? (
-                        <span className="badge badge-amber">⏳ PENDING RECEIVE</span>
-                      ) : isLunas ? (
-                        <span className="badge badge-emerald">✓ LUNAS</span>
-                      ) : item.jumlahDibayar > 0 ? (
-                        <span className="badge badge-amber">CICILAN</span>
-                      ) : (
-                        <span className="badge badge-rose">BELUM LUNAS</span>
-                      )}
-                    </td>
-                    <td style={{ textAlign: 'center' }}>
-                      <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'center' }}>
-                        {canManage && !isLunas && (
+                  return (
+                    <tr key={item.id || item._id || item.noFaktur}>
+                      <td>
+                        <div style={{ fontWeight: 700, color: 'var(--amber)' }}>{item.noFaktur}</div>
+                        <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#fff' }}>{item.supplier}</div>
+                        <div className="text-muted" style={{ fontSize: '0.72rem' }}>Tgl Beli: {item.tanggalBeli}</div>
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: 600 }}>{item.bahanNama}</div>
+                        <div className="text-muted" style={{ fontSize: '0.78rem' }}>
+                          Order: {formatNumber(item.jumlah)} {item.satuan} @ Rp {formatNumber(item.hargaSatuan)}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: (item.jumlahDiterima || 0) > 0 ? 'var(--cyan)' : 'var(--amber)', marginTop: '0.15rem' }}>
+                          📥 Diterima: {formatNumber(item.jumlahDiterima || 0)} / {formatNumber(item.jumlah)} {item.satuan}
+                        </div>
+                      </td>
+                      <td>
+                        <strong style={{ fontSize: '0.95rem', color: 'var(--rose)' }}>Rp {formatNumber(item.totalTagihan)}</strong>
+                      </td>
+                      <td>
+                        <span style={{ color: 'var(--emerald)', fontWeight: 600 }}>
+                          Rp {formatNumber(item.jumlahDibayar)}
+                        </span>
+                      </td>
+                      <td>
+                        <strong style={{ fontSize: '1rem', color: isPendingPenerimaan ? 'var(--amber)' : (isLunas ? 'var(--emerald)' : 'var(--amber)') }}>
+                          Rp {formatNumber(item.sisaUtang)}
+                        </strong>
+                        {isPendingPenerimaan && (
+                          <div className="text-muted" style={{ fontSize: '0.7rem' }}>Belum Diterima</div>
+                        )}
+                      </td>
+                      <td>
+                        <div style={{ fontSize: '0.82rem', fontWeight: 600, color: isLunas ? 'var(--text-muted)' : 'var(--amber)' }}>
+                          📅 {item.jatuhTempo}
+                        </div>
+                      </td>
+                      <td>
+                        {isPendingPenerimaan ? (
+                          <span className="badge badge-amber">⏳ PENDING RECEIVE</span>
+                        ) : isLunas ? (
+                          <span className="badge badge-emerald">✓ LUNAS</span>
+                        ) : item.jumlahDibayar > 0 ? (
+                          <span className="badge badge-amber">CICILAN</span>
+                        ) : (
+                          <span className="badge badge-rose">BELUM LUNAS</span>
+                        )}
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'center' }}>
+                          {canManage && !isLunas && (
+                            <button
+                              className="btn btn-emerald btn-sm"
+                              style={{ padding: '0.35rem 0.65rem', fontSize: '0.75rem' }}
+                              onClick={() => setSelectedUtangForPay(item)}
+                              title="Bayar / Cicil Utang"
+                            >
+                              <DollarSign size={13} /> Bayar
+                            </button>
+                          )}
                           <button
-                            className="btn btn-emerald btn-sm"
+                            className="btn btn-outline btn-sm"
                             style={{ padding: '0.35rem 0.65rem', fontSize: '0.75rem' }}
-                            onClick={() => setSelectedUtangForPay(item)}
-                            title="Bayar / Cicil Utang"
+                            onClick={() => setSelectedUtangForHistory(item)}
+                            title="Lihat Riwayat Pembayaran"
                           >
-                            <DollarSign size={13} /> Bayar
+                            <History size={13} /> Riwayat
                           </button>
-                        )}
-                        <button
-                          className="btn btn-outline btn-sm"
-                          style={{ padding: '0.35rem 0.65rem', fontSize: '0.75rem' }}
-                          onClick={() => setSelectedUtangForHistory(item)}
-                          title="Lihat Riwayat Pembayaran"
-                        >
-                          <History size={13} /> Riwayat
-                        </button>
-                        {canManage && activeRoleView === 'ADMIN' && (
-                          <button
-                            className="btn btn-outline btn-danger btn-sm"
-                            style={{ padding: '0.35rem 0.5rem' }}
-                            onClick={() => handleDeleteClick(item)}
-                            title="Hapus Faktur"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
+                          {canManage && activeRoleView === 'ADMIN' && (
+                            <button
+                              className="btn btn-outline btn-danger btn-sm"
+                              style={{ padding: '0.35rem 0.5rem' }}
+                              onClick={() => handleDeleteClick(item)}
+                              title="Hapus Faktur"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Modals */}
