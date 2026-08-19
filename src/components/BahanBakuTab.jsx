@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Plus, ArrowDownLeft, Edit3, Trash2, FileText, FileSpreadsheet, Tag, Upload, Package } from 'lucide-react';
+import { Search, Plus, ArrowDownLeft, Edit3, Trash2, FileText, FileSpreadsheet, Tag, Upload, Package, Calendar } from 'lucide-react';
 import { formatNumber } from '../data/initialData';
 import { exportToExcel } from '../utils/exportUtils';
 import ModalPreviewPdf from './ModalPreviewPdf';
@@ -8,6 +8,9 @@ import { ModalImportBahanExcel } from './Modals';
 export default function BahanBakuTab({
   bahanBaku,
   kategoriList = [],
+  riwayatProduksi = [],
+  penerimaanList = [],
+  pembelianList = [],
   activeRoleView,
   onOpenTambahBahan,
   onOpenEditBahan,
@@ -19,13 +22,56 @@ export default function BahanBakuTab({
   onImportExcelBahan,
   showAlert
 }) {
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
   const [search, setSearch] = useState('');
   const [kategoriFilter, setKategoriFilter] = useState('');
+  const [filterTanggal, setFilterTanggal] = useState(todayStr);
   const [isPreviewPdfOpen, setIsPreviewPdfOpen] = useState(false);
   const [isImportExcelOpen, setIsImportExcelOpen] = useState(false);
 
   const isSuperAdmin = (activeRoleView === 'ADMIN');
   const canAddOrRestock = (activeRoleView === 'ADMIN' || activeRoleView === 'BAHAN_BAKU');
+
+  // Calculate Historical Stock per Specific Date
+  const getBahanStokOnDate = (b, targetDateStr) => {
+    if (!targetDateStr || targetDateStr === todayStr) return Number(b.stok) || 0;
+
+    let currentStok = Number(b.stok) || 0;
+    const bNameLower = String(b.nama || '').trim().toLowerCase();
+    const bId = String(b.id || b._id || '');
+
+    // 1. Rollback receipts/restocks after target date (Subtract received qty after target date)
+    (penerimaanList || []).forEach(p => {
+      const pDate = (p.tanggalPenerimaan || p.tanggal || '').substring(0, 10);
+      if (pDate > targetDateStr) {
+        (p.items || []).forEach(item => {
+          const itemNm = String(item.namaBahan || item.nama || '').trim().toLowerCase();
+          if (itemNm === bNameLower || item.id === bId) {
+            currentStok -= Number(item.diterimaCount || item.jumlahDiterima || item.jumlah || 0);
+          }
+        });
+      }
+    });
+
+    // 2. Rollback production usage after target date (Add back consumed qty after target date)
+    (riwayatProduksi || []).forEach(r => {
+      const rDate = (r.timestamp || r.tanggal || '').substring(0, 10);
+      if (rDate > targetDateStr) {
+        if (r.bahanDigunakan && Array.isArray(r.bahanDigunakan)) {
+          r.bahanDigunakan.forEach(item => {
+            const itemNm = String(item.bahanNama || item.nama || '').trim().toLowerCase();
+            if (itemNm === bNameLower || item.bahanId === bId) {
+              currentStok += Number(item.jumlah || 0);
+            }
+          });
+        }
+      }
+    });
+
+    return Math.max(0, currentStok);
+  };
 
   const filtered = bahanBaku
     .filter(b => {
@@ -46,36 +92,42 @@ export default function BahanBakuTab({
   };
 
   const handleExportExcel = () => {
-    const headers = ['Kode SKU', 'Nama Bahan Baku', 'Kategori', 'Stok Saat Ini', 'Batas Minimum', 'Satuan', 'Status Persediaan'];
-    const rows = filtered.map(b => [
-      b.sku,
-      b.nama,
-      b.kategori,
-      b.stok,
-      b.minStok,
-      b.satuan,
-      b.stok <= b.minStok ? 'Menipis / Restock' : 'Stok Safe'
-    ]);
-    exportToExcel('Stok_Bahan_Baku_Dapur', headers, rows);
+    const headers = ['Kode SKU', 'Nama Bahan Baku', 'Kategori', filterTanggal ? `Stok Tgl (${filterTanggal})` : 'Stok Saat Ini', 'Batas Minimum', 'Satuan', 'Status Persediaan'];
+    const rows = filtered.map(b => {
+      const stokVal = getBahanStokOnDate(b, filterTanggal);
+      return [
+        b.sku,
+        b.nama,
+        b.kategori,
+        stokVal,
+        b.minStok,
+        b.satuan,
+        stokVal <= b.minStok ? 'Menipis / Restock' : 'Stok Safe'
+      ];
+    });
+    exportToExcel(`Stok_Bahan_Baku_${filterTanggal || 'Saat_Ini'}`, headers, rows);
   };
 
   const handleExportPDF = () => {
-    const headers = ['SKU', 'Nama Bahan Baku', 'Kategori', 'Stok Saat Ini', 'Batas Min.', 'Status'];
-    const rows = filtered.map(b => [
-      b.sku,
-      b.nama,
-      b.kategori,
-      `${b.stok} ${b.satuan}`,
-      `${b.minStok} ${b.satuan}`,
-      b.stok <= b.minStok ? 'Menipis / Restock' : 'Stok Safe'
-    ]);
+    const headers = ['SKU', 'Nama Bahan Baku', 'Kategori', filterTanggal ? `Stok (${filterTanggal})` : 'Stok Saat Ini', 'Batas Min.', 'Status'];
+    const rows = filtered.map(b => {
+      const stokVal = getBahanStokOnDate(b, filterTanggal);
+      return [
+        b.sku,
+        b.nama,
+        b.kategori,
+        `${stokVal} ${b.satuan}`,
+        `${b.minStok} ${b.satuan}`,
+        stokVal <= b.minStok ? 'Menipis / Restock' : 'Stok Safe'
+      ];
+    });
     const config = {
       title: 'Laporan Inventaris Stok Bahan Baku Dapur',
-      subtitle: `Menampilkan ${filtered.length} bahan mentah pergerakan stok Saren One.`,
+      subtitle: `Menampilkan posisi stok per tanggal (${filterTanggal || 'Hari Ini'}) - Total ${filtered.length} item bahan mentah Saren One.`,
       headers,
       rows,
-      summaryText: `Total Bahan Mentah: ${filtered.length} Item | Status Menipis: ${filtered.filter(x => x.stok <= x.minStok).length} Item`,
-      filename: 'Stok_Bahan_Baku'
+      summaryText: `Total Bahan Mentah: ${filtered.length} Item`,
+      filename: `Stok_Bahan_Baku_${filterTanggal || 'Saat_Ini'}`
     };
     if (onOpenPdfPreview) {
       onOpenPdfPreview(config);
@@ -85,7 +137,54 @@ export default function BahanBakuTab({
   };
 
   return (
-    <div className="tab-pane active">
+    <div className="tab-pane active" style={{ maxWidth: '100%', overflowX: 'hidden' }}>
+      {/* ===== PERIODE TANGGAL FILTER BAR (RIGHT ALIGNED) ===== */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '1.25rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <Calendar size={15} style={{ color: 'var(--amber)' }} /> Filter Position Stok Tanggal:
+          </span>
+          <input
+            type="date"
+            style={{
+              background: 'rgba(15, 23, 42, 0.75)',
+              border: '1px solid rgba(245, 158, 11, 0.4)',
+              color: '#f8fafc',
+              borderRadius: '8px',
+              padding: '0.45rem 0.85rem',
+              fontSize: '0.82rem',
+              fontWeight: '600',
+              outline: 'none',
+              cursor: 'pointer'
+            }}
+            value={filterTanggal}
+            onChange={(e) => setFilterTanggal(e.target.value)}
+          />
+
+          {filterTanggal !== todayStr && (
+            <button
+              className="btn btn-sm btn-outline"
+              onClick={() => setFilterTanggal(todayStr)}
+              title="Kembali ke stok hari ini"
+              style={{ fontSize: '0.78rem' }}
+            >
+              Hari Ini
+            </button>
+          )}
+
+          {filterTanggal && (
+            <button
+              className="btn btn-sm btn-outline"
+              onClick={() => setFilterTanggal('')}
+              title="Tampilkan stok riil saat ini"
+              style={{ fontSize: '0.78rem' }}
+            >
+              Semua Periode
+            </button>
+          )}
+        </div>
+      </div>
+
       <div className="toolbar">
         <div className="search-box" style={{ maxWidth: '300px' }}>
           <Search size={16} className="search-icon" />
@@ -123,7 +222,7 @@ export default function BahanBakuTab({
             </button>
           )}
 
-          <button className="btn btn-outline" onClick={() => setIsPreviewPdfOpen(true)} title="Preview & Cetak Laporan PDF">
+          <button className="btn btn-outline" onClick={handleExportPDF} title="Preview & Cetak Laporan PDF">
             <FileText size={16} style={{ color: 'var(--amber)' }} /> Cetak PDF
           </button>
 
@@ -142,7 +241,7 @@ export default function BahanBakuTab({
               <th>SKU</th>
               <th>NAMA BAHAN BAKU</th>
               <th>KATEGORI</th>
-              <th>STOK SAAT INI</th>
+              <th>{filterTanggal ? `STOK TANGGAL (${filterTanggal})` : 'STOK SAAT INI'}</th>
               <th>BATAS MINIMUM</th>
               <th>STATUS STOK</th>
               {isSuperAdmin && <th style={{ textAlign: 'right' }}>AKSI</th>}
@@ -156,46 +255,47 @@ export default function BahanBakuTab({
                 </td>
               </tr>
             ) : (
-              filtered.map(b => (
-                <tr key={b.id}>
-                  <td><span className="badge badge-cyan">{b.sku}</span></td>
-                  <td style={{ fontWeight: 600 }}>{b.nama}</td>
-                  <td>{b.kategori}</td>
-                  <td><strong style={{ fontSize: '1.05rem' }}>{formatNumber(b.stok)}</strong> <span className="text-muted" style={{ fontSize: '0.8rem' }}>{b.satuan}</span></td>
-                  <td>{formatNumber(b.minStok)} <span className="text-muted" style={{ fontSize: '0.8rem' }}>{b.satuan}</span></td>
-                  <td>{getStatusBadge(b.stok, b.minStok)}</td>
-                  {isSuperAdmin && (
-                    <td style={{ textAlign: 'right' }}>
-                      <div className="btn-group">
-                        <button className="btn btn-sm btn-outline" title="Edit Bahan Baku" onClick={() => onOpenEditBahan(b)}>
-                          <Edit3 size={14} />
-                        </button>
-                        <button className="btn btn-sm btn-outline btn-danger" title="Hapus Bahan Baku" onClick={() => onDeleteBahan(b.id)}>
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
+              filtered.map(b => {
+                const stokVal = getBahanStokOnDate(b, filterTanggal);
+                return (
+                  <tr key={b.id}>
+                    <td><span className="badge badge-amber">{b.sku}</span></td>
+                    <td style={{ fontWeight: 600 }}>{b.nama}</td>
+                    <td><span className="badge badge-cyan">{b.kategori}</span></td>
+                    <td style={{ fontWeight: 700, color: filterTanggal ? 'var(--amber)' : '#f8fafc' }}>
+                      {formatNumber(stokVal)} {b.satuan}
                     </td>
-                  )}
-                </tr>
-              ))
+                    <td className="text-muted">{formatNumber(b.minStok)} {b.satuan}</td>
+                    <td>{getStatusBadge(stokVal, b.minStok)}</td>
+                    {isSuperAdmin && (
+                      <td style={{ textAlign: 'right' }}>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem' }}>
+                          <button className="btn btn-icon btn-sm" onClick={() => onOpenEditBahan(b)} title="Edit Bahan Baku">
+                            <Edit3 size={15} />
+                          </button>
+                          <button className="btn btn-icon btn-sm btn-danger" onClick={() => onDeleteBahan(b.id)} title="Hapus Bahan Baku">
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
       </div>
 
-      <ModalPreviewPdf
-        isOpen={isPreviewPdfOpen}
-        onClose={() => setIsPreviewPdfOpen(false)}
-        bahanBaku={filtered}
-        activeUser={{ name: activeRoleView === 'ADMIN' ? 'Super Admin SAREN ONE' : 'Tim Bahan Baku' }}
-      />
-
-      <ModalImportBahanExcel
-        isOpen={isImportExcelOpen}
-        onClose={() => setIsImportExcelOpen(false)}
-        onImport={onImportExcelBahan}
-        showAlert={showAlert}
-      />
+      {/* PDF & Excel Modals */}
+      {isImportExcelOpen && (
+        <ModalImportBahanExcel
+          isOpen={isImportExcelOpen}
+          onClose={() => setIsImportExcelOpen(false)}
+          onImport={onImportExcelBahan}
+          showAlert={showAlert}
+        />
+      )}
     </div>
   );
 }

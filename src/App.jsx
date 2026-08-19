@@ -1766,6 +1766,9 @@ export default function App() {
             <BahanBakuTab
               bahanBaku={bahanBaku}
               kategoriList={kategoriBahanBaku}
+              riwayatProduksi={riwayatProduksi}
+              penerimaanList={penerimaanList}
+              pembelianList={pembelianList}
               activeRoleView={activeRoleView}
               onOpenTambahBahan={() => { setEditingBahan(null); setIsModalBahanOpen(true); }}
               onOpenEditBahan={(b) => { setEditingBahan(b); setIsModalBahanOpen(true); }}
