@@ -144,6 +144,10 @@ export default function PembelianBahanTab({
     }, 0);
   }, [utangList, selectedMonth]);
 
+  const monthBelumDiterimaVal = useMemo(() => {
+    return Math.max(0, monthPembelianVal - monthPenerimaanVal);
+  }, [monthPembelianVal, monthPenerimaanVal]);
+
   // Filtered List for Table
   const filtered = utangList.filter(item => {
     const s = search.toLowerCase();
@@ -205,7 +209,7 @@ export default function PembelianBahanTab({
       </div>
 
       {/* Summary Cards Perbulan */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem', marginBottom: '1.5rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.25rem', marginBottom: '1.5rem' }}>
         {/* Total Nilai Pembelian (Order) */}
         <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderTop: '4px solid var(--amber)', borderRadius: 'var(--radius-md)', padding: '1.25rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -231,6 +235,20 @@ export default function PembelianBahanTab({
           </div>
           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
             Fisik diterima gudang: {formatMonthLabel(selectedMonth)}
+          </span>
+        </div>
+
+        {/* Total Nilai Belum Diterima (Pending) */}
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderTop: '4px solid var(--rose)', borderRadius: 'var(--radius-md)', padding: '1.25rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span className="text-muted" style={{ fontSize: '0.78rem' }}>Total Nilai Belum Diterima (Pending)</span>
+            <AlertTriangle size={18} style={{ color: 'var(--rose)' }} />
+          </div>
+          <div style={{ fontSize: '1.7rem', fontWeight: 800, color: 'var(--rose)', marginTop: '0.5rem' }}>
+            Rp {formatNumber(monthBelumDiterimaVal)}
+          </div>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+            Pesanan belum sampai gudang: {formatMonthLabel(selectedMonth)}
           </span>
         </div>
       </div>
