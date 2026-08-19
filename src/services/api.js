@@ -277,7 +277,7 @@ export async function deleteAuditLogApi(id) {
 }
 
 export async function clearAllAuditLogsApi() {
-  return request('/audit-log/all', {
+  return request('/audit-log/clear/all', {
     method: 'DELETE'
   });
 }
