@@ -9,8 +9,7 @@ export default function BahanBakuTab({
   bahanBaku = [],
   kategoriList = [],
   riwayatProduksi = [],
-  penerimaanList = [],
-  pembelianList = [],
+  utangList = [],
   auditLog = [],
   activeRoleView,
   onOpenTambahBahan,
@@ -40,27 +39,41 @@ export default function BahanBakuTab({
   const unifiedStockOpnameLogs = useMemo(() => {
     const logs = [];
 
-    // 1. Receipts / Restock (+ Stok Masuk)
-    (penerimaanList || []).forEach(p => {
-      const timestamp = p.tanggalPenerimaan || p.tanggal || p.createdAt || '';
-      const dateStr = timestamp.substring(0, 10);
-      (p.items || []).forEach(item => {
-        const qty = Number(item.diterimaCount || item.jumlahDiterima || item.jumlah || 0);
-        if (qty > 0) {
+    // 1. Receipts / Restock (+ Stok Masuk) from utangList
+    (utangList || []).forEach(p => {
+      if (p.riwayatPenerimaan && Array.isArray(p.riwayatPenerimaan)) {
+        p.riwayatPenerimaan.forEach(r => {
+          const timestamp = r.tanggal || r.createdAt || p.tanggalBeli || '';
+          const dateStr = timestamp.substring(0, 10);
           logs.push({
-            id: `penerimaan_${p._id || p.id}_${item.id || item.namaBahan}`,
+            id: `penerimaan_${p._id || p.id}_${r.id || Math.random()}`,
             timestamp,
             dateStr,
             tipe: 'STOK_MASUK',
-            namaBahan: item.namaBahan || item.nama || 'Bahan Baku',
-            sku: item.sku || '-',
-            jumlah: qty,
-            satuan: item.satuan || 'pcs',
-            user: p.penerima || p.user || 'Tim Bahan Baku',
+            namaBahan: r.namaBahan || p.bahanNama || 'Bahan Baku',
+            sku: p.sku || '-',
+            jumlah: Number(r.jumlah || r.diterima || 0),
+            satuan: r.satuan || p.satuan || 'pcs',
+            user: r.penerima || r.user || 'Tim Bahan Baku',
             detail: `Penerimaan Pembelian Faktur #${p.noFaktur || '-'} (${p.supplier || 'Supplier'})`
           });
-        }
-      });
+        });
+      } else if (Number(p.jumlahDiterima || 0) > 0) {
+        const timestamp = p.tanggalPenerimaan || p.tanggalBeli || p.createdAt || '';
+        const dateStr = timestamp.substring(0, 10);
+        logs.push({
+          id: `penerimaan_${p._id || p.id}`,
+          timestamp,
+          dateStr,
+          tipe: 'STOK_MASUK',
+          namaBahan: p.bahanNama || 'Bahan Baku',
+          sku: p.sku || '-',
+          jumlah: Number(p.jumlahDiterima || 0),
+          satuan: p.satuan || 'pcs',
+          user: p.penerima || p.user || 'Tim Bahan Baku',
+          detail: `Penerimaan Pembelian Faktur #${p.noFaktur || '-'} (${p.supplier || 'Supplier'})`
+        });
+      }
     });
 
     // 2. Production Usage (- Pemakaian Dapur)

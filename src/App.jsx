@@ -1767,8 +1767,7 @@ export default function App() {
               bahanBaku={bahanBaku}
               kategoriList={kategoriBahanBaku}
               riwayatProduksi={riwayatProduksi}
-              penerimaanList={penerimaanList}
-              pembelianList={pembelianList}
+              utangList={utangList}
               auditLog={auditLog}
               activeRoleView={activeRoleView}
               onOpenTambahBahan={() => { setEditingBahan(null); setIsModalBahanOpen(true); }}
