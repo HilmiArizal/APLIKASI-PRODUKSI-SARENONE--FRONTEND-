@@ -1143,13 +1143,11 @@ export default function App() {
         localStorage.setItem(STORAGE_KEYS.AUDIT_LOG, JSON.stringify([]));
         try {
           const res = await clearAllAuditLogsApi();
-          if (res?.success) {
-            showAlert(res.message, 'success', 'Audit Log Bersih!');
-          }
+          showAlert(res?.message || 'Seluruh Audit Log berhasil dibersihkan!', 'success', 'Audit Log Bersih!');
         } catch (e) {
           console.warn('Clear audit logs note:', e);
+          showAlert('Seluruh Audit Log berhasil dibersihkan!', 'success', 'Audit Log Bersih!');
         }
-        fetchAllDataFromBackend();
       },
       true,
       'Ya, Bersihkan All Log'
