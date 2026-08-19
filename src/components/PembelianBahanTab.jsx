@@ -157,52 +157,51 @@ export default function PembelianBahanTab({
 
   return (
     <div className="tab-pane active">
-      {/* Header Toolbar (Aligned to Far Right) */}
-      <div className="toolbar" style={{ marginBottom: '1.5rem', justifyContent: 'flex-end', flexWrap: 'wrap', gap: '1rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', marginLeft: 'auto' }}>
-          {/* Month Selector Filter Control (Matching Utang Supplier design) */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-              <Calendar size={15} style={{ color: 'var(--primary)' }} /> Periode Bulan:
-            </span>
-            <input
-              type="month"
-              style={{
-                background: 'rgba(15, 23, 42, 0.85)',
-                border: '1px solid var(--primary)',
-                color: '#f8fafc',
-                borderRadius: 'var(--radius-sm)',
-                padding: '0.45rem 0.75rem',
-                fontSize: '0.85rem',
-                fontWeight: '700',
-                outline: 'none',
-                cursor: 'pointer'
-              }}
-              value={(selectedMonth === 'semua' || selectedMonth === 'ALL') ? currentYM : selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
-            />
+      {/* Header Toolbar (Aligned to Far Right in 2 Rows) */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.85rem', marginBottom: '1.5rem' }}>
+        {/* Row 1: Month Selector Filter Control */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <Calendar size={15} style={{ color: 'var(--primary)' }} /> Periode Bulan:
+          </span>
+          <input
+            type="month"
+            style={{
+              background: 'rgba(15, 23, 42, 0.85)',
+              border: '1px solid var(--primary)',
+              color: '#f8fafc',
+              borderRadius: 'var(--radius-sm)',
+              padding: '0.45rem 0.75rem',
+              fontSize: '0.85rem',
+              fontWeight: '700',
+              outline: 'none',
+              cursor: 'pointer'
+            }}
+            value={(selectedMonth === 'semua' || selectedMonth === 'ALL') ? currentYM : selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+          />
 
-            <button
-              className={`btn btn-sm ${selectedMonth === currentYM ? 'btn-primary' : 'btn-outline'}`}
-              onClick={() => setSelectedMonth(currentYM)}
-            >
-              Bulan Berjalan
-            </button>
+          <button
+            className={`btn btn-sm ${selectedMonth === currentYM ? 'btn-primary' : 'btn-outline'}`}
+            onClick={() => setSelectedMonth(currentYM)}
+          >
+            Bulan Berjalan
+          </button>
 
-            <button
-              className={`btn btn-sm ${(selectedMonth === 'semua' || selectedMonth === 'ALL') ? 'btn-primary' : 'btn-outline'}`}
-              onClick={() => setSelectedMonth('semua')}
-            >
-              Semua Periode
-            </button>
-          </div>
-
-          {canManage && (
-            <button className="btn btn-primary" onClick={() => setIsTambahOpen(true)}>
-              <Plus size={16} /> Tambah Faktur Pembelian
-            </button>
-          )}
+          <button
+            className={`btn btn-sm ${(selectedMonth === 'semua' || selectedMonth === 'ALL') ? 'btn-primary' : 'btn-outline'}`}
+            onClick={() => setSelectedMonth('semua')}
+          >
+            Semua Periode
+          </button>
         </div>
+
+        {/* Row 2: Tambah Faktur Pembelian Button */}
+        {canManage && (
+          <button className="btn btn-primary" onClick={() => setIsTambahOpen(true)}>
+            <Plus size={16} /> Tambah Faktur Pembelian
+          </button>
+        )}
       </div>
 
       {/* Summary Cards Perbulan */}
