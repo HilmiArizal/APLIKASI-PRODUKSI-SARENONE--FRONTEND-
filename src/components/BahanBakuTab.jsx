@@ -123,7 +123,7 @@ export default function BahanBakuTab({
     });
 
     return logs.sort((a, b) => (b.timestamp || b.dateStr).localeCompare(a.timestamp || a.dateStr));
-  }, [penerimaanList, riwayatProduksi, auditLog]);
+  }, [utangList, riwayatProduksi, auditLog]);
 
   // Filter Stock Opname Logs by Selected Month & Search Query
   const filteredOpnameLogs = useMemo(() => {
