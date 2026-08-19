@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Boxes, Package, BookOpen, ChefHat, History, UserCheck, LogOut, X, Layers, Tag, Users, FlaskConical, CreditCard, PackageCheck, Building2, ShoppingCart, Megaphone, TrendingUp, ArrowDownLeft, ClipboardCheck } from 'lucide-react';
+import { LayoutDashboard, Boxes, Package, BookOpen, ChefHat, History, UserCheck, LogOut, X, Layers, Tag, Users, FlaskConical, CreditCard, PackageCheck, Building2, ShoppingCart, Megaphone, TrendingUp, ArrowDownLeft, ClipboardCheck, FileText } from 'lucide-react';
 import logoImg from '../assets/logo.png';
 
 export default function Sidebar({ activeUser, activeRoleView, activeTab, onSwitchTab, onLogout, lowStockCount, pendingUserCount, isMobileOpen, onCloseMobile }) {
