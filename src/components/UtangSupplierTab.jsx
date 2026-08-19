@@ -188,20 +188,10 @@ export default function UtangSupplierTab({
 
   return (
     <div className="tab-pane active" style={{ maxWidth: '100%', overflowX: 'hidden' }}>
-      {/* ===== HEADER & PERIODE BULAN FILTER BAR ===== */}
-      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1.25rem', marginBottom: '1.5rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-          <div>
-            <h2 style={{ fontSize: '1.3rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
-              <CreditCard size={22} style={{ color: 'var(--amber)' }} /> Jurnal Utang Supplier (Akuntansi)
-            </h2>
-            <p className="text-muted" style={{ fontSize: '0.82rem', marginTop: '0.2rem', marginBottom: 0 }}>
-              Klik kartu supplier untuk membayar cicilan utang langsung. Rekapitulasi Saldo Awal, Kredit, Debit, dan Saldo Akhir.
-            </p>
-          </div>
-
-          {/* Month Selector Filter Control */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+      {/* ===== PERIODE BULAN FILTER BAR ===== */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '1.25rem' }}>
+        {/* Month Selector Filter Control */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
             <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
               <Calendar size={15} style={{ color: 'var(--amber)' }} /> Periode Bulan:
             </span>
@@ -237,7 +227,6 @@ export default function UtangSupplierTab({
             </button>
           </div>
         </div>
-      </div>
 
       {/* ===== 4 CARDS AKUNTANSI RESPONSIVE GRID ===== */}
       <div style={{
