@@ -26,9 +26,11 @@ export default function BahanBakuTab({
   const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
   const [activeSubTab, setActiveSubTab] = useState('stok'); // 'stok' | 'opname-history'
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
   const [search, setSearch] = useState('');
   const [kategoriFilter, setKategoriFilter] = useState('');
-  const [selectedMonth, setSelectedMonth] = useState(currentMonthStr);
+  const [filterTanggal, setFilterTanggal] = useState(todayStr);
   const [isPreviewPdfOpen, setIsPreviewPdfOpen] = useState(false);
   const [isImportExcelOpen, setIsImportExcelOpen] = useState(false);
 
@@ -125,17 +127,17 @@ export default function BahanBakuTab({
     return logs.sort((a, b) => (b.timestamp || b.dateStr).localeCompare(a.timestamp || a.dateStr));
   }, [utangList, riwayatProduksi, auditLog]);
 
-  // Filter Stock Opname Logs by Selected Month & Search Query
+  // Filter Stock Opname Logs by Selected Daily Date & Search Query
   const filteredOpnameLogs = useMemo(() => {
     return unifiedStockOpnameLogs.filter(log => {
-      const matchMonth = selectedMonth ? (log.dateStr && log.dateStr.startsWith(selectedMonth)) : true;
+      const matchDate = filterTanggal ? (log.dateStr === filterTanggal || (log.dateStr && log.dateStr.startsWith(filterTanggal))) : true;
       const matchQuery = !search ||
         log.namaBahan.toLowerCase().includes(search.toLowerCase()) ||
         log.user.toLowerCase().includes(search.toLowerCase()) ||
         log.detail.toLowerCase().includes(search.toLowerCase());
-      return matchMonth && matchQuery;
+      return matchDate && matchQuery;
     });
-  }, [unifiedStockOpnameLogs, selectedMonth, search]);
+  }, [unifiedStockOpnameLogs, filterTanggal, search]);
 
   const filteredBahan = bahanBaku
     .filter(b => {
@@ -282,13 +284,13 @@ export default function BahanBakuTab({
           </button>
         </div>
 
-        {/* PERIODE BULAN FILTER BAR (STANDARISASI UTANG & PEMBELIAN) */}
+        {/* PERIODE TANGGAL FILTER BAR */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
           <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <Calendar size={15} style={{ color: 'var(--amber)' }} /> Periode Bulan:
+            <Calendar size={15} style={{ color: 'var(--amber)' }} /> Filter Position / Tanggal:
           </span>
           <input
-            type="month"
+            type="date"
             style={{
               background: 'rgba(15, 23, 42, 0.75)',
               border: '1px solid rgba(245, 158, 11, 0.4)',
@@ -300,29 +302,29 @@ export default function BahanBakuTab({
               outline: 'none',
               cursor: 'pointer'
             }}
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
+            value={filterTanggal}
+            onChange={(e) => setFilterTanggal(e.target.value)}
           />
 
-          {selectedMonth !== currentMonthStr && (
+          {filterTanggal !== todayStr && (
             <button
               className="btn btn-sm btn-outline"
-              onClick={() => setSelectedMonth(currentMonthStr)}
-              title="Reset ke bulan berjalan"
+              onClick={() => setFilterTanggal(todayStr)}
+              title="Reset ke tanggal hari ini"
               style={{ fontSize: '0.78rem' }}
             >
-              Bulan Berjalan
+              Hari Ini
             </button>
           )}
 
-          {selectedMonth && (
+          {filterTanggal && (
             <button
               className="btn btn-sm btn-outline"
-              onClick={() => setSelectedMonth('')}
-              title="Tampilkan semua periode"
+              onClick={() => setFilterTanggal('')}
+              title="Tampilkan semua riwayat tanggal"
               style={{ fontSize: '0.78rem' }}
             >
-              Semua Periode
+              Semua Tanggal
             </button>
           )}
         </div>
