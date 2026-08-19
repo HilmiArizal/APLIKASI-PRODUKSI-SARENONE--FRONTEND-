@@ -189,16 +189,16 @@ export default function UtangSupplierTab({
   return (
     <div className="tab-pane active" style={{ maxWidth: '100%', overflowX: 'hidden' }}>
       {/* ===== HEADER & PERIODE BULAN FILTER BAR ===== */}
-      <div style={{ marginBottom: '1.5rem' }}>
+      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1.25rem', marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-          {/* <div>
+          <div>
             <h2 style={{ fontSize: '1.3rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
               <CreditCard size={22} style={{ color: 'var(--amber)' }} /> Jurnal Utang Supplier (Akuntansi)
             </h2>
             <p className="text-muted" style={{ fontSize: '0.82rem', marginTop: '0.2rem', marginBottom: 0 }}>
               Klik kartu supplier untuk membayar cicilan utang langsung. Rekapitulasi Saldo Awal, Kredit, Debit, dan Saldo Akhir.
             </p>
-          </div> */}
+          </div>
 
           {/* Month Selector Filter Control */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
@@ -360,7 +360,7 @@ export default function UtangSupplierTab({
             Rp {formatNumber(globalSaldoAkhir)}
           </div>
           <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-            {/* Saldo Awal ({formatNumber(globalSaldoAwal)}) + Kredit ({formatNumber(globalKredit)}) - Debit ({formatNumber(globalDebit)}) */} Saldo utang bulan ini
+            Saldo utang bulan ini
           </span>
         </div>
       </div>
@@ -392,18 +392,11 @@ export default function UtangSupplierTab({
                 }}
                 className={hasActiveDebt ? 'supplier-card-hover' : ''}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.6rem' }}>
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-main)' }}>{sup.nama}</div>
-                    <div className="text-muted" style={{ fontSize: '0.72rem', marginTop: '0.15rem' }}>
-                      {sup.fakturCount > 0 ? `${sup.fakturCount} faktur transaksi` : 'Belum ada transaksi'}
-                    </div>
+                <div style={{ marginBottom: '0.6rem' }}>
+                  <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-main)' }}>{sup.nama}</div>
+                  <div className="text-muted" style={{ fontSize: '0.72rem', marginTop: '0.15rem' }}>
+                    {sup.fakturCount > 0 ? `${sup.fakturCount} faktur transaksi` : 'Belum ada transaksi'}
                   </div>
-                  {isLunas ? (
-                    <span className="badge badge-emerald" style={{ fontSize: '0.7rem' }}>✓ BERSIH / LUNAS</span>
-                  ) : (
-                    <span className="badge badge-amber" style={{ fontSize: '0.7rem' }}>ADA UTANG</span>
-                  )}
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', fontSize: '0.78rem', background: 'rgba(15,23,42,0.4)', padding: '0.65rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}>
@@ -428,25 +421,51 @@ export default function UtangSupplierTab({
                 </div>
 
                 {/* ===== ACTION BUTTON INSIDE CARD ===== */}
-                {canManage && !isLunas && (
-                  <button
-                    className="btn btn-emerald btn-block"
-                    style={{
-                      marginTop: '0.85rem',
-                      padding: '0.5rem 0.85rem',
-                      fontSize: '0.8rem',
-                      fontWeight: '700',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justify: 'center',
-                      gap: '0.4rem',
-                      borderRadius: 'var(--radius-sm)',
-                      boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
-                    }}
-                    onClick={(e) => handlePayFromSupplierCard(sup.nama, e)}
-                  >
-                    <DollarSign size={15} /> Bayar Utang ({sup.nama})
-                  </button>
+                {canManage && (
+                  !isLunas ? (
+                    <button
+                      className="btn btn-emerald btn-block"
+                      style={{
+                        marginTop: '0.85rem',
+                        padding: '0.5rem 0.85rem',
+                        fontSize: '0.8rem',
+                        fontWeight: '700',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justify: 'center',
+                        gap: '0.4rem',
+                        borderRadius: 'var(--radius-sm)',
+                        boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
+                        cursor: 'pointer'
+                      }}
+                      onClick={(e) => handlePayFromSupplierCard(sup.nama, e)}
+                    >
+                      <DollarSign size={15} /> Bayar Utang ({sup.nama})
+                    </button>
+                  ) : (
+                    <button
+                      className="btn btn-block"
+                      disabled
+                      style={{
+                        marginTop: '0.85rem',
+                        padding: '0.5rem 0.85rem',
+                        fontSize: '0.8rem',
+                        fontWeight: '600',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justify: 'center',
+                        gap: '0.4rem',
+                        borderRadius: 'var(--radius-sm)',
+                        background: 'rgba(148, 163, 184, 0.12)',
+                        color: 'var(--text-muted)',
+                        border: '1px solid var(--border-color)',
+                        cursor: 'not-allowed',
+                        opacity: 0.65
+                      }}
+                    >
+                      <CheckCircle size={15} /> Tidak Ada Utang / Lunas
+                    </button>
+                  )
                 )}
               </div>
             );
