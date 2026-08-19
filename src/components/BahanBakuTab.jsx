@@ -170,7 +170,7 @@ export default function BahanBakuTab({
         l.user,
         l.detail
       ]);
-      exportToExcel(`Riwayat_Stock_Opname_${selectedMonth || 'Semua'}`, headers, rows);
+      exportToExcel(`Riwayat_Stock_Opname_${filterTanggal || 'Semua'}`, headers, rows);
     } else {
       const headers = ['Kode SKU', 'Nama Bahan Baku', 'Kategori', 'Stok Saat Ini', 'Batas Minimum', 'Satuan', 'Status Persediaan'];
       const rows = filteredBahan.map(b => [
@@ -199,11 +199,11 @@ export default function BahanBakuTab({
       ]);
       const config = {
         title: 'Laporan Riwayat Stock Opname & Pergerakan Per Tanggal',
-        subtitle: `Menampilkan ${filteredOpnameLogs.length} rekam transaksi pergerakan stok (Periode: ${selectedMonth || 'Semua'}).`,
+        subtitle: `Menampilkan ${filteredOpnameLogs.length} rekam transaksi pergerakan stok (Periode: ${filterTanggal || 'Semua'}).`,
         headers,
         rows,
         summaryText: `Total Record Transaksi Stock Opname: ${filteredOpnameLogs.length} Log`,
-        filename: `Riwayat_Stock_Opname_${selectedMonth || 'Semua'}`
+        filename: `Riwayat_Stock_Opname_${filterTanggal || 'Semua'}`
       };
       if (onOpenPdfPreview) {
         onOpenPdfPreview(config);
@@ -453,7 +453,7 @@ export default function BahanBakuTab({
               {filteredOpnameLogs.length === 0 ? (
                 <tr>
                   <td colSpan={6} style={{ textAlign: 'center', padding: '2rem' }} className="text-muted">
-                    Belum ada riwayat stock opname / pergerakan stok pada periode {selectedMonth || 'ini'}.
+                    Belum ada riwayat stock opname / pergerakan stok pada periode {filterTanggal || 'ini'}.
                   </td>
                 </tr>
               ) : (
