@@ -1752,10 +1752,12 @@ export default function App() {
               produk={produk}
               riwayatProduksi={riwayatProduksi}
               auditLog={auditLog}
+              utangList={utangList}
               activeRoleView={activeRoleView}
               onNavigate={(tab) => setActiveTab(tab)}
               onOpenModalProduksi={() => setIsModalProduksiOpen(true)}
               onOpenPdfPreview={handleOpenPdfPreview}
+              onSwitchTab={setActiveTab}
               backendConnected={backendConnected}
             />
           )}

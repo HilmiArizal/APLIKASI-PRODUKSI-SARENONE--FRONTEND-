@@ -64,6 +64,53 @@ export default function DashboardTab({
     return Object.values(map).sort((a, b) => b.tanggal.localeCompare(a.tanggal));
   }, [riwayatProduksi]);
 
+  // ===== GRAFIK STOK VS PEMAKAIAN BAHAN BAKU PER HARI (LAST 7 DAYS) =====
+  const dailyStockUsageChartData = useMemo(() => {
+    const last7Days = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(now.getDate() - i);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      const dateStr = `${yyyy}-${mm}-${dd}`;
+      const dayLabel = `${dd}/${mm}`;
+      last7Days.push({ dateStr, dayLabel });
+    }
+
+    const totalCurrentStockQty = (bahanBaku || []).reduce((sum, b) => sum + (Number(b.stok) || 0), 0);
+
+    const chartData = last7Days.map(({ dateStr, dayLabel }) => {
+      let dailyUsageQty = 0;
+      (riwayatProduksi || []).forEach(r => {
+        const rDate = (r.timestamp || r.tanggal || '').substring(0, 10);
+        if (rDate === dateStr) {
+          if (r.bahanDigunakan && Array.isArray(r.bahanDigunakan)) {
+            r.bahanDigunakan.forEach(b => {
+              dailyUsageQty += Number(b.jumlah || 0);
+            });
+          } else {
+            dailyUsageQty += Number(r.jumlahPcs || 1) * 2;
+          }
+        }
+      });
+
+      return {
+        dateStr,
+        dayLabel,
+        stockQty: totalCurrentStockQty,
+        usageQty: Math.round(dailyUsageQty * 10) / 10,
+        isToday: dateStr === todayStr
+      };
+    });
+
+    const maxStock = Math.max(...chartData.map(d => d.stockQty), 100);
+    const maxUsage = Math.max(...chartData.map(d => d.usageQty), 10);
+    const maxVal = Math.max(maxStock, maxUsage * 2);
+
+    return { chartData, maxVal, totalCurrentStockQty };
+  }, [bahanBaku, riwayatProduksi, todayStr, now]);
+
   // Default: Filter by current running month (selectedMonth) plus search filter
   const filteredRekap = groupedByDate.filter(g => {
     const matchMonth = selectedMonth ? g.tanggal.startsWith(selectedMonth) : true;
@@ -320,35 +367,76 @@ export default function DashboardTab({
         </div>
       </div>
 
-      <div className="dashboard-grid" style={{ gridTemplateColumns: '1fr' }}>
-        <div className="card card-table">
-          <div className="card-header">
-            <h3><Activity size={18} /> Aktivitas Transaksi Terakhir</h3>
-            <button className="btn btn-sm btn-outline" onClick={() => onSwitchTab('audit-log')}>Lihat Semua</button>
+      {/* ===== GRAFIK STOK VS PEMAKAIAN BAHAN BAKU PER HARI SECTION ===== */}
+      <div className="card" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1.5rem', marginTop: '1.5rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+          <div>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
+              <Activity size={20} style={{ color: 'var(--cyan)' }} /> Grafik Stok vs Pemakaian Bahan Baku Per Hari
+            </h3>
+            <p className="text-muted" style={{ fontSize: '0.8rem', marginTop: '0.2rem', margin: 0 }}>
+              Perbandingan total persediaan stok bahan baku gudang dengan tingkat pemakaian olahan dapur (7 Hari Terakhir).
+            </p>
           </div>
-          <div className="table-responsive">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Waktu</th>
-                  <th>Peran / User</th>
-                  <th>Tipe Aksi</th>
-                  <th>Rincian Keterangan</th>
-                </tr>
-              </thead>
-              <tbody>
-                {auditLog.slice(0, 5).map((l, idx) => (
-                  <tr key={l.id || idx}>
-                    <td className="text-muted" style={{ fontSize: '0.8rem' }}>{l.timestamp}</td>
-                    <td>
-                      <strong>{l.user}</strong> <span className="role-badge" style={{ fontSize: '0.65rem' }}>{l.role}</span>
-                    </td>
-                    <td><span className={`status-badge ${getAksiBadgeStyle(l.aksi)}`}>{l.aksi}</span></td>
-                    <td>{l.detail}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#38bdf8', fontWeight: 700 }}>
+              <span style={{ width: 12, height: 12, background: 'var(--cyan)', borderRadius: '3px', display: 'inline-block' }}></span> Total Stok Bahan Baku
+            </span>
+            <span style={{ fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#f43f5e', fontWeight: 700 }}>
+              <span style={{ width: 12, height: 12, background: 'var(--rose)', borderRadius: '3px', display: 'inline-block' }}></span> Pemakaian Dapur / Hari
+            </span>
+          </div>
+        </div>
+
+        {/* DUAL BAR CHART GRAPH */}
+        <div style={{ background: 'rgba(15, 23, 42, 0.65)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1.5rem 1rem 1rem 1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-around', height: '220px', gap: '0.75rem', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-color)' }}>
+            {dailyStockUsageChartData.chartData.map(item => {
+              const stockHeight = item.stockQty > 0 ? Math.max(15, Math.round((item.stockQty / dailyStockUsageChartData.maxVal) * 100)) : 8;
+              const usageHeight = item.usageQty > 0 ? Math.max(15, Math.round((item.usageQty / (dailyStockUsageChartData.maxVal / 2)) * 100)) : 8;
+
+              return (
+                <div key={item.dateStr} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
+                  {/* Bars Container */}
+                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: '0.35rem', width: '100%', justifyContent: 'center', height: '85%' }}>
+                    {/* Stock Bar */}
+                    <div
+                      style={{
+                        width: '38%',
+                        maxWidth: '28px',
+                        height: `${stockHeight}%`,
+                        background: 'linear-gradient(180deg, #38bdf8 0%, #0284c7 100%)',
+                        borderRadius: '4px 4px 0 0',
+                        boxShadow: item.isToday ? '0 0 12px rgba(56, 189, 248, 0.4)' : 'none',
+                        transition: 'all 0.3s ease',
+                        cursor: 'pointer'
+                      }}
+                      title={`Tgl ${item.dayLabel}: Total Stok ${formatNumber(item.stockQty)} Items`}
+                    />
+                    {/* Usage Bar */}
+                    <div
+                      style={{
+                        width: '38%',
+                        maxWidth: '28px',
+                        height: `${usageHeight}%`,
+                        background: item.usageQty > 0 ? 'linear-gradient(180deg, #f43f5e 0%, #be123c 100%)' : 'rgba(148, 163, 184, 0.2)',
+                        borderRadius: '4px 4px 0 0',
+                        boxShadow: item.usageQty > 0 ? '0 0 12px rgba(244, 63, 94, 0.4)' : 'none',
+                        transition: 'all 0.3s ease',
+                        cursor: 'pointer'
+                      }}
+                      title={`Tgl ${item.dayLabel}: Pemakaian Dapur ${formatNumber(item.usageQty)} Qty`}
+                    />
+                  </div>
+
+                  {/* Date Label X-Axis */}
+                  <div style={{ fontSize: '0.75rem', fontWeight: item.isToday ? 800 : 600, color: item.isToday ? 'var(--cyan)' : 'var(--text-muted)', marginTop: '0.6rem' }}>
+                    {item.dayLabel} {item.isToday ? '(Hari ini)' : ''}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
