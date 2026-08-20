@@ -315,6 +315,45 @@ export default function DashboardTab({
           </div>
         </div>
       )}
+      {/* HERO WELCOME BANNER (PERSIS TEMA MOCKUP BOOKING TOUR) */}
+      <div style={{
+        background: 'linear-gradient(135deg, #7dd3fc 0%, #38bdf8 50%, #0284c7 100%)',
+        borderRadius: 'var(--radius-md)',
+        padding: '1.75rem 2rem',
+        marginBottom: '1.5rem',
+        color: '#ffffff',
+        display: 'flex',
+        justify: 'space-between',
+        alignItems: 'center',
+        boxShadow: '0 10px 30px rgba(56, 189, 248, 0.25)',
+        position: 'relative',
+        overflow: 'hidden'
+      }}>
+        <div>
+          <h2 style={{ fontSize: '1.6rem', fontWeight: 900, marginBottom: '0.4rem', color: '#ffffff' }}>
+            Hai, Saren One Team 👋
+          </h2>
+          <p style={{ fontSize: '0.92rem', opacity: 0.95, margin: 0, fontWeight: 500 }}>
+            Selamat datang kembali, dasbor manajemen persediaan stok &amp; produksi sudah siap!
+          </p>
+        </div>
+        <button
+          className="btn"
+          onClick={onOpenModalProduksi}
+          style={{
+            background: '#facc15',
+            color: '#1e293b',
+            fontWeight: 800,
+            fontSize: '0.9rem',
+            padding: '0.75rem 1.4rem',
+            boxShadow: '0 4px 14px rgba(250, 204, 21, 0.4)',
+            border: 'none'
+          }}
+        >
+          <PlusCircle size={18} /> Mulai Produksi
+        </button>
+      </div>
+
       <div className="stats-grid">
         <div
           className="stat-card border-cyan"
