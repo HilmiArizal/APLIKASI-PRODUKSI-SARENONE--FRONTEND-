@@ -69,46 +69,78 @@ export default function UtangSupplierTab({
       };
     }
 
-    const itemMonth = getMonthFromDateStr(item.tanggalBeli);
     const unitHarga = Number(item.hargaSatuan || 0);
-    const physicalQtyDiterima = Number(item.jumlahDiterima || 0);
 
-    // UTANG / KREDIT HANYA BERTAMBAH SAAT BARANG FISIK SUDAH DITERIMA DI GUDANG
-    const itemPhysicalAccruedKredit = physicalQtyDiterima * unitHarga;
-    const itemPaidTotal = Number(item.jumlahDibayar || 0);
-    const itemSisaUtangFisik = Math.max(0, itemPhysicalAccruedKredit - itemPaidTotal);
+    // 1. Dapatkan daftar peristiwa penerimaan fisik (Kredit / Utang bertambah sesuai TANGGAL PENERIMAAN)
+    const receiptEvents = [];
+    if (item.riwayatPenerimaan && Array.isArray(item.riwayatPenerimaan) && item.riwayatPenerimaan.length > 0) {
+      item.riwayatPenerimaan.forEach(r => {
+        const rDate = r.tanggal || item.tanggalBeli;
+        const rMonth = getMonthFromDateStr(rDate);
+        const rAmount = Number(r.jumlah || 0) * unitHarga;
+        if (rAmount > 0) receiptEvents.push({ date: rDate, month: rMonth, amount: rAmount });
+      });
+    } else if (Number(item.jumlahDiterima || 0) > 0) {
+      const rDate = item.tanggalBeli;
+      const rMonth = getMonthFromDateStr(rDate);
+      const rAmount = Number(item.jumlahDiterima || 0) * unitHarga;
+      receiptEvents.push({ date: rDate, month: rMonth, amount: rAmount });
+    }
+
+    // 2. Dapatkan daftar peristiwa pembayaran (Debit / Utang berkurang sesuai TANGGAL PEMBAYARAN)
+    const paymentEvents = [];
+    const payList = item.riwayatPembayaran || item.riwayatBayar;
+    if (payList && Array.isArray(payList) && payList.length > 0) {
+      payList.forEach(p => {
+        const pDate = p.tanggal || item.tanggalBeli;
+        const pMonth = getMonthFromDateStr(pDate);
+        const pAmount = Number(p.jumlah || 0);
+        if (pAmount > 0) paymentEvents.push({ date: pDate, month: pMonth, amount: pAmount });
+      });
+    } else if (Number(item.jumlahDibayar || 0) > 0) {
+      const pDate = item.tanggalBeli;
+      const pMonth = getMonthFromDateStr(pDate);
+      const pAmount = Number(item.jumlahDibayar || 0);
+      paymentEvents.push({ date: pDate, month: pMonth, amount: pAmount });
+    }
 
     if (selectedMonth === 'ALL') {
-      supplierAccountingMap[supNama].saldoAwal += 0;
-      supplierAccountingMap[supNama].kredit += itemPhysicalAccruedKredit;
-      supplierAccountingMap[supNama].debit += itemPaidTotal;
+      const totalKredit = receiptEvents.reduce((s, r) => s + r.amount, 0);
+      const totalDebit = paymentEvents.reduce((s, p) => s + p.amount, 0);
+
+      supplierAccountingMap[supNama].kredit += totalKredit;
+      supplierAccountingMap[supNama].debit += totalDebit;
       supplierAccountingMap[supNama].fakturCount += 1;
-      if (item.status !== 'LUNAS' && itemSisaUtangFisik > 0) supplierAccountingMap[supNama].fakturBelumLunas += 1;
+      if (totalKredit - totalDebit > 0) supplierAccountingMap[supNama].fakturBelumLunas += 1;
 
-      globalKredit += itemPhysicalAccruedKredit;
-      globalDebit += itemPaidTotal;
+      globalKredit += totalKredit;
+      globalDebit += totalDebit;
     } else {
-      if (itemMonth && itemMonth < selectedMonth) {
-        if (itemSisaUtangFisik > 0 || (item.status !== 'LUNAS' && itemPhysicalAccruedKredit > 0)) {
-          supplierAccountingMap[supNama].saldoAwal += itemSisaUtangFisik;
-          globalSaldoAwal += itemSisaUtangFisik;
-        }
-      } else if (itemMonth === selectedMonth) {
-        supplierAccountingMap[supNama].kredit += itemPhysicalAccruedKredit;
+      // Hitung Saldo Awal: Total Penerimaan sebelum bulan terpilih MINUS Total Pembayaran sebelum bulan terpilih
+      const priorKredit = receiptEvents.filter(r => r.month && r.month < selectedMonth).reduce((s, r) => s + r.amount, 0);
+      const priorDebit = paymentEvents.filter(p => p.month && p.month < selectedMonth).reduce((s, p) => s + p.amount, 0);
+      const priorNetDebt = Math.max(0, priorKredit - priorDebit);
+
+      supplierAccountingMap[supNama].saldoAwal += priorNetDebt;
+      globalSaldoAwal += priorNetDebt;
+
+      // Hitung Kredit & Debit khusus bulan terpilih (berdasarkan TANGGAL PENERIMAAN / PEMBAYARAN)
+      const monthKredit = receiptEvents.filter(r => r.month === selectedMonth).reduce((s, r) => s + r.amount, 0);
+      const monthDebit = paymentEvents.filter(p => p.month === selectedMonth).reduce((s, p) => s + p.amount, 0);
+
+      const poMonth = getMonthFromDateStr(item.tanggalBeli);
+      if (monthKredit > 0 || monthDebit > 0 || poMonth === selectedMonth || priorNetDebt > 0) {
         supplierAccountingMap[supNama].fakturCount += 1;
-        globalKredit += itemPhysicalAccruedKredit;
-
-        let paidThisMonth = itemPaidTotal;
-        if (item.riwayatPembayaran && Array.isArray(item.riwayatPembayaran) && item.riwayatPembayaran.length > 0) {
-          paidThisMonth = item.riwayatPembayaran
-            .filter(r => getMonthFromDateStr(r.tanggal) === selectedMonth)
-            .reduce((sum, r) => sum + Number(r.jumlah || 0), 0);
-        }
-        supplierAccountingMap[supNama].debit += paidThisMonth;
-        globalDebit += paidThisMonth;
-
-        if (itemPhysicalAccruedKredit - paidThisMonth > 0) supplierAccountingMap[supNama].fakturBelumLunas += 1;
       }
+
+      supplierAccountingMap[supNama].kredit += monthKredit;
+      supplierAccountingMap[supNama].debit += monthDebit;
+      globalKredit += monthKredit;
+      globalDebit += monthDebit;
+
+      const currentTotalKredit = priorKredit + monthKredit;
+      const currentTotalDebit = priorDebit + monthDebit;
+      if (currentTotalKredit - currentTotalDebit > 0) supplierAccountingMap[supNama].fakturBelumLunas += 1;
     }
   });
 
@@ -133,8 +165,11 @@ export default function UtangSupplierTab({
                         (item.noFaktur || '').toLowerCase().includes(s) ||
                         (item.bahanNama || '').toLowerCase().includes(s);
 
-    const itemMonth = getMonthFromDateStr(item.tanggalBeli);
-    const matchMonth = selectedMonth === 'ALL' || itemMonth === selectedMonth;
+    const poMonth = getMonthFromDateStr(item.tanggalBeli);
+    const hasReceiptInMonth = (item.riwayatPenerimaan || []).some(r => getMonthFromDateStr(r.tanggal) === selectedMonth);
+    const hasPaymentInMonth = (item.riwayatPembayaran || item.riwayatBayar || []).some(p => getMonthFromDateStr(p.tanggal) === selectedMonth);
+
+    const matchMonth = selectedMonth === 'ALL' || poMonth === selectedMonth || hasReceiptInMonth || hasPaymentInMonth;
 
     const matchStatus = statusFilter === 'semua' ||
                         (statusFilter === 'belum_lunas' && item.status !== 'LUNAS') ||
