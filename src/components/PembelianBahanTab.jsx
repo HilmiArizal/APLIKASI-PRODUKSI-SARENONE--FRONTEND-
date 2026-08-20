@@ -309,7 +309,7 @@ export default function PembelianBahanTab({
                   <tr key={item.id || item._id || item.noFaktur}>
                     <td>
                       <div style={{ fontWeight: 700, color: 'var(--primary)' }}>{item.noFaktur}</div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#fff' }}>{item.supplier}</div>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1f2d3d' }}>{item.supplier}</div>
                     </td>
                     <td>
                       <div style={{ fontWeight: 600 }}>{item.bahanNama}</div>

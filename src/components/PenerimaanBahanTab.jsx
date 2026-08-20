@@ -115,7 +115,7 @@ export default function PenerimaanBahanTab({
                   <tr key={item.id}>
                     <td>
                       <div style={{ fontWeight: 700, color: 'var(--primary)' }}>{item.noFaktur}</div>
-                      <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#fff' }}>{item.supplier}</div>
+                      <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1f2d3d' }}>{item.supplier}</div>
                       <div className="text-muted" style={{ fontSize: '0.72rem' }}>Tgl Order: {item.tanggalBeli}</div>
                     </td>
                     <td>

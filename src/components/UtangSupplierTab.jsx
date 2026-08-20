@@ -587,7 +587,7 @@ export default function UtangSupplierTab({
                     <tr key={item.id || item._id || item.noFaktur}>
                       <td>
                         <div style={{ fontWeight: 700, color: 'var(--amber)' }}>{item.noFaktur}</div>
-                        <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#fff' }}>{item.supplier}</div>
+                        <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1f2d3d' }}>{item.supplier}</div>
                         <div className="text-muted" style={{ fontSize: '0.72rem' }}>Tgl Beli: {item.tanggalBeli}</div>
                       </td>
                       <td>

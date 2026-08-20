@@ -263,7 +263,7 @@ export default function SupplierTab({
                     <span className="badge badge-cyan" style={{ fontWeight: 800 }}>{s.kode || 'SUP'}</span>
                   </td>
                   <td>
-                    <div style={{ fontWeight: 800, color: '#fff', fontSize: '0.95rem' }}>{s.nama}</div>
+                    <div style={{ fontWeight: 800, color: '#1f2d3d', fontSize: '0.95rem' }}>{s.nama}</div>
                   </td>
                   <td>
                     <div style={{ fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>

@@ -2021,7 +2021,7 @@ export function ModalKelolaSupplier({ isOpen, onClose, suppliersList = [], onCre
                 ) : (
                   suppliersList.map(s => (
                     <tr key={s.id || s._id || s.nama}>
-                      <td style={{ fontWeight: 700, color: '#fff' }}>{s.nama}</td>
+                      <td style={{ fontWeight: 700, color: '#1f2d3d' }}>{s.nama}</td>
                       <td style={{ fontSize: '0.8rem' }}>{s.kontak || '-'}</td>
                       <td style={{ fontSize: '0.8rem' }}>{s.alamat || '-'}</td>
                       <td style={{ textAlign: 'right' }}>
