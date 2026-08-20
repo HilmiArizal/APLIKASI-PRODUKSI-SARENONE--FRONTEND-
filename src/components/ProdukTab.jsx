@@ -90,7 +90,7 @@ export default function ProdukTab({
           ))}
         </select>
 
-        <div className="toolbar-actions">
+        <div className="toolbar-actions" style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
           {/* Kategori button removed */}
 
           {/* <button className="btn btn-outline" onClick={handleExportExcel} title="Export Data ke Excel (.csv)">

@@ -786,6 +786,13 @@ button:active,
   flex-wrap: wrap;
 }
 
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
 .search-box {
   display: flex;
   align-items: center;
