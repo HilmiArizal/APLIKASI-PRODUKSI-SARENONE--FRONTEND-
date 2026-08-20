@@ -168,98 +168,100 @@ export default function UserApprovalTab({ users, onApproveUser, onRejectUser, on
 
       {/* Main Users Table Directory */}
       <div className="table-container">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>PROFIL PENGGUNA</th>
-              <th>METODE LOGIN</th>
-              <th>ROLE / PERAN AKTIF</th>
-              <th>STATUS VERIFIKASI</th>
-              <th>TANGGAL DAFTAR</th>
-              <th style={{ textAlign: 'right' }}>AKSI MANAJEMEN ADMIN</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredUsers.length === 0 ? (
+        <div style={{ overflowX: 'auto', width: '100%' }}>
+          <table className="custom-table" style={{ width: '100%', minWidth: '980px' }}>
+            <thead>
               <tr>
-                <td colSpan={6} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
-                  Tidak ada data pengguna yang sesuai dengan filter pencarian.
-                </td>
+                <th style={{ minWidth: '250px' }}>PROFIL PENGGUNA</th>
+                <th style={{ minWidth: '150px' }}>METODE LOGIN</th>
+                <th style={{ minWidth: '170px' }}>ROLE / PERAN AKTIF</th>
+                <th style={{ minWidth: '150px' }}>STATUS VERIFIKASI</th>
+                <th style={{ minWidth: '150px' }}>TANGGAL DAFTAR</th>
+                <th style={{ minWidth: '160px', textAlign: 'right' }}>AKSI MANAJEMEN ADMIN</th>
               </tr>
-            ) : (
-              filteredUsers.map(u => (
-                <tr key={u.id || u._id}>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <div className="avatar-icon" style={{ width: '36px', height: '36px', fontSize: '0.95rem' }}>
-                        {u.name ? u.name.charAt(0).toUpperCase() : 'U'}
-                      </div>
-                      <div>
-                        <strong style={{ color: '#fff', fontSize: '0.9rem' }}>{u.name}</strong>
-                        <div className="text-muted" style={{ fontSize: '0.78rem' }}>
-                          {u.email} (@{u.username})
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td>
-                    {u.googleId ? (
-                      <span className="badge badge-cyan">Google Auth</span>
-                    ) : (
-                      <span className="badge badge-emerald">Manual Password</span>
-                    )}
-                  </td>
-                  <td>
-                    <span className={`badge ${getRoleBadgeClass(u.role || u.requestedRole)}`}>
-                      {getRoleLabel(u.role || u.requestedRole)}
-                    </span>
-                  </td>
-                  <td>
-                    {u.status === 'PENDING' ? (
-                      <span className="status-badge status-warning">⏳ Pending ACC</span>
-                    ) : u.status === 'VERIFIED' ? (
-                      <span className="status-badge status-safe">✓ Terverifikasi</span>
-                    ) : (
-                      <span className="status-badge status-danger">✕ Ditolak</span>
-                    )}
-                  </td>
-                  <td className="text-muted" style={{ fontSize: '0.78rem' }}>{u.createdAt}</td>
-                  <td style={{ textAlign: 'right' }}>
-                    <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'flex-end' }}>
-                      {u.status === 'PENDING' && (
-                        <button
-                          className="btn btn-sm btn-emerald"
-                          onClick={() => onApproveUser(u.id || u._id, u.requestedRole || 'BAHAN_BAKU')}
-                          title="ACC & Verifikasi Akun Ini"
-                        >
-                          <Check size={14} /> ACC
-                        </button>
-                      )}
-
-                      <button
-                        className="btn btn-sm btn-outline"
-                        onClick={() => handleOpenEdit(u)}
-                        title="Ubah Role Staf"
-                      >
-                        <Edit size={14} /> Ubah Role
-                      </button>
-
-                      {u.role !== 'ADMIN' && u.role !== 'ADMIN_PRODUK' && (
-                        <button
-                          className="btn btn-sm btn-outline btn-danger"
-                          onClick={() => onDeleteUser(u.id || u._id)}
-                          title="Hapus Akun Pengguna"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      )}
-                    </div>
+            </thead>
+            <tbody>
+              {filteredUsers.length === 0 ? (
+                <tr>
+                  <td colSpan={6} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+                    Tidak ada data pengguna yang sesuai dengan filter pencarian.
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                filteredUsers.map(u => (
+                  <tr key={u.id || u._id}>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <div className="avatar-icon" style={{ width: '36px', height: '36px', fontSize: '0.95rem', fontWeight: 800 }}>
+                          {u.name ? u.name.charAt(0).toUpperCase() : 'U'}
+                        </div>
+                        <div>
+                          <strong style={{ color: '#1f2d3d', fontSize: '0.9rem', display: 'block' }}>{u.name}</strong>
+                          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                            {u.email} (@{u.username})
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      {u.googleId ? (
+                        <span className="badge badge-cyan">Google Auth</span>
+                      ) : (
+                        <span className="badge badge-emerald">Manual Password</span>
+                      )}
+                    </td>
+                    <td>
+                      <span className={`badge ${getRoleBadgeClass(u.role || u.requestedRole)}`}>
+                        {getRoleLabel(u.role || u.requestedRole)}
+                      </span>
+                    </td>
+                    <td>
+                      {u.status === 'PENDING' ? (
+                        <span className="status-badge status-warning">⏳ Pending ACC</span>
+                      ) : u.status === 'VERIFIED' ? (
+                        <span className="status-badge status-safe">✓ Terverifikasi</span>
+                      ) : (
+                        <span className="status-badge status-danger">✕ Ditolak</span>
+                      )}
+                    </td>
+                    <td className="text-muted" style={{ fontSize: '0.78rem', whiteSpace: 'nowrap' }}>{u.createdAt}</td>
+                    <td style={{ textAlign: 'right' }}>
+                      <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'flex-end' }}>
+                        {u.status === 'PENDING' && (
+                          <button
+                            className="btn btn-sm btn-emerald"
+                            onClick={() => onApproveUser(u.id || u._id, u.requestedRole || 'BAHAN_BAKU')}
+                            title="ACC & Verifikasi Akun Ini"
+                          >
+                            <Check size={14} /> ACC
+                          </button>
+                        )}
+
+                        <button
+                          className="btn btn-sm btn-outline"
+                          onClick={() => handleOpenEdit(u)}
+                          title="Ubah Role Staf"
+                        >
+                          <Edit size={14} /> Ubah Role
+                        </button>
+
+                        {u.role !== 'ADMIN' && u.role !== 'ADMIN_PRODUK' && (
+                          <button
+                            className="btn btn-sm btn-outline btn-danger"
+                            onClick={() => onDeleteUser(u.id || u._id)}
+                            title="Hapus Akun Pengguna"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Modal 1: Tambah Staf Baru oleh Admin */}
