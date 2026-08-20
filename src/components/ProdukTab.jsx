@@ -149,7 +149,7 @@ export default function ProdukTab({
                   {/* <strong style={{ fontSize: '1.2rem', color: '#fff' }}>{p.stok} Batch</strong> */}
                 </div>
                 {canEdit && (
-                  <button className="btn btn-sm btn-emerald" onClick={() => onOpenProduksiSpesifik(p.id)}>
+                  <button className="btn btn-sm btn-emerald" onClick={() => onOpenProduksiSpesifik(p.id || p._id || p.sku)}>
                     <Play size={14} /> Produksi
                   </button>
                 )}

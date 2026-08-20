@@ -322,33 +322,64 @@ export function ModalProduk({ isOpen, onClose, onSave, editingItem, kategoriList
 }
 
 export function ModalProduksi({ isOpen, onClose, onExecute, produkList, bahanList, resep, defaultProdukId }) {
-  const [selectedProdukId, setSelectedProdukId] = useState(defaultProdukId || produkList[0]?.id || '');
-  const [targetQty, setTargetQty] = useState(0);
+  // Sort produkList numerically by SKU (PR1, PR2, PR3... PR12)
+  const sortedProdukList = useMemo(() => {
+    return [...(produkList || [])].sort((a, b) => {
+      const skuA = String(a.sku || '').toUpperCase();
+      const skuB = String(b.sku || '').toUpperCase();
+      const numA = parseInt(skuA.replace(/\D/g, ''), 10);
+      const numB = parseInt(skuB.replace(/\D/g, ''), 10);
+      if (!isNaN(numA) && !isNaN(numB) && numA !== numB) {
+        return numA - numB;
+      }
+      return skuA.localeCompare(skuB, undefined, { numeric: true, sensitivity: 'base' });
+    });
+  }, [produkList]);
+
+  const [selectedProdukId, setSelectedProdukId] = useState('');
+  const [targetQty, setTargetQty] = useState('');
   const [tanggal, setTanggal] = useState(new Date().toISOString().split('T')[0]);
 
   useEffect(() => {
-    if (defaultProdukId) {
-      setSelectedProdukId(defaultProdukId);
-    } else if (produkList.length > 0) {
-      setSelectedProdukId(produkList[0].id);
+    if (isOpen) {
+      const matched = sortedProdukList.find(p =>
+        defaultProdukId && (
+          String(p.id || '').toLowerCase() === String(defaultProdukId).toLowerCase() ||
+          String(p._id || '').toLowerCase() === String(defaultProdukId).toLowerCase() ||
+          String(p.sku || '').toLowerCase() === String(defaultProdukId).toLowerCase()
+        )
+      );
+      if (matched) {
+        setSelectedProdukId(matched.id || matched._id || matched.sku);
+      } else if (sortedProdukList.length > 0) {
+        setSelectedProdukId(sortedProdukList[0].id || sortedProdukList[0]._id || sortedProdukList[0].sku);
+      }
+      setTargetQty('');
+      setTanggal(new Date().toISOString().split('T')[0]);
     }
-    setTargetQty(0);
-    setTanggal(new Date().toISOString().split('T')[0]);
-  }, [defaultProdukId, produkList, isOpen]);
+  }, [defaultProdukId, sortedProdukList, isOpen]);
 
   if (!isOpen) return null;
 
-  const targetProduk = produkList.find(p => p.id === selectedProdukId) || produkList[0];
-  const formula = targetProduk ? (resep[targetProduk.id] || []) : [];
+  const targetProduk = sortedProdukList.find(p =>
+    (p.id || p._id || p.sku) === selectedProdukId ||
+    p.id === selectedProdukId ||
+    p._id === selectedProdukId ||
+    p.sku === selectedProdukId
+  ) || sortedProdukList[0];
+
+  const pKey = targetProduk ? (targetProduk.id || targetProduk._id || targetProduk.sku) : '';
+  const formula = targetProduk ? (resep[pKey] || resep[targetProduk.id] || resep[targetProduk._id] || resep[targetProduk.sku] || []) : [];
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!selectedProdukId || Number(targetQty) <= 0) {
+    const qtyVal = parseFloat(targetQty) || 0;
+    if (!selectedProdukId || qtyVal <= 0) {
       alert('Pilih produk dan tentukan jumlah target produksi (>0)!');
       return;
     }
 
-    onExecute({ produkId: selectedProdukId, targetQty: Number(targetQty), tanggal });
+    onExecute({ produkId: selectedProdukId, targetQty: qtyVal, tanggal });
   };
 
   return createPortal(
@@ -368,16 +399,21 @@ export function ModalProduksi({ isOpen, onClose, onExecute, produkList, bahanLis
 
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label>Jumlah Target Batch *</label>
-                <input type="number" className="form-control" value={targetQty} onChange={e => setTargetQty(e.target.value)} min="1" required />
+                <input type="number" className="form-control" placeholder="Masukkan jumlah batch" value={targetQty} onChange={e => setTargetQty(e.target.value)} min="1" required />
               </div>
             </div>
 
             <div className="form-group" style={{ marginBottom: '1rem' }}>
               <label>Pilih Varian Produk Jadi *</label>
               <select className="select-input" value={selectedProdukId} onChange={e => setSelectedProdukId(e.target.value)}>
-                {produkList.map(p => (
-                  <option key={p.id} value={p.id}>{p.sku} - {p.nama} (Stok Saat Ini: {p.stok} Batch)</option>
-                ))}
+                {sortedProdukList.map(p => {
+                  const valKey = p.id || p._id || p.sku;
+                  return (
+                    <option key={valKey} value={valKey}>
+                      {p.sku} - {p.nama} (Stok Saat Ini: {p.stok || 0} Batch)
+                    </option>
+                  );
+                })}
               </select>
             </div>
 
@@ -388,13 +424,14 @@ export function ModalProduksi({ isOpen, onClose, onExecute, produkList, bahanLis
               </h5>
               {formula.length === 0 ? (
                 <div className="text-muted" style={{ fontSize: '0.8rem', color: 'var(--rose)' }}>
-                  ⚠️ Belum ada formula resep BOM terdaftar untuk produk ini.
+                  ⚠️ Belum ada formula resep BOM terdaftar untuk produk {targetProduk?.nama || ''}.
                 </div>
               ) : (
                 <ul style={{ listStyle: 'none', fontSize: '0.82rem' }}>
                   {formula.map((item, idx) => {
-                    const b = bahanList.find(x => x.id === item.bahanId);
-                    const needQty = Math.round(item.takaran * targetQty * 1000) / 1000;
+                    const b = (bahanList || []).find(x => x.id === item.bahanId || x._id === item.bahanId || x.sku === item.bahanId);
+                    const qtyVal = parseFloat(targetQty) || 0;
+                    const needQty = Math.round(item.takaran * qtyVal * 1000) / 1000;
                     const isEnough = b ? b.stok >= needQty : false;
 
                     return (
