@@ -69,7 +69,7 @@ export function ModalBahan({ isOpen, onClose, onSave, editingItem, kategoriList 
     });
   };
 
-  return (
+  return createPortal(
     <div className="modal-overlay">
       <div className="modal-card">
         <div className="modal-header">
@@ -134,7 +134,8 @@ export function ModalBahan({ isOpen, onClose, onSave, editingItem, kategoriList 
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -170,7 +171,7 @@ export function ModalStokMasuk({ isOpen, onClose, onSave, bahanList }) {
 
   const selectedBahan = sortedBahanList.find(x => x.id === bahanId);
 
-  return (
+  return createPortal(
     <div className="modal-overlay">
       <div className="modal-card">
         <div className="modal-header">
@@ -210,7 +211,8 @@ export function ModalStokMasuk({ isOpen, onClose, onSave, bahanList }) {
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -273,7 +275,7 @@ export function ModalProduk({ isOpen, onClose, onSave, editingItem, kategoriList
     });
   };
 
-  return (
+  return createPortal(
     <div className="modal-overlay">
       <div className="modal-card">
         <div className="modal-header">
@@ -314,7 +316,8 @@ export function ModalProduk({ isOpen, onClose, onSave, editingItem, kategoriList
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -348,7 +351,7 @@ export function ModalProduksi({ isOpen, onClose, onExecute, produkList, bahanLis
     onExecute({ produkId: selectedProdukId, targetQty: Number(targetQty), tanggal });
   };
 
-  return (
+  return createPortal(
     <div className="modal-overlay">
       <div className="modal-card" style={{ maxWidth: '580px' }}>
         <div className="modal-header">
@@ -416,12 +419,13 @@ export function ModalProduksi({ isOpen, onClose, onExecute, produkList, bahanLis
           <div className="modal-footer">
             <button type="button" className="btn btn-secondary" onClick={onClose}>Batal</button>
             <button type="submit" className="btn btn-emerald" disabled={formula.length === 0}>
-              <Play size={16} /> Proses Produksi & Potong Stok
+              <Play size={16} /> Proses Produksi &amp; Potong Stok
             </button>
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -452,7 +456,7 @@ export function ModalResepItem({ isOpen, onClose, onSave, bahanList, editingItem
 
   const selectedBahan = bahanList.find(b => b.id === bahanId);
 
-  return (
+  return createPortal(
     <div className="modal-overlay">
       <div className="modal-card">
         <div className="modal-header">
@@ -490,7 +494,8 @@ export function ModalResepItem({ isOpen, onClose, onSave, bahanList, editingItem
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -979,7 +984,7 @@ export function ModalPengolahanEmulsi({ isOpen, onClose, onProcess, bahanList = 
     onClose();
   };
 
-  return (
+  return createPortal(
     <div className="modal-overlay">
       <div className="modal-card" style={{ maxWidth: '650px' }}>
         <div className="modal-header">
@@ -1108,7 +1113,8 @@ export function ModalPengolahanEmulsi({ isOpen, onClose, onProcess, bahanList = 
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -1186,7 +1192,7 @@ export function ModalPemakaianKemasan({ isOpen, onClose, onUseKemasan, bahanList
     onClose();
   };
 
-  return (
+  return createPortal(
     <div className="modal-overlay">
       <div className="modal-card" style={{ maxWidth: '580px' }}>
         <div className="modal-header">
@@ -1261,7 +1267,8 @@ export function ModalPemakaianKemasan({ isOpen, onClose, onUseKemasan, bahanList
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -1360,7 +1367,7 @@ export function ModalTambahUtangSupplier({ isOpen, onClose, bahanList = [], supp
     onClose();
   };
 
-  return (
+  return createPortal(
     <div className="modal-overlay">
       <div className="modal-card" style={{ maxWidth: '620px' }}>
         <div className="modal-header">
@@ -1492,7 +1499,8 @@ export function ModalTambahUtangSupplier({ isOpen, onClose, bahanList = [], supp
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -1542,7 +1550,7 @@ export function ModalBayarUtangSupplier({ isOpen, onClose, utangRecord, onSubmit
     onClose();
   };
 
-  return (
+  return createPortal(
     <div className="modal-overlay">
       <div className="modal-card" style={{ maxWidth: '520px' }}>
         <div className="modal-header">
@@ -1606,7 +1614,8 @@ export function ModalBayarUtangSupplier({ isOpen, onClose, utangRecord, onSubmit
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -1618,7 +1627,7 @@ export function ModalRiwayatBayarSupplier({ isOpen, onClose, utangRecord }) {
 
   const riwayat = utangRecord.riwayatBayar || [];
 
-  return (
+  return createPortal(
     <div className="modal-overlay">
       <div className="modal-card" style={{ maxWidth: '600px' }}>
         <div className="modal-header">
@@ -1674,7 +1683,8 @@ export function ModalRiwayatBayarSupplier({ isOpen, onClose, utangRecord }) {
           <button type="button" className="btn btn-secondary" onClick={onClose}>Tutup</button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -1731,7 +1741,7 @@ export function ModalTerimaBahanSupplier({ isOpen, onClose, utangRecord, onSubmi
     onClose();
   };
 
-  return (
+  return createPortal(
     <div className="modal-overlay">
       <div className="modal-card" style={{ maxWidth: '520px' }}>
         <div className="modal-header">
@@ -1796,7 +1806,8 @@ export function ModalTerimaBahanSupplier({ isOpen, onClose, utangRecord, onSubmi
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -1808,7 +1819,7 @@ export function ModalRiwayatTerimaSupplier({ isOpen, onClose, utangRecord }) {
 
   const riwayat = utangRecord.riwayatPenerimaan || [];
 
-  return (
+  return createPortal(
     <div className="modal-overlay">
       <div className="modal-card" style={{ maxWidth: '600px' }}>
         <div className="modal-header">
@@ -1864,7 +1875,8 @@ export function ModalRiwayatTerimaSupplier({ isOpen, onClose, utangRecord }) {
           <button type="button" className="btn btn-secondary" onClick={onClose}>Tutup</button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -1921,7 +1933,7 @@ export function ModalKelolaSupplier({ isOpen, onClose, suppliersList = [], onCre
     resetForm();
   };
 
-  return (
+  return createPortal(
     <div className="modal-overlay">
       <div className="modal-card" style={{ maxWidth: '680px' }}>
         <div className="modal-header">
@@ -2011,6 +2023,7 @@ export function ModalKelolaSupplier({ isOpen, onClose, suppliersList = [], onCre
           <button type="button" className="btn btn-secondary" onClick={onClose}>Selesai &amp; Tutup</button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
