@@ -1696,6 +1696,7 @@ export function ModalRiwayatBayarSupplier({ isOpen, onClose, utangRecord }) {
 // ----------------------------------------------------
 export function ModalTerimaBahanSupplier({ isOpen, onClose, utangRecord, onSubmitReceive, showAlert }) {
   const [jumlahTerima, setJumlahTerima] = useState(0);
+  const [hargaSatuan, setHargaSatuan] = useState(0);
   const [tanggal, setTanggal] = useState('');
   const [penerima, setPenerima] = useState('');
   const [catatan, setCatatan] = useState('');
@@ -1708,6 +1709,7 @@ export function ModalTerimaBahanSupplier({ isOpen, onClose, utangRecord, onSubmi
       const pending = utangRecord.sisaBelumDiterima !== undefined ? utangRecord.sisaBelumDiterima : Math.max(0, total - diterim);
 
       setJumlahTerima(pending);
+      setHargaSatuan(utangRecord.hargaSatuan || 0);
       setTanggal(new Date().toISOString().split('T')[0]);
       setPenerima('');
       setCatatan('Verifikasi Fisik & Penerimaan Gudang');
@@ -1724,8 +1726,14 @@ export function ModalTerimaBahanSupplier({ isOpen, onClose, utangRecord, onSubmi
   const handleSubmit = async (e) => {
     e.preventDefault();
     const receiveVal = parseFloat(jumlahTerima) || 0;
+    const priceVal = parseFloat(hargaSatuan) || 0;
+
     if (receiveVal <= 0) {
       if (showAlert) showAlert('Masukkan jumlah barang yang diterima (>0).', 'error', 'Validasi Gagal');
+      return;
+    }
+    if (priceVal <= 0) {
+      if (showAlert) showAlert('Harga satuan penerimaan harus diisi (>0).', 'error', 'Validasi Gagal');
       return;
     }
     if (receiveVal > pending) {
@@ -1734,8 +1742,9 @@ export function ModalTerimaBahanSupplier({ isOpen, onClose, utangRecord, onSubmi
     }
 
     setIsSubmitting(true);
-    await onSubmitReceive(utangRecord.id, {
+    await onSubmitReceive(utangRecord.id || utangRecord._id, {
       jumlahTerima: receiveVal,
+      hargaSatuan: priceVal,
       penerima,
       tanggal,
       catatan
@@ -1744,9 +1753,11 @@ export function ModalTerimaBahanSupplier({ isOpen, onClose, utangRecord, onSubmi
     onClose();
   };
 
+  const estimatedAccruedDebt = (parseFloat(jumlahTerima) || 0) * (parseFloat(hargaSatuan) || 0);
+
   return createPortal(
     <div className="modal-overlay">
-      <div className="modal-card" style={{ maxWidth: '520px' }}>
+      <div className="modal-card" style={{ maxWidth: '560px' }}>
         <div className="modal-header">
           <h3>📦 Verifikasi Penerimaan Barang Fisik Gudang</h3>
           <button className="btn btn-outline btn-sm" onClick={onClose}><X size={16} /></button>
@@ -1767,22 +1778,30 @@ export function ModalTerimaBahanSupplier({ isOpen, onClose, utangRecord, onSubmi
               </div>
             </div>
 
-            <div className="form-group">
-              <label>Jumlah Fisik Barang Diterima ({utangRecord.satuan}) *</label>
-              <input type="number" step="any" min="0.1" max={pending} className="form-control" value={jumlahTerima} onChange={e => setJumlahTerima(e.target.value)} required />
-              <button
-                type="button"
-                className="btn btn-outline btn-emerald btn-sm"
-                style={{ marginTop: '0.4rem', width: '100%', fontSize: '0.75rem' }}
-                onClick={() => setJumlahTerima(pending)}
-              >
-                ⚡ Terima Seluruh Sisa Barang ({pending} {utangRecord.satuan})
-              </button>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
+              <div className="form-group">
+                <label>Jumlah Fisik Diterima ({utangRecord.satuan}) *</label>
+                <input type="number" step="any" min="0.1" max={pending} className="form-control" value={jumlahTerima} onChange={e => setJumlahTerima(e.target.value)} required />
+              </div>
+
+              <div className="form-group">
+                <label>Harga Satuan Beli (Rp) *</label>
+                <input type="number" step="any" min="0" className="form-control" value={hargaSatuan} onChange={e => setHargaSatuan(e.target.value)} required />
+              </div>
             </div>
+
+            <button
+              type="button"
+              className="btn btn-outline btn-emerald btn-sm"
+              style={{ marginTop: '-0.35rem', marginBottom: '1rem', width: '100%', fontSize: '0.75rem' }}
+              onClick={() => setJumlahTerima(pending)}
+            >
+              ⚡ Terima Seluruh Sisa Barang ({pending} {utangRecord.satuan})
+            </button>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
               <div className="form-group">
-                <label>Tanggal Penerimaan Barangan *</label>
+                <label>Tanggal Penerimaan Barang *</label>
                 <input type="date" className="form-control" value={tanggal} onChange={e => setTanggal(e.target.value)} required />
               </div>
               <div className="form-group">
@@ -1797,7 +1816,7 @@ export function ModalTerimaBahanSupplier({ isOpen, onClose, utangRecord, onSubmi
             </div>
 
             <div style={{ background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: 'var(--radius-sm)', padding: '0.75rem 1rem', marginTop: '0.25rem', fontSize: '0.8rem', color: 'var(--emerald)', fontWeight: 600 }}>
-              💡 <strong>INFO STOK:</strong> Mengonfirmasi penerimaan ini akan <strong>otomatis menambah +{jumlahTerima} {utangRecord.satuan} {utangRecord.bahanNama}</strong> ke persediaan stok fisik gudang!
+              💡 <strong>INFO PENERIMAAN:</strong> Stok fisik bertambah <strong>+{jumlahTerima} {utangRecord.satuan}</strong> dan Utang Fisik bertambah <strong>+Rp {estimatedAccruedDebt.toLocaleString('id-ID')}</strong> (Harga @ Rp {Number(hargaSatuan).toLocaleString('id-ID')}).
             </div>
           </div>
 
