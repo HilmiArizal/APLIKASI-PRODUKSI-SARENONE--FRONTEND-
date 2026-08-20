@@ -314,10 +314,10 @@ export default function BahanBakuTab({
                     <td><span className="badge badge-amber">{b.sku}</span></td>
                     <td style={{ fontWeight: 600 }}>{b.nama}</td>
                     <td><span className="badge badge-cyan">{b.kategori}</span></td>
-                    <td style={{ fontWeight: 700, color: '#28a745' }}>
+                    <td style={{ fontWeight: 700, color: '#1f2d3d' }}>
                       Rp {formatNumber(hargaVal)} <span style={{ fontSize: '0.75rem', color: '#6c757d', fontWeight: 500 }}>/ {b.satuan}</span>
                     </td>
-                    <td style={{ fontWeight: 700, color: filterTanggal ? 'var(--amber)' : '#f8fafc' }}>
+                    <td style={{ fontWeight: 700, color: '#1f2d3d' }}>
                       {formatNumber(stokVal)} {b.satuan}
                     </td>
                     <td className="text-muted">{formatNumber(b.minStok)} {b.satuan}</td>
