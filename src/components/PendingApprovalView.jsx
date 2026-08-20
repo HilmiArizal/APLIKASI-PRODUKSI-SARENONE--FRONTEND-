@@ -30,17 +30,17 @@ export default function PendingApprovalView({ activeUser, onLogout, onRefreshSta
             <Clock size={28} />
           </div>
 
-          <h3 style={{ color: '#fff', fontSize: '1.25rem', marginBottom: '0.5rem' }}>
+          <h3 style={{ color: '#1f2d3d', fontSize: '1.25rem', marginBottom: '0.5rem' }}>
             Menunggu Verifikasi Super Admin
           </h3>
-          <p style={{ color: '#cbd5e1', fontSize: '0.88rem', lineHeight: '1.5' }}>
+          <p style={{ color: '#495057', fontSize: '0.88rem', lineHeight: '1.5' }}>
             Halo <strong>{activeUser.name}</strong> (<code>{activeUser.username || activeUser.email}</code>), pendaftaran akun Anda telah diterima!
           </p>
         </div>
 
         <div style={{ textAlign: 'left', background: 'var(--bg-main)', padding: '1rem', borderRadius: 'var(--radius-sm)', marginBottom: '1.5rem', border: '1px solid var(--border-color)' }}>
           <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>Rincian Pengajuan Akun:</div>
-          <div style={{ fontSize: '0.88rem', color: '#fff' }}>
+          <div style={{ fontSize: '0.88rem', color: '#212529' }}>
             • Role Yang Diajukan: <strong style={{ color: 'var(--amber)' }}>{activeUser.requestedRole === 'BAHAN_BAKU' ? 'Tim Bahan Baku' : 'Tim Produk'}</strong><br/>
             • Username: <span style={{ color: '#38bdf8' }}>{activeUser.username}</span><br/>
             • Catatan: {activeUser.catatan || 'Staf Baru'}<br/>

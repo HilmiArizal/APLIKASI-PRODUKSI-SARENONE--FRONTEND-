@@ -28,11 +28,11 @@ export default function CustomAlertModal({ isOpen, title, message, type = 'info'
         
         {getIcon()}
 
-        <h3 style={{ color: '#fff', fontSize: '1.2rem', fontWeight: 800, marginBottom: '0.5rem' }}>
+        <h3 style={{ color: '#1f2d3d', fontSize: '1.2rem', fontWeight: 800, marginBottom: '0.5rem' }}>
           {title || (type === 'success' ? 'Berhasil!' : type === 'error' ? 'Perhatian!' : 'Notifikasi')}
         </h3>
 
-        <div style={{ color: '#cbd5e1', fontSize: '0.88rem', lineHeight: '1.5', marginBottom: '1.5rem', whiteSpace: 'pre-line' }}>
+        <div style={{ color: '#212529', fontSize: '0.92rem', fontWeight: 600, lineHeight: '1.5', marginBottom: '1.5rem', whiteSpace: 'pre-line' }}>
           {message}
         </div>
 
