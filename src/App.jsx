@@ -28,6 +28,7 @@ import PiutangPelangganTab from './components/PiutangPelangganTab';
 import PembayaranMasukTab from './components/PembayaranMasukTab';
 import AbsensiTab from './components/AbsensiTab';
 import EstimasiPOTab from './components/EstimasiPOTab';
+import HppKalkulatorTab from './components/HppKalkulatorTab';
 import { Smartphone, LogOut } from 'lucide-react';
 
 import {
@@ -435,7 +436,7 @@ export default function App() {
         setActiveTab('pembelian-bahan');
       }
     } else if (activeRoleView === 'BAHAN_BAKU') {
-      const allowed = ['dashboard', 'bahan-baku', 'penerimaan-bahan', 'emulsi', 'produk', 'resep', 'pemakaian-kemasan', 'riwayat-produksi', 'estimasi-po'];
+      const allowed = ['dashboard', 'bahan-baku', 'penerimaan-bahan', 'emulsi', 'produk', 'resep', 'pemakaian-kemasan', 'riwayat-produksi', 'hpp-kalkulator', 'estimasi-po'];
       if (!allowed.includes(activeTab)) {
         setActiveTab('bahan-baku');
       }
@@ -1883,6 +1884,17 @@ export default function App() {
               activeRoleView={activeRoleView}
               onOpenPdfPreview={handleOpenPdfPreview}
               onDeleteHistory={handleDeleteRiwayatProduksi}
+            />
+          )}
+
+          {activeTab === 'hpp-kalkulator' && (
+            <HppKalkulatorTab
+              riwayatProduksi={riwayatProduksi}
+              utangList={utangList}
+              bahanBaku={bahanBaku}
+              produk={produk}
+              activeRoleView={activeRoleView}
+              onOpenPdfPreview={handleOpenPdfPreview}
             />
           )}
 

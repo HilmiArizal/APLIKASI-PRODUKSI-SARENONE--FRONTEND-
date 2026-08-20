@@ -110,6 +110,9 @@ export default function Sidebar({ activeUser, activeRoleView, activeTab, onSwitc
                   <a href="#riwayat-produksi" className={mi('riwayat-produksi')} onClick={e => { e.preventDefault(); nav('riwayat-produksi'); }}>
                     <ChefHat size={18} /><span>Riwayat Produksi</span>
                   </a>
+                  <a href="#hpp-kalkulator" className={mi('hpp-kalkulator')} onClick={e => { e.preventDefault(); nav('hpp-kalkulator'); }}>
+                    <TrendingUp size={18} /><span>HPP Produksi &amp; Konversi</span>
+                  </a>
                 </>
               )}
 
