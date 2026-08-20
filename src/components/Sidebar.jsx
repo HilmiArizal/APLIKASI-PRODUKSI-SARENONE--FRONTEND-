@@ -30,11 +30,9 @@ export default function Sidebar({ activeUser, activeRoleView, activeTab, onSwitc
   const [openMenuProduksi, setOpenMenuProduksi] = useState(false);
 
   // Domain Bahan Baku Permissions
-  const showPembelian = !isProdukDomain && activeRoleView !== 'SALES' && ['ADMIN', 'PEMBELIAN'].includes(activeRoleView);
-  const showBahan = !isProdukDomain && activeRoleView !== 'SALES' && ['ADMIN', 'BAHAN_BAKU', 'PEMBELIAN'].includes(activeRoleView);
-  const showEmulsi = !isProdukDomain && activeRoleView !== 'SALES' && ['ADMIN', 'BAHAN_BAKU'].includes(activeRoleView);
+  const showPembelianGroup = !isProdukDomain && activeRoleView !== 'SALES' && ['ADMIN', 'PEMBELIAN'].includes(activeRoleView);
+  const showProduksiGroup = !isProdukDomain && activeRoleView !== 'SALES' && ['ADMIN', 'BAHAN_BAKU'].includes(activeRoleView);
   const showSupplier = !isProdukDomain && activeRoleView !== 'SALES' && ['ADMIN', 'PEMBELIAN'].includes(activeRoleView);
-  const showProdukMenu = !isProdukDomain && activeRoleView !== 'SALES' && ['ADMIN', 'BAHAN_BAKU'].includes(activeRoleView);
   const showAudit = !isProdukDomain && activeRoleView === 'ADMIN';
 
   // Domain Produk Permissions
@@ -75,107 +73,109 @@ export default function Sidebar({ activeUser, activeRoleView, activeTab, onSwitc
               </a>
 
               {/* 2. Pembelian (Collapsible v) */}
-              <div className="menu-group">
-                <button
-                  type="button"
-                  className={`menu-group-header ${isPembelianActive ? 'active' : ''}`}
-                  onClick={() => setOpenMenuPembelian(!openMenuPembelian)}
-                  style={{
-                    display: 'flex',
-                    justify: 'space-between',
-                    alignItems: 'center',
-                    width: '100%',
-                    background: isPembelianActive ? 'rgba(245, 158, 11, 0.12)' : 'transparent',
-                    color: isPembelianActive ? 'var(--amber)' : 'var(--text-color)',
-                    border: 'none',
-                    padding: '0.65rem 0.85rem',
-                    borderRadius: '8px',
-                    fontWeight: 700,
-                    fontSize: '0.86rem',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    marginBottom: '0.25rem'
-                  }}
-                >
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                    <ShoppingCart size={18} /> Pembelian
-                  </span>
-                  {openMenuPembelian ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                </button>
+              {showPembelianGroup && (
+                <div className="menu-group">
+                  <button
+                    type="button"
+                    className={`menu-group-header ${isPembelianActive ? 'active' : ''}`}
+                    onClick={() => setOpenMenuPembelian(!openMenuPembelian)}
+                    style={{
+                      display: 'flex',
+                      justify: 'space-between',
+                      alignItems: 'center',
+                      width: '100%',
+                      background: isPembelianActive ? 'rgba(245, 158, 11, 0.12)' : 'transparent',
+                      color: isPembelianActive ? 'var(--amber)' : 'var(--text-color)',
+                      border: 'none',
+                      padding: '0.65rem 0.85rem',
+                      borderRadius: '8px',
+                      fontWeight: 700,
+                      fontSize: '0.86rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      marginBottom: '0.25rem'
+                    }}
+                  >
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                      <ShoppingCart size={18} /> Pembelian
+                    </span>
+                    {openMenuPembelian ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                  </button>
 
-                {openMenuPembelian && (
-                  <div className="menu-sub-items" style={{ paddingLeft: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-                    <a href="#pembelian-bahan" className={mi('pembelian-bahan')} onClick={e => { e.preventDefault(); nav('pembelian-bahan'); }}>
-                      <ShoppingCart size={16} /><span>Pembelian</span>
-                    </a>
-                    <a href="#penerimaan-bahan" className={mi('penerimaan-bahan')} onClick={e => { e.preventDefault(); nav('penerimaan-bahan'); }}>
-                      <PackageCheck size={16} /><span>Penerimaan</span>
-                    </a>
-                    <a href="#utang-supplier" className={mi('utang-supplier')} onClick={e => { e.preventDefault(); nav('utang-supplier'); }}>
-                      <CreditCard size={16} /><span>Utang Supplier</span>
-                    </a>
-                    <a href="#bahan-baku" className={mi('bahan-baku')} onClick={e => { e.preventDefault(); nav('bahan-baku'); }}>
-                      <Boxes size={16} /><span>Stock Bahan Baku</span>
-                      {lowStockCount > 0 && <span className="badge badge-amber">{lowStockCount}</span>}
-                    </a>
-                  </div>
-                )}
-              </div>
+                  {openMenuPembelian && (
+                    <div className="menu-sub-items" style={{ paddingLeft: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                      <a href="#pembelian-bahan" className={mi('pembelian-bahan')} onClick={e => { e.preventDefault(); nav('pembelian-bahan'); }}>
+                        <ShoppingCart size={16} /><span>Pembelian</span>
+                      </a>
+                      <a href="#penerimaan-bahan" className={mi('penerimaan-bahan')} onClick={e => { e.preventDefault(); nav('penerimaan-bahan'); }}>
+                        <PackageCheck size={16} /><span>Penerimaan</span>
+                      </a>
+                      <a href="#utang-supplier" className={mi('utang-supplier')} onClick={e => { e.preventDefault(); nav('utang-supplier'); }}>
+                        <CreditCard size={16} /><span>Utang Supplier</span>
+                      </a>
+                      <a href="#bahan-baku" className={mi('bahan-baku')} onClick={e => { e.preventDefault(); nav('bahan-baku'); }}>
+                        <Boxes size={16} /><span>Stock Bahan Baku</span>
+                        {lowStockCount > 0 && <span className="badge badge-amber">{lowStockCount}</span>}
+                      </a>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* 3. Produksi (Collapsible v) */}
-              <div className="menu-group" style={{ marginTop: '0.35rem' }}>
-                <button
-                  type="button"
-                  className={`menu-group-header ${isProduksiActive ? 'active' : ''}`}
-                  onClick={() => setOpenMenuProduksi(!openMenuProduksi)}
-                  style={{
-                    display: 'flex',
-                    justify: 'space-between',
-                    alignItems: 'center',
-                    width: '100%',
-                    background: isProduksiActive ? 'rgba(56, 189, 248, 0.12)' : 'transparent',
-                    color: isProduksiActive ? 'var(--cyan)' : 'var(--text-color)',
-                    border: 'none',
-                    padding: '0.65rem 0.85rem',
-                    borderRadius: '8px',
-                    fontWeight: 700,
-                    fontSize: '0.86rem',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    marginBottom: '0.25rem'
-                  }}
-                >
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                    <ChefHat size={18} /> Produksi
-                  </span>
-                  {openMenuProduksi ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                </button>
+              {showProduksiGroup && (
+                <div className="menu-group" style={{ marginTop: '0.35rem' }}>
+                  <button
+                    type="button"
+                    className={`menu-group-header ${isProduksiActive ? 'active' : ''}`}
+                    onClick={() => setOpenMenuProduksi(!openMenuProduksi)}
+                    style={{
+                      display: 'flex',
+                      justify: 'space-between',
+                      alignItems: 'center',
+                      width: '100%',
+                      background: isProduksiActive ? 'rgba(56, 189, 248, 0.12)' : 'transparent',
+                      color: isProduksiActive ? 'var(--cyan)' : 'var(--text-color)',
+                      border: 'none',
+                      padding: '0.65rem 0.85rem',
+                      borderRadius: '8px',
+                      fontWeight: 700,
+                      fontSize: '0.86rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      marginBottom: '0.25rem'
+                    }}
+                  >
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                      <ChefHat size={18} /> Produksi
+                    </span>
+                    {openMenuProduksi ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                  </button>
 
-                {openMenuProduksi && (
-                  <div className="menu-sub-items" style={{ paddingLeft: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-                    {showEmulsi && (
+                  {openMenuProduksi && (
+                    <div className="menu-sub-items" style={{ paddingLeft: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
                       <a href="#emulsi" className={mi('emulsi')} onClick={e => { e.preventDefault(); nav('emulsi'); }}>
                         <FlaskConical size={16} /><span>Pengolahan Emulsi</span>
                       </a>
-                    )}
-                    <a href="#produk" className={mi('produk')} onClick={e => { e.preventDefault(); nav('produk'); }}>
-                      <Package size={16} /><span>Katalog &amp; Produksi</span>
-                    </a>
-                    <a href="#resep" className={mi('resep')} onClick={e => { e.preventDefault(); nav('resep'); }}>
-                      <BookOpen size={16} /><span>BOM</span>
-                    </a>
-                    <a href="#pemakaian-kemasan" className={mi('pemakaian-kemasan')} onClick={e => { e.preventDefault(); nav('pemakaian-kemasan'); }}>
-                      <Package size={16} /><span>Pemakaian Kemasan</span>
-                    </a>
-                    <a href="#riwayat-produksi" className={mi('riwayat-produksi')} onClick={e => { e.preventDefault(); nav('riwayat-produksi'); }}>
-                      <ChefHat size={16} /><span>Riwayat Produksi</span>
-                    </a>
-                    <a href="#hpp-kalkulator" className={mi('hpp-kalkulator')} onClick={e => { e.preventDefault(); nav('hpp-kalkulator'); }}>
-                      <TrendingUp size={16} /><span>HPP Produksi</span>
-                    </a>
-                  </div>
-                )}
-              </div>
+                      <a href="#produk" className={mi('produk')} onClick={e => { e.preventDefault(); nav('produk'); }}>
+                        <Package size={16} /><span>Katalog &amp; Produksi</span>
+                      </a>
+                      <a href="#resep" className={mi('resep')} onClick={e => { e.preventDefault(); nav('resep'); }}>
+                        <BookOpen size={16} /><span>BOM</span>
+                      </a>
+                      <a href="#pemakaian-kemasan" className={mi('pemakaian-kemasan')} onClick={e => { e.preventDefault(); nav('pemakaian-kemasan'); }}>
+                        <Package size={16} /><span>Pemakaian Kemasan</span>
+                      </a>
+                      <a href="#riwayat-produksi" className={mi('riwayat-produksi')} onClick={e => { e.preventDefault(); nav('riwayat-produksi'); }}>
+                        <ChefHat size={16} /><span>Riwayat Produksi</span>
+                      </a>
+                      <a href="#hpp-kalkulator" className={mi('hpp-kalkulator')} onClick={e => { e.preventDefault(); nav('hpp-kalkulator'); }}>
+                        <TrendingUp size={16} /><span>HPP Produksi</span>
+                      </a>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* 4. Kelola Supplier */}
               {showSupplier && (
