@@ -107,9 +107,9 @@ export default function ResepTab({
                       justifyContent: 'space-between',
                       padding: '0.85rem 1rem',
                       borderRadius: 'var(--radius-sm)',
-                      border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border-color)',
-                      background: isSelected ? 'rgba(249, 115, 22, 0.12)' : 'transparent',
-                      color: isSelected ? 'var(--primary)' : 'var(--text-main)',
+                      border: isSelected ? '1px solid #007bff' : '1px solid #dee2e6',
+                      background: isSelected ? '#e7f1ff' : '#ffffff',
+                      color: isSelected ? '#0056b3' : '#212529',
                       cursor: 'pointer',
                       textAlign: 'left',
                       transition: 'all 0.2s ease'

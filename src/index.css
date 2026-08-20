@@ -537,6 +537,19 @@ body {
   width: 100%;
 }
 
+.resep-grid-layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .resep-grid-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ADMINLTE 3 STAT CARDS (COLORED CARDS LIKE SCREENSHOT) */
 .stats-grid {
   display: grid;
