@@ -48,11 +48,17 @@ export default function PenerimaanBahanTab({
                         (item.noFaktur || '').toLowerCase().includes(s) ||
                         (item.bahanNama || '').toLowerCase().includes(s);
 
+    const totalBeli = item.jumlah || 0;
+    const diterimQty = item.jumlahDiterima || 0;
+    const sisaPending = item.sisaBelumDiterima !== undefined ? item.sisaBelumDiterima : Math.max(0, totalBeli - diterimQty);
+    const statusPeng = item.statusPengiriman || (diterimQty > 0 ? (sisaPending === 0 ? 'SUDAH DITERIMA' : 'SEBAGIAN') : 'BELUM DITERIMA');
+
     const poMonth = parseYYYYMM(item.tanggalBeli);
     const hasReceiptInMonth = (item.riwayatPenerimaan || []).some(r => parseYYYYMM(r.tanggal) === selectedMonth);
-    const matchMonth = selectedMonth === 'semua' || poMonth === selectedMonth || hasReceiptInMonth;
 
-    const statusPeng = item.statusPengiriman || (item.jumlahDiterima > 0 ? (item.sisaBelumDiterima === 0 ? 'SUDAH DITERIMA' : 'SEBAGIAN') : 'BELUM DITERIMA');
+    // Barang yang belum selesai diterima (pending) dari bulan sebelumnya tetap ditampilkan pada bulan berjalan agar tim Gudang dapat melakukan verifikasi & restock
+    const isPendingForRunningMonth = (statusPeng !== 'SUDAH DITERIMA' || sisaPending > 0) && selectedMonth === currentYM;
+    const matchMonth = selectedMonth === 'semua' || poMonth === selectedMonth || hasReceiptInMonth || isPendingForRunningMonth;
 
     const matchStatus = statusFilter === 'semua' ||
                         (statusFilter === 'pending' && statusPeng !== 'SUDAH DITERIMA') ||
