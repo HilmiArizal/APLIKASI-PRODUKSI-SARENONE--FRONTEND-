@@ -97,7 +97,17 @@ export default function BahanBakuTab({
     const bNameLower = String(b.nama || '').trim().toLowerCase();
     const bId = String(b.id || b._id || '');
 
-    // Search utangList for purchases ON OR BEFORE targetDateStr
+    // 1. Check persistent Backend DB riwayatHarga array on item
+    if (Array.isArray(b.riwayatHarga) && b.riwayatHarga.length > 0) {
+      const pastPrices = b.riwayatHarga
+        .filter(r => (!targetDateStr || (r.tanggal && r.tanggal.substring(0, 10) <= targetDateStr)) && Number(r.harga) > 0)
+        .sort((a, b) => (b.tanggal || '').localeCompare(a.tanggal || ''));
+      if (pastPrices.length > 0) {
+        return Number(pastPrices[0].harga);
+      }
+    }
+
+    // 2. Search utangList for purchases ON OR BEFORE targetDateStr
     let validInvoices = (utangList || []).filter(inv => {
       const invDate = (inv.tanggalPenerimaan || inv.tanggalBeli || inv.tanggal || inv.createdAt || '').substring(0, 10);
       if (targetDateStr && invDate > targetDateStr) return false;
@@ -106,13 +116,12 @@ export default function BahanBakuTab({
     });
 
     if (validInvoices.length > 0) {
-      // Pick the most recent purchase invoice on or before targetDateStr
       const lastInv = validInvoices[validInvoices.length - 1];
       const pPrice = Number(lastInv.hargaSatuan || lastInv.hargaBeli || lastInv.harga || 0);
       if (pPrice > 0) return pPrice;
     }
 
-    // Fallback to master raw material price
+    // 3. Fallback to master raw material price
     return Number(b.harga || 0);
   };
 

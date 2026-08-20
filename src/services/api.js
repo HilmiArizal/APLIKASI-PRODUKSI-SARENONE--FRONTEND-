@@ -152,6 +152,11 @@ export async function getBahanBakuApi() {
   return request('/bahan-baku');
 }
 
+export async function getHargaHistorisBahanBakuApi(tanggal) {
+  const query = tanggal ? `?tanggal=${encodeURIComponent(tanggal)}` : '';
+  return request(`/bahan-baku/harga-historis${query}`);
+}
+
 export async function createBahanBakuApi(data, activeUser) {
   return request('/bahan-baku', {
     method: 'POST',
