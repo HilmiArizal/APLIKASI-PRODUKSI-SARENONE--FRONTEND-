@@ -91,20 +91,28 @@ export default function BahanBakuTab({
     })
     .sort((a, b) => (a.sku || '').localeCompare(b.sku || '', undefined, { numeric: true, sensitivity: 'base' }));
 
-  // Get Last Purchase Price from utangList (Purchase Invoices) or fallback to master harga
-  const getLastPurchasePrice = (b) => {
+  // Get Unit Price on or before target date (or latest purchase price prior to target date)
+  const getBahanHargaOnDate = (b, targetDateStr) => {
     if (!b) return 0;
     const bNameLower = String(b.nama || '').trim().toLowerCase();
     const bId = String(b.id || b._id || '');
 
-    for (let i = (utangList || []).length - 1; i >= 0; i--) {
-      const inv = utangList[i];
+    // Search utangList for purchases ON OR BEFORE targetDateStr
+    let validInvoices = (utangList || []).filter(inv => {
+      const invDate = (inv.tanggalPenerimaan || inv.tanggalBeli || inv.tanggal || inv.createdAt || '').substring(0, 10);
+      if (targetDateStr && invDate > targetDateStr) return false;
       const itemNm = String(inv.bahanNama || inv.namaBahan || '').trim().toLowerCase();
-      if (itemNm === bNameLower || inv.sku === b.sku || inv.bahanId === bId) {
-        const pPrice = Number(inv.hargaSatuan || inv.hargaBeli || inv.harga);
-        if (pPrice > 0) return pPrice;
-      }
+      return itemNm === bNameLower || inv.sku === b.sku || inv.bahanId === bId;
+    });
+
+    if (validInvoices.length > 0) {
+      // Pick the most recent purchase invoice on or before targetDateStr
+      const lastInv = validInvoices[validInvoices.length - 1];
+      const pPrice = Number(lastInv.hargaSatuan || lastInv.hargaBeli || lastInv.harga || 0);
+      if (pPrice > 0) return pPrice;
     }
+
+    // Fallback to master raw material price
     return Number(b.harga || 0);
   };
 
@@ -119,15 +127,15 @@ export default function BahanBakuTab({
   };
 
   const handleExportExcel = () => {
-    const headers = ['Kode SKU', 'Nama Bahan Baku', 'Kategori', 'Harga Terakhir (/satuan)', filterTanggal ? `Stok Tgl (${filterTanggal})` : 'Stok Saat Ini', 'Batas Minimum', 'Satuan', 'Status Persediaan'];
+    const headers = ['Kode SKU', 'Nama Bahan Baku', 'Kategori', filterTanggal ? `Harga Tgl (${filterTanggal})` : 'Harga Terakhir (/satuan)', filterTanggal ? `Stok Tgl (${filterTanggal})` : 'Stok Saat Ini', 'Batas Minimum', 'Satuan', 'Status Persediaan'];
     const rows = filteredBahan.map(b => {
       const stokVal = getBahanStokOnDate(b, filterTanggal);
-      const lastPrice = getLastPurchasePrice(b);
+      const hargaVal = getBahanHargaOnDate(b, filterTanggal);
       return [
         b.sku,
         b.nama,
         b.kategori,
-        lastPrice,
+        hargaVal,
         stokVal,
         b.minStok,
         b.satuan,
@@ -138,15 +146,15 @@ export default function BahanBakuTab({
   };
 
   const handleExportPDF = () => {
-    const headers = ['SKU', 'Nama Bahan Baku', 'Kategori', 'Harga Terakhir', filterTanggal ? `Stok (${filterTanggal})` : 'Stok Saat Ini', 'Batas Min.', 'Status'];
+    const headers = ['SKU', 'Nama Bahan Baku', 'Kategori', filterTanggal ? `Harga (${filterTanggal})` : 'Harga Terakhir', filterTanggal ? `Stok (${filterTanggal})` : 'Stok Saat Ini', 'Batas Min.', 'Status'];
     const rows = filteredBahan.map(b => {
       const stokVal = getBahanStokOnDate(b, filterTanggal);
-      const lastPrice = getLastPurchasePrice(b);
+      const hargaVal = getBahanHargaOnDate(b, filterTanggal);
       return [
         b.sku,
         b.nama,
         b.kategori,
-        `Rp ${formatNumber(lastPrice)}/${b.satuan}`,
+        `Rp ${formatNumber(hargaVal)}/${b.satuan}`,
         `${stokVal} ${b.satuan}`,
         `${b.minStok} ${b.satuan}`,
         stokVal <= b.minStok ? 'Menipis / Restock' : 'Stok Safe'
@@ -154,7 +162,7 @@ export default function BahanBakuTab({
     });
     const config = {
       title: 'Laporan Inventaris Stok Bahan Baku Dapur',
-      subtitle: `Menampilkan posisi stok per tanggal (${filterTanggal || 'Hari Ini'}) - Total ${filteredBahan.length} item bahan mentah Saren One.`,
+      subtitle: `Menampilkan posisi stok & harga per tanggal (${filterTanggal || 'Hari Ini'}) - Total ${filteredBahan.length} item bahan mentah Saren One.`,
       headers,
       rows,
       summaryText: `Total Bahan Mentah: ${filteredBahan.length} Item`,
@@ -274,7 +282,7 @@ export default function BahanBakuTab({
               <th>SKU</th>
               <th>NAMA BAHAN BAKU</th>
               <th>KATEGORI</th>
-              <th>HARGA TERAKHIR (BELI)</th>
+              <th>{filterTanggal ? `HARGA TGL (${filterTanggal})` : 'HARGA TERAKHIR (BELI)'}</th>
               <th>{filterTanggal ? `STOK TANGGAL (${filterTanggal})` : 'STOK SAAT INI'}</th>
               <th>BATAS MINIMUM</th>
               <th>STATUS STOK</th>
@@ -291,14 +299,14 @@ export default function BahanBakuTab({
             ) : (
               filteredBahan.map(b => {
                 const stokVal = getBahanStokOnDate(b, filterTanggal);
-                const lastPrice = getLastPurchasePrice(b);
+                const hargaVal = getBahanHargaOnDate(b, filterTanggal);
                 return (
                   <tr key={b.id}>
                     <td><span className="badge badge-amber">{b.sku}</span></td>
                     <td style={{ fontWeight: 600 }}>{b.nama}</td>
                     <td><span className="badge badge-cyan">{b.kategori}</span></td>
                     <td style={{ fontWeight: 700, color: '#28a745' }}>
-                      Rp {formatNumber(lastPrice)} <span style={{ fontSize: '0.75rem', color: '#6c757d', fontWeight: 500 }}>/ {b.satuan}</span>
+                      Rp {formatNumber(hargaVal)} <span style={{ fontSize: '0.75rem', color: '#6c757d', fontWeight: 500 }}>/ {b.satuan}</span>
                     </td>
                     <td style={{ fontWeight: 700, color: filterTanggal ? 'var(--amber)' : '#f8fafc' }}>
                       {formatNumber(stokVal)} {b.satuan}
