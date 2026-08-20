@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { CheckCircle2, AlertTriangle, Info, XCircle, HelpCircle } from 'lucide-react';
 import logoImg from '../assets/logo.png';
 
@@ -21,8 +22,8 @@ export default function CustomAlertModal({ isOpen, title, message, type = 'info'
     }
   };
 
-  return (
-    <div className="modal-overlay" style={{ animation: 'fadeIn 0.2s ease-out' }}>
+  return createPortal(
+    <div className="modal-overlay">
       <div className="modal-card" style={{ maxWidth: '420px', textAlign: 'center', borderRadius: '24px', border: '1px solid var(--border-color)', padding: '1.75rem 1.5rem', background: 'var(--bg-card)', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)' }}>
         <img src={logoImg} alt="SAREN ONE" style={{ maxHeight: '45px', margin: '0 auto 0.75rem auto' }} />
         
@@ -59,6 +60,7 @@ export default function CustomAlertModal({ isOpen, title, message, type = 'info'
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

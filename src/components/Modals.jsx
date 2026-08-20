@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Save, ArrowDownLeft, Play, Plus, Edit3, Upload, Download, FileSpreadsheet, MinusCircle, Package } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { formatNumber } from '../data/initialData';
@@ -574,7 +575,7 @@ export function ModalImportBahanExcel({ isOpen, onClose, onImport, showAlert }) 
     onClose();
   };
 
-  return (
+  return createPortal(
     <div className="modal-overlay">
       <div className="modal-card" style={{ maxWidth: '720px' }}>
         <div className="modal-header" style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #dee2e6', background: '#ffffff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -689,7 +690,8 @@ export function ModalImportBahanExcel({ isOpen, onClose, onImport, showAlert }) 
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -779,7 +781,7 @@ export function ModalImportResepExcel({ isOpen, onClose, onImport, showAlert }) 
     onClose();
   };
 
-  return (
+  return createPortal(
     <div className="modal-overlay">
       <div className="modal-card" style={{ maxWidth: '750px' }}>
         <div className="modal-header" style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #dee2e6', background: '#ffffff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -888,7 +890,8 @@ export function ModalImportResepExcel({ isOpen, onClose, onImport, showAlert }) 
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
