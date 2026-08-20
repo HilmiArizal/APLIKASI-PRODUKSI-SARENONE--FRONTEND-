@@ -326,9 +326,10 @@ export default function DashboardTab({
         alignItems: 'center',
         boxShadow: '0 4px 14px rgba(0, 123, 255, 0.3)',
         position: 'relative',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        gap: '1rem'
       }}>
-        <div>
+        <div style={{ flex: 1 }}>
           <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '0.35rem', color: '#ffffff' }}>
             Hai, Saren One Team 👋
           </h2>
@@ -346,7 +347,9 @@ export default function DashboardTab({
             fontSize: '0.9rem',
             padding: '0.65rem 1.3rem',
             boxShadow: '0 4px 12px rgba(255, 193, 7, 0.4)',
-            border: 'none'
+            border: 'none',
+            marginLeft: 'auto',
+            flexShrink: 0
           }}
         >
           <PlusCircle size={18} /> Mulai Produksi
@@ -424,8 +427,8 @@ export default function DashboardTab({
             <span style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#007bff', fontWeight: 700 }}>
               <span style={{ width: 12, height: 12, background: '#007bff', borderRadius: '3px', display: 'inline-block' }}></span> Total Stok Bahan Baku
             </span>
-            <span style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#dc3545', fontWeight: 700 }}>
-              <span style={{ width: 12, height: 12, background: '#dc3545', borderRadius: '3px', display: 'inline-block' }}></span> Pemakaian Dapur / Hari
+            <span style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#fd7e14', fontWeight: 700 }}>
+              <span style={{ width: 12, height: 12, background: '#fd7e14', borderRadius: '3px', display: 'inline-block' }}></span> Pemakaian Dapur / Hari
             </span>
           </div>
         </div>
@@ -470,9 +473,9 @@ export default function DashboardTab({
                         width: '45%',
                         maxWidth: '14px',
                         height: `${usageHeightPct}%`,
-                        background: item.usageQty > 0 ? 'linear-gradient(180deg, #dc3545 0%, #a71d2a 100%)' : '#e9ecef',
+                        background: item.usageQty > 0 ? 'linear-gradient(180deg, #fd7e14 0%, #d97706 100%)' : '#e9ecef',
                         borderRadius: '3px 3px 0 0',
-                        boxShadow: item.usageQty > 0 ? '0 0 8px rgba(220, 53, 69, 0.4)' : 'none',
+                        boxShadow: item.usageQty > 0 ? '0 0 8px rgba(253, 126, 20, 0.5)' : 'none',
                         transition: 'all 0.3s ease',
                         cursor: 'pointer'
                       }}
