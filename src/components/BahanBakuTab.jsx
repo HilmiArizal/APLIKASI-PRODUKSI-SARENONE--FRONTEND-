@@ -54,13 +54,13 @@ export default function BahanBakuTab({
 
       if (p.riwayatPenerimaan && Array.isArray(p.riwayatPenerimaan) && p.riwayatPenerimaan.length > 0) {
         p.riwayatPenerimaan.forEach(r => {
-          const rDate = (r.tanggal || p.tanggalPenerimaan || p.tanggalBeli || '').substring(0, 10);
+          const rDate = (r.tanggal || p.tanggalPenerimaan || r.createdAt || p.createdAt || '').substring(0, 10);
           if (rDate && rDate > targetDateStr) {
             currentStok -= Number(r.jumlah || r.diterima || 0);
           }
         });
       } else if (Number(p.jumlahDiterima || 0) > 0) {
-        const pDate = (p.tanggalPenerimaan || p.tanggalBeli || p.tanggal || '').substring(0, 10);
+        const pDate = (p.tanggalPenerimaan || p.createdAt || p.tanggal || '').substring(0, 10);
         if (pDate && pDate > targetDateStr) {
           currentStok -= Number(p.jumlahDiterima || 0);
         }
