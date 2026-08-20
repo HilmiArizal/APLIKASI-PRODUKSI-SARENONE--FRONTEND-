@@ -19,6 +19,7 @@ export default function HppKalkulatorTab({
   const [manualHpp1Kg, setManualHpp1Kg] = useState('45000');
   const [biayaKemasanPerPack, setBiayaKemasanPerPack] = useState('550'); // Default Vacumbag + Sticker
   const [customGramInput, setCustomGramInput] = useState('350');
+  const [marginErrorPct, setMarginErrorPct] = useState('8'); // Default 8% Margin Error / Wastage
 
   // Helper: Find latest purchase price for a material
   const getLatestPurchasePrice = (bahanNama, defaultHarga = 0) => {
@@ -106,15 +107,25 @@ export default function HppKalkulatorTab({
     return Number(manualHpp1Kg) || 0;
   }, [selectedProdukId, manualHpp1Kg, productionHppList]);
 
-  // Grammage Conversion Calculations
+  // Grammage Conversion Calculations (Standard vs Margin Error Wastage)
   const packCost = Number(biayaKemasanPerPack) || 0;
+  const marginPct = Math.max(0, Number(marginErrorPct) || 0);
+  const marginMultiplier = 1 + (marginPct / 100);
   const customGrams = Math.max(1, Number(customGramInput) || 350);
 
+  // Standard HPP (Netto)
   const hpp250g = Math.round((currentActiveHpp1Kg * 0.25) + packCost);
   const hpp500g = Math.round((currentActiveHpp1Kg * 0.50) + packCost);
   const hpp750g = Math.round((currentActiveHpp1Kg * 0.75) + packCost);
   const hpp1000g = Math.round((currentActiveHpp1Kg * 1.00) + packCost);
   const hppCustom = Math.round((currentActiveHpp1Kg * (customGrams / 1000)) + packCost);
+
+  // Safety HPP (+ Margin Error 8%)
+  const hpp250gWaste = Math.round((currentActiveHpp1Kg * 0.25 * marginMultiplier) + packCost);
+  const hpp500gWaste = Math.round((currentActiveHpp1Kg * 0.50 * marginMultiplier) + packCost);
+  const hpp750gWaste = Math.round((currentActiveHpp1Kg * 0.75 * marginMultiplier) + packCost);
+  const hpp1000gWaste = Math.round((currentActiveHpp1Kg * 1.00 * marginMultiplier) + packCost);
+  const hppCustomWaste = Math.round((currentActiveHpp1Kg * (customGrams / 1000) * marginMultiplier) + packCost);
 
   // Export PDF
   const handleExportPDF = () => {
@@ -243,7 +254,7 @@ export default function HppKalkulatorTab({
           <Calculator size={20} /> Simulasi &amp; Kalkulator Konversi Gramasi HPP Kemasan
         </h3>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
           {/* Pick Product or Enter HPP 1KG */}
           <div>
             <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#f8fafc', marginBottom: '0.35rem', display: 'block' }}>
@@ -288,6 +299,21 @@ export default function HppKalkulatorTab({
           </div>
 
           <div>
+            <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--rose)', marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              Margin Error / Waste Factor (%):
+            </label>
+            <input
+              type="number"
+              step="0.5"
+              className="form-control"
+              style={{ background: 'rgba(15,23,42,0.8)', border: '1px solid var(--rose)', color: 'var(--rose)', fontWeight: 800, fontSize: '0.95rem' }}
+              value={marginErrorPct}
+              onChange={(e) => setMarginErrorPct(e.target.value)}
+              placeholder="Default 8%"
+            />
+          </div>
+
+          <div>
             <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#f8fafc', marginBottom: '0.35rem', display: 'block' }}>
               Biaya Kemasan Plastik &amp; Stiker (Rp/pcs):
             </label>
@@ -302,7 +328,7 @@ export default function HppKalkulatorTab({
           </div>
 
           <div>
-            <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#f8fafc', marginBottom: '0.35rem', display: 'block' }}>
+            <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--cyan)', marginBottom: '0.35rem', display: 'block' }}>
               Input Gramasi Kustom (gram):
             </label>
             <input
@@ -316,36 +342,41 @@ export default function HppKalkulatorTab({
           </div>
         </div>
 
-        {/* LIVE CONVERSION RESULTS CARDS */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '0.85rem' }}>
+        {/* LIVE CONVERSION RESULTS CARDS WITH MARGIN ERROR 8% */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.85rem' }}>
           <div style={{ background: 'rgba(30,41,59,0.7)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '0.85rem', textAlign: 'center' }}>
             <span className="text-muted" style={{ fontSize: '0.75rem', fontWeight: 700 }}>Kemasan 250 Gram</span>
-            <h4 style={{ color: '#f8fafc', fontSize: '1.1rem', fontWeight: 800, margin: '0.3rem 0 0.1rem 0' }}>Rp {formatNumber(hpp250g)}</h4>
-            <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>((HPP x 0.25) + Kemasan)</span>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>HPP Netto: Rp {formatNumber(hpp250g)}</div>
+            <h4 style={{ color: 'var(--amber)', fontSize: '1.15rem', fontWeight: 900, margin: '0.3rem 0 0.1rem 0' }}>Rp {formatNumber(hpp250gWaste)}</h4>
+            <span className="badge badge-rose" style={{ fontSize: '0.65rem', padding: '0.15rem 0.4rem' }}>🛡️ Inc. Waste {marginPct}%</span>
           </div>
 
           <div style={{ background: 'rgba(30,41,59,0.7)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '0.85rem', textAlign: 'center' }}>
             <span className="text-muted" style={{ fontSize: '0.75rem', fontWeight: 700 }}>Kemasan 500 Gram</span>
-            <h4 style={{ color: 'var(--amber)', fontSize: '1.1rem', fontWeight: 800, margin: '0.3rem 0 0.1rem 0' }}>Rp {formatNumber(hpp500g)}</h4>
-            <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>((HPP x 0.50) + Kemasan)</span>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>HPP Netto: Rp {formatNumber(hpp500g)}</div>
+            <h4 style={{ color: 'var(--amber)', fontSize: '1.15rem', fontWeight: 900, margin: '0.3rem 0 0.1rem 0' }}>Rp {formatNumber(hpp500gWaste)}</h4>
+            <span className="badge badge-rose" style={{ fontSize: '0.65rem', padding: '0.15rem 0.4rem' }}>🛡️ Inc. Waste {marginPct}%</span>
           </div>
 
           <div style={{ background: 'rgba(30,41,59,0.7)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '0.85rem', textAlign: 'center' }}>
             <span className="text-muted" style={{ fontSize: '0.75rem', fontWeight: 700 }}>Kemasan 750 Gram</span>
-            <h4 style={{ color: '#f8fafc', fontSize: '1.1rem', fontWeight: 800, margin: '0.3rem 0 0.1rem 0' }}>Rp {formatNumber(hpp750g)}</h4>
-            <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>((HPP x 0.75) + Kemasan)</span>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>HPP Netto: Rp {formatNumber(hpp750g)}</div>
+            <h4 style={{ color: 'var(--amber)', fontSize: '1.15rem', fontWeight: 900, margin: '0.3rem 0 0.1rem 0' }}>Rp {formatNumber(hpp750gWaste)}</h4>
+            <span className="badge badge-rose" style={{ fontSize: '0.65rem', padding: '0.15rem 0.4rem' }}>🛡️ Inc. Waste {marginPct}%</span>
           </div>
 
           <div style={{ background: 'rgba(30,41,59,0.7)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '0.85rem', textAlign: 'center' }}>
             <span className="text-muted" style={{ fontSize: '0.75rem', fontWeight: 700 }}>Kemasan 1000 Gram (1 KG)</span>
-            <h4 style={{ color: 'var(--emerald)', fontSize: '1.1rem', fontWeight: 800, margin: '0.3rem 0 0.1rem 0' }}>Rp {formatNumber(hpp1000g)}</h4>
-            <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>((HPP x 1.00) + Kemasan)</span>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>HPP Netto: Rp {formatNumber(hpp1000g)}</div>
+            <h4 style={{ color: 'var(--emerald)', fontSize: '1.15rem', fontWeight: 900, margin: '0.3rem 0 0.1rem 0' }}>Rp {formatNumber(hpp1000gWaste)}</h4>
+            <span className="badge badge-rose" style={{ fontSize: '0.65rem', padding: '0.15rem 0.4rem' }}>🛡️ Inc. Waste {marginPct}%</span>
           </div>
 
           <div style={{ background: 'rgba(14, 165, 233, 0.12)', border: '1px solid var(--cyan)', borderRadius: '8px', padding: '0.85rem', textAlign: 'center' }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--cyan)' }}>Pilihan Gram Kustom ({customGrams}g)</span>
-            <h4 style={{ color: 'var(--cyan)', fontSize: '1.15rem', fontWeight: 900, margin: '0.3rem 0 0.1rem 0' }}>Rp {formatNumber(hppCustom)}</h4>
-            <span style={{ fontSize: '0.68rem', color: 'var(--cyan)' }}>HPP Khusus {customGrams} gram</span>
+            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--cyan)' }}>Gramasi Kustom ({customGrams}g)</span>
+            <div style={{ fontSize: '0.75rem', color: 'var(--cyan)', opacity: 0.8, marginTop: '0.2rem' }}>Netto: Rp {formatNumber(hppCustom)}</div>
+            <h4 style={{ color: 'var(--cyan)', fontSize: '1.2rem', fontWeight: 900, margin: '0.3rem 0 0.1rem 0' }}>Rp {formatNumber(hppCustomWaste)}</h4>
+            <span className="badge badge-rose" style={{ fontSize: '0.65rem', padding: '0.15rem 0.4rem' }}>🛡️ Inc. Waste {marginPct}%</span>
           </div>
         </div>
       </div>
