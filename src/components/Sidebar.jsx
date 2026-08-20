@@ -1,5 +1,9 @@
-import React from 'react';
-import { LayoutDashboard, Boxes, Package, BookOpen, ChefHat, History, UserCheck, LogOut, X, Layers, Tag, Users, FlaskConical, CreditCard, PackageCheck, Building2, ShoppingCart, Megaphone, TrendingUp, ArrowDownLeft, ClipboardCheck, FileText } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import {
+  LayoutDashboard, Boxes, Package, BookOpen, ChefHat, History, UserCheck,
+  LogOut, X, Layers, Tag, Users, FlaskConical, CreditCard, PackageCheck,
+  Building2, ShoppingCart, Megaphone, TrendingUp, ChevronDown, ChevronRight
+} from 'lucide-react';
 import logoImg from '../assets/logo.png';
 
 export default function Sidebar({ activeUser, activeRoleView, activeTab, onSwitchTab, onLogout, lowStockCount, pendingUserCount, isMobileOpen, onCloseMobile }) {
@@ -18,20 +22,30 @@ export default function Sidebar({ activeUser, activeRoleView, activeTab, onSwitc
 
   const isProdukDomain = ['ADMIN_PRODUK', 'TIM_PENJUALAN', 'TIM_MARKETING'].includes(activeRoleView);
 
-  // Domain Bahan Baku
+  // Group Active Checks
+  const isPembelianActive = ['pembelian-bahan', 'penerimaan-bahan', 'utang-supplier', 'bahan-baku'].includes(activeTab);
+  const isProduksiActive = ['emulsi', 'produk', 'resep', 'pemakaian-kemasan', 'riwayat-produksi', 'hpp-kalkulator'].includes(activeTab);
+
+  const [openMenuPembelian, setOpenMenuPembelian] = useState(true);
+  const [openMenuProduksi, setOpenMenuProduksi] = useState(true);
+
+  useEffect(() => {
+    if (isPembelianActive) setOpenMenuPembelian(true);
+    if (isProduksiActive) setOpenMenuProduksi(true);
+  }, [activeTab]);
+
+  // Domain Bahan Baku Permissions
+  const showPembelian = !isProdukDomain && activeRoleView !== 'SALES' && ['ADMIN', 'PEMBELIAN'].includes(activeRoleView);
   const showBahan = !isProdukDomain && activeRoleView !== 'SALES' && ['ADMIN', 'BAHAN_BAKU', 'PEMBELIAN'].includes(activeRoleView);
   const showEmulsi = !isProdukDomain && activeRoleView !== 'SALES' && ['ADMIN', 'BAHAN_BAKU'].includes(activeRoleView);
-  const showPembelian = !isProdukDomain && activeRoleView !== 'SALES' && ['ADMIN', 'PEMBELIAN'].includes(activeRoleView);
   const showSupplier = !isProdukDomain && activeRoleView !== 'SALES' && ['ADMIN', 'PEMBELIAN'].includes(activeRoleView);
   const showProdukMenu = !isProdukDomain && activeRoleView !== 'SALES' && ['ADMIN', 'BAHAN_BAKU'].includes(activeRoleView);
   const showAudit = !isProdukDomain && activeRoleView === 'ADMIN';
 
-  // Domain Produk
+  // Domain Produk Permissions
   const showKatalogProduk = isProdukDomain && ['ADMIN_PRODUK', 'TIM_PENJUALAN'].includes(activeRoleView);
   const showPenjualan = isProdukDomain && ['ADMIN_PRODUK', 'TIM_PENJUALAN'].includes(activeRoleView);
   const showMarketing = isProdukDomain && ['ADMIN_PRODUK', 'TIM_MARKETING'].includes(activeRoleView);
-  const showUserApprovalProduk = isProdukDomain && activeRoleView === 'ADMIN_PRODUK';
-  const showAuditProduk = isProdukDomain && activeRoleView === 'ADMIN_PRODUK';
 
   const nav = (tabName) => { onSwitchTab(tabName); if (onCloseMobile) onCloseMobile(); };
   const mi = (tab) => `menu-item ${activeTab === tab ? 'active' : ''}`;
@@ -57,85 +71,140 @@ export default function Sidebar({ activeUser, activeRoleView, activeTab, onSwitc
         <nav className="sidebar-menu">
           <div className="menu-label">NAVIGASI UTAMA</div>
 
-          {/* ===== DOMAIN BAHAN BAKU ===== */}
+          {/* ===== DOMAIN BAHAN BAKU (SESUAI CATATAN TANGAN) ===== */}
           {!isProdukDomain && (
             <>
+              {/* 1. Dashboard */}
               <a href="#dashboard" className={mi('dashboard')} onClick={e => { e.preventDefault(); nav('dashboard'); }}>
-                <LayoutDashboard size={18} /><span>Dashboard Ringkasan</span>
+                <LayoutDashboard size={18} /><span>Dashboard</span>
               </a>
 
-              {showPembelian && (
-                <>
-                  <a href="#pembelian-bahan" className={mi('pembelian-bahan')} onClick={e => { e.preventDefault(); nav('pembelian-bahan'); }}>
-                    <ShoppingCart size={18} /><span>Pembelian Bahan Baku</span>
-                  </a>
-                  <a href="#penerimaan-bahan" className={mi('penerimaan-bahan')} onClick={e => { e.preventDefault(); nav('penerimaan-bahan'); }}>
-                    <PackageCheck size={18} /><span>Penerimaan Bahan Baku</span>
-                  </a>
-                  <a href="#utang-supplier" className={mi('utang-supplier')} onClick={e => { e.preventDefault(); nav('utang-supplier'); }}>
-                    <CreditCard size={18} /><span>Utang Supplier</span>
-                  </a>
-                </>
-              )}
+              {/* 2. Pembelian (Collapsible v) */}
+              <div className="menu-group">
+                <button
+                  type="button"
+                  className={`menu-group-header ${isPembelianActive ? 'active' : ''}`}
+                  onClick={() => setOpenMenuPembelian(!openMenuPembelian)}
+                  style={{
+                    display: 'flex',
+                    justify: 'space-between',
+                    alignItems: 'center',
+                    width: '100%',
+                    background: isPembelianActive ? 'rgba(245, 158, 11, 0.12)' : 'transparent',
+                    color: isPembelianActive ? 'var(--amber)' : 'var(--text-color)',
+                    border: 'none',
+                    padding: '0.65rem 0.85rem',
+                    borderRadius: '8px',
+                    fontWeight: 700,
+                    fontSize: '0.86rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    marginBottom: '0.25rem'
+                  }}
+                >
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                    <ShoppingCart size={18} /> Pembelian
+                  </span>
+                  {openMenuPembelian ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                </button>
 
-              {showBahan && (
-                <>
-                  <a href="#bahan-baku" className={mi('bahan-baku')} onClick={e => { e.preventDefault(); nav('bahan-baku'); }}>
-                    <Boxes size={18} /><span>Stok Bahan Baku</span>
-                    {lowStockCount > 0 && <span className="badge badge-amber">{lowStockCount}</span>}
-                  </a>
-                  {showEmulsi && (
-                    <a href="#emulsi" className={mi('emulsi')} onClick={e => { e.preventDefault(); nav('emulsi'); }}>
-                      <FlaskConical size={18} /><span>Pengolahan Emulsi</span>
+                {openMenuPembelian && (
+                  <div className="menu-sub-items" style={{ paddingLeft: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                    <a href="#pembelian-bahan" className={mi('pembelian-bahan')} onClick={e => { e.preventDefault(); nav('pembelian-bahan'); }}>
+                      <ShoppingCart size={16} /><span>Pembelian</span>
                     </a>
-                  )}
-                </>
-              )}
+                    <a href="#penerimaan-bahan" className={mi('penerimaan-bahan')} onClick={e => { e.preventDefault(); nav('penerimaan-bahan'); }}>
+                      <PackageCheck size={16} /><span>Penerimaan</span>
+                    </a>
+                    <a href="#utang-supplier" className={mi('utang-supplier')} onClick={e => { e.preventDefault(); nav('utang-supplier'); }}>
+                      <CreditCard size={16} /><span>Utang Supplier</span>
+                    </a>
+                    <a href="#bahan-baku" className={mi('bahan-baku')} onClick={e => { e.preventDefault(); nav('bahan-baku'); }}>
+                      <Boxes size={16} /><span>Stock Bahan Baku</span>
+                      {lowStockCount > 0 && <span className="badge badge-amber">{lowStockCount}</span>}
+                    </a>
+                  </div>
+                )}
+              </div>
 
+              {/* 3. Produksi (Collapsible v) */}
+              <div className="menu-group" style={{ marginTop: '0.35rem' }}>
+                <button
+                  type="button"
+                  className={`menu-group-header ${isProduksiActive ? 'active' : ''}`}
+                  onClick={() => setOpenMenuProduksi(!openMenuProduksi)}
+                  style={{
+                    display: 'flex',
+                    justify: 'space-between',
+                    alignItems: 'center',
+                    width: '100%',
+                    background: isProduksiActive ? 'rgba(56, 189, 248, 0.12)' : 'transparent',
+                    color: isProduksiActive ? 'var(--cyan)' : 'var(--text-color)',
+                    border: 'none',
+                    padding: '0.65rem 0.85rem',
+                    borderRadius: '8px',
+                    fontWeight: 700,
+                    fontSize: '0.86rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    marginBottom: '0.25rem'
+                  }}
+                >
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                    <ChefHat size={18} /> Produksi
+                  </span>
+                  {openMenuProduksi ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                </button>
 
-              {showProdukMenu && (
-                <>
-                  <a href="#estimasi-po" className={mi('estimasi-po')} onClick={e => { e.preventDefault(); nav('estimasi-po'); }}>
-                    <FileText size={18} /><span>Estimasi PO (Pesanan)</span>
-                  </a>
-                  <a href="#produk" className={mi('produk')} onClick={e => { e.preventDefault(); nav('produk'); }}>
-                    <Package size={18} /><span>Katalog &amp; Produksi</span>
-                  </a>
-                  <a href="#resep" className={mi('resep')} onClick={e => { e.preventDefault(); nav('resep'); }}>
-                    <BookOpen size={18} /><span>Manajemen Resep (BOM)</span>
-                  </a>
-                  <a href="#pemakaian-kemasan" className={mi('pemakaian-kemasan')} onClick={e => { e.preventDefault(); nav('pemakaian-kemasan'); }}>
-                    <Package size={18} /><span>Pemakaian Kemasan</span>
-                  </a>
-                  <a href="#riwayat-produksi" className={mi('riwayat-produksi')} onClick={e => { e.preventDefault(); nav('riwayat-produksi'); }}>
-                    <ChefHat size={18} /><span>Riwayat Produksi</span>
-                  </a>
-                  <a href="#hpp-kalkulator" className={mi('hpp-kalkulator')} onClick={e => { e.preventDefault(); nav('hpp-kalkulator'); }}>
-                    <TrendingUp size={18} /><span>HPP Produksi &amp; Konversi</span>
-                  </a>
-                </>
-              )}
+                {openMenuProduksi && (
+                  <div className="menu-sub-items" style={{ paddingLeft: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                    {showEmulsi && (
+                      <a href="#emulsi" className={mi('emulsi')} onClick={e => { e.preventDefault(); nav('emulsi'); }}>
+                        <FlaskConical size={16} /><span>Pengolahan Emulsi</span>
+                      </a>
+                    )}
+                    <a href="#produk" className={mi('produk')} onClick={e => { e.preventDefault(); nav('produk'); }}>
+                      <Package size={16} /><span>Katalog &amp; Produksi</span>
+                    </a>
+                    <a href="#resep" className={mi('resep')} onClick={e => { e.preventDefault(); nav('resep'); }}>
+                      <BookOpen size={16} /><span>BOM</span>
+                    </a>
+                    <a href="#pemakaian-kemasan" className={mi('pemakaian-kemasan')} onClick={e => { e.preventDefault(); nav('pemakaian-kemasan'); }}>
+                      <Package size={16} /><span>Pemakaian Kemasan</span>
+                    </a>
+                    <a href="#riwayat-produksi" className={mi('riwayat-produksi')} onClick={e => { e.preventDefault(); nav('riwayat-produksi'); }}>
+                      <ChefHat size={16} /><span>Riwayat Produksi</span>
+                    </a>
+                    <a href="#hpp-kalkulator" className={mi('hpp-kalkulator')} onClick={e => { e.preventDefault(); nav('hpp-kalkulator'); }}>
+                      <TrendingUp size={16} /><span>HPP Produksi</span>
+                    </a>
+                  </div>
+                )}
+              </div>
 
+              {/* 4. Kelola Supplier */}
               {showSupplier && (
-                <a href="#supplier" className={mi('supplier')} onClick={e => { e.preventDefault(); nav('supplier'); }}>
+                <a href="#supplier" className={mi('supplier')} onClick={e => { e.preventDefault(); nav('supplier'); }} style={{ marginTop: '0.35rem' }}>
                   <Building2 size={18} /><span>Kelola Supplier</span>
                 </a>
               )}
 
+              {/* 5. Kelola Brand */}
               {activeRoleView === 'ADMIN' && (
                 <a href="#kategori" className={mi('kategori')} onClick={e => { e.preventDefault(); nav('kategori'); }}>
                   <Layers size={18} /><span>Kelola Brand</span>
                 </a>
               )}
 
+              {/* 6. Verifikasi User & 7. Audit Log */}
               {showAudit && (
                 <>
                   <a href="#user-approval" className={mi('user-approval')} onClick={e => { e.preventDefault(); nav('user-approval'); }}>
-                    <UserCheck size={18} /><span>Verifikasi User &amp; Role</span>
+                    <UserCheck size={18} /><span>Verifikasi User</span>
                     {pendingUserCount > 0 && <span className="badge badge-amber">{pendingUserCount}</span>}
                   </a>
                   <a href="#audit-log" className={mi('audit-log')} onClick={e => { e.preventDefault(); nav('audit-log'); }}>
-                    <History size={18} /><span>Jurnal Transaksi</span>
+                    <History size={18} /><span>Audit Log</span>
                   </a>
                 </>
               )}
@@ -167,9 +236,6 @@ export default function Sidebar({ activeUser, activeRoleView, activeTab, onSwitc
 
               {showPenjualan && (
                 <>
-                  <a href="#estimasi-po" className={mi('estimasi-po')} onClick={e => { e.preventDefault(); nav('estimasi-po'); }}>
-                    <FileText size={18} /><span>Estimasi PO (Pesanan)</span>
-                  </a>
                   <a href="#penjualan" className={mi('penjualan')} onClick={e => { e.preventDefault(); nav('penjualan'); }}>
                     <TrendingUp size={18} /><span>Data Penjualan</span>
                   </a>
@@ -179,47 +245,41 @@ export default function Sidebar({ activeUser, activeRoleView, activeTab, onSwitc
                   <a href="#piutang-pelanggan" className={mi('piutang-pelanggan')} onClick={e => { e.preventDefault(); nav('piutang-pelanggan'); }}>
                     <CreditCard size={18} /><span>Piutang Pelanggan</span>
                   </a>
+                  <a href="#pembayaran-masuk" className={mi('pembayaran-masuk')} onClick={e => { e.preventDefault(); nav('pembayaran-masuk'); }}>
+                    <PackageCheck size={18} /><span>Pembayaran Masuk</span>
+                  </a>
                 </>
               )}
 
               {showMarketing && (
                 <a href="#marketing" className={mi('marketing')} onClick={e => { e.preventDefault(); nav('marketing'); }}>
-                  <Megaphone size={18} /><span>Program Marketing</span>
+                  <Megaphone size={18} /><span>Konten Marketing</span>
                 </a>
               )}
 
-              {showUserApprovalProduk && (
-                <a href="#user-approval-produk" className={mi('user-approval-produk')} onClick={e => { e.preventDefault(); nav('user-approval-produk'); }}>
-                  <UserCheck size={18} /><span>Verifikasi User</span>
-                  {pendingUserCount > 0 && <span className="badge badge-amber">{pendingUserCount}</span>}
-                </a>
-              )}
-
-              {showAuditProduk && (
-                <a href="#audit-log-produk" className={mi('audit-log-produk')} onClick={e => { e.preventDefault(); nav('audit-log-produk'); }}>
-                  <History size={18} /><span>Jurnal Aktivitas</span>
-                </a>
-              )}
-
-              {/* Absensi SPG/Sales — ADMIN_PRODUK & TIM_MARKETING */}
-              {['ADMIN_PRODUK', 'TIM_MARKETING'].includes(activeRoleView) && (
-                <a href="#absensi-spg" className={mi('absensi-spg')} onClick={e => { e.preventDefault(); nav('absensi-spg'); }}>
-                  <ClipboardCheck size={18} /><span>Absensi SPG / Sales</span>
-                </a>
+              {activeRoleView === 'ADMIN_PRODUK' && (
+                <>
+                  <a href="#user-approval-produk" className={mi('user-approval-produk')} onClick={e => { e.preventDefault(); nav('user-approval-produk'); }}>
+                    <UserCheck size={18} /><span>Verifikasi User</span>
+                  </a>
+                  <a href="#audit-log-produk" className={mi('audit-log-produk')} onClick={e => { e.preventDefault(); nav('audit-log-produk'); }}>
+                    <History size={18} /><span>Audit Log</span>
+                  </a>
+                </>
               )}
             </>
           )}
 
           {activeRoleView === 'SALES' && (
-            <div style={{ padding: '1.25rem 1rem', fontSize: '0.82rem', color: 'var(--text-muted)', textAlign: 'center', background: 'rgba(59,130,246,0.08)', borderRadius: 12, margin: '1rem 0', border: '1px solid rgba(59,130,246,0.2)', lineHeight: '1.5' }}>
-              📱 Akun <strong>Sales / SPG</strong> hanya dapat diakses melalui aplikasi mobile <strong>PresensiKu</strong>.
-            </div>
+            <a href="#absensi-spg" className={mi('absensi-spg')} onClick={e => { e.preventDefault(); nav('absensi-spg'); }}>
+              <UserCheck size={18} /><span>Absensi Sales</span>
+            </a>
           )}
         </nav>
 
         <div className="sidebar-footer">
-          <button className="btn btn-danger btn-block" onClick={onLogout}>
-            <LogOut size={16} /> Keluar
+          <button className="btn-logout" onClick={onLogout}>
+            <LogOut size={18} /><span>Keluar Aplikasi</span>
           </button>
         </div>
       </aside>
