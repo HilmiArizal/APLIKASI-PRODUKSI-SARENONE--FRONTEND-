@@ -277,11 +277,7 @@ export default function BahanBakuTab({
         </select>
 
         <div className="toolbar-actions">
-          {isSuperAdmin && (
-            <button className="btn btn-outline" onClick={onOpenKelolaKategoriBahan} title="Kelola Kategori Bahan Baku">
-              <Tag size={16} style={{ color: 'var(--amber)' }} /> Kategori
-            </button>
-          )}
+          {/* Kategori button removed */}
 
           {canAddOrRestock && (
             <button className="btn btn-outline btn-emerald" onClick={() => setIsImportExcelOpen(true)} title="Import Bahan Baku Masal dari File Excel">
