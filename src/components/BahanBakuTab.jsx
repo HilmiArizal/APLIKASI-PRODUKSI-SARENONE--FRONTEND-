@@ -91,6 +91,23 @@ export default function BahanBakuTab({
     })
     .sort((a, b) => (a.sku || '').localeCompare(b.sku || '', undefined, { numeric: true, sensitivity: 'base' }));
 
+  // Get Last Purchase Price from utangList (Purchase Invoices) or fallback to master harga
+  const getLastPurchasePrice = (b) => {
+    if (!b) return 0;
+    const bNameLower = String(b.nama || '').trim().toLowerCase();
+    const bId = String(b.id || b._id || '');
+
+    for (let i = (utangList || []).length - 1; i >= 0; i--) {
+      const inv = utangList[i];
+      const itemNm = String(inv.bahanNama || inv.namaBahan || '').trim().toLowerCase();
+      if (itemNm === bNameLower || inv.sku === b.sku || inv.bahanId === bId) {
+        const pPrice = Number(inv.hargaSatuan || inv.hargaBeli || inv.harga);
+        if (pPrice > 0) return pPrice;
+      }
+    }
+    return Number(b.harga || 0);
+  };
+
   const getStatusBadge = (stok, minStok) => {
     if (stok === 0) {
       return <span className="badge badge-rose">Habis (Restock!)</span>;
@@ -102,13 +119,15 @@ export default function BahanBakuTab({
   };
 
   const handleExportExcel = () => {
-    const headers = ['Kode SKU', 'Nama Bahan Baku', 'Kategori', filterTanggal ? `Stok Tgl (${filterTanggal})` : 'Stok Saat Ini', 'Batas Minimum', 'Satuan', 'Status Persediaan'];
+    const headers = ['Kode SKU', 'Nama Bahan Baku', 'Kategori', 'Harga Terakhir (/satuan)', filterTanggal ? `Stok Tgl (${filterTanggal})` : 'Stok Saat Ini', 'Batas Minimum', 'Satuan', 'Status Persediaan'];
     const rows = filteredBahan.map(b => {
       const stokVal = getBahanStokOnDate(b, filterTanggal);
+      const lastPrice = getLastPurchasePrice(b);
       return [
         b.sku,
         b.nama,
         b.kategori,
+        lastPrice,
         stokVal,
         b.minStok,
         b.satuan,
@@ -119,13 +138,15 @@ export default function BahanBakuTab({
   };
 
   const handleExportPDF = () => {
-    const headers = ['SKU', 'Nama Bahan Baku', 'Kategori', filterTanggal ? `Stok (${filterTanggal})` : 'Stok Saat Ini', 'Batas Min.', 'Status'];
+    const headers = ['SKU', 'Nama Bahan Baku', 'Kategori', 'Harga Terakhir', filterTanggal ? `Stok (${filterTanggal})` : 'Stok Saat Ini', 'Batas Min.', 'Status'];
     const rows = filteredBahan.map(b => {
       const stokVal = getBahanStokOnDate(b, filterTanggal);
+      const lastPrice = getLastPurchasePrice(b);
       return [
         b.sku,
         b.nama,
         b.kategori,
+        `Rp ${formatNumber(lastPrice)}/${b.satuan}`,
         `${stokVal} ${b.satuan}`,
         `${b.minStok} ${b.satuan}`,
         stokVal <= b.minStok ? 'Menipis / Restock' : 'Stok Safe'
@@ -253,6 +274,7 @@ export default function BahanBakuTab({
               <th>SKU</th>
               <th>NAMA BAHAN BAKU</th>
               <th>KATEGORI</th>
+              <th>HARGA TERAKHIR (BELI)</th>
               <th>{filterTanggal ? `STOK TANGGAL (${filterTanggal})` : 'STOK SAAT INI'}</th>
               <th>BATAS MINIMUM</th>
               <th>STATUS STOK</th>
@@ -262,18 +284,22 @@ export default function BahanBakuTab({
           <tbody>
             {filteredBahan.length === 0 ? (
               <tr>
-                <td colSpan={isSuperAdmin ? 7 : 6} style={{ textAlign: 'center', padding: '2rem' }} className="text-muted">
+                <td colSpan={isSuperAdmin ? 8 : 7} style={{ textAlign: 'center', padding: '2rem' }} className="text-muted">
                   Tidak ada data bahan baku dapur yang sesuai.
                 </td>
               </tr>
             ) : (
               filteredBahan.map(b => {
                 const stokVal = getBahanStokOnDate(b, filterTanggal);
+                const lastPrice = getLastPurchasePrice(b);
                 return (
                   <tr key={b.id}>
                     <td><span className="badge badge-amber">{b.sku}</span></td>
                     <td style={{ fontWeight: 600 }}>{b.nama}</td>
                     <td><span className="badge badge-cyan">{b.kategori}</span></td>
+                    <td style={{ fontWeight: 700, color: '#28a745' }}>
+                      Rp {formatNumber(lastPrice)} <span style={{ fontSize: '0.75rem', color: '#6c757d', fontWeight: 500 }}>/ {b.satuan}</span>
+                    </td>
                     <td style={{ fontWeight: 700, color: filterTanggal ? 'var(--amber)' : '#f8fafc' }}>
                       {formatNumber(stokVal)} {b.satuan}
                     </td>
