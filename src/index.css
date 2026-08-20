@@ -532,9 +532,97 @@ body {
   box-sizing: border-box;
 }
 
-.tab-pane {
+/* GLOBAL INTERACTIVE TRANSITION & MICRO-ANIMATION SYSTEM */
+@keyframes pageSlideUpFade {
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(0.995);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes modalSpringPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.92) translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes backdropFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.tab-pane.active {
   padding-bottom: 3.5rem;
   width: 100%;
+  animation: pageSlideUpFade 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.modal-backdrop, .modal-overlay {
+  animation: backdropFadeIn 0.2s ease-out forwards;
+}
+
+.modal-content, .modal-card {
+  animation: modalSpringPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* CLICKABLE TACTILE TAP / PRESS ANIMATIONS */
+button, 
+.btn, 
+.menu-item, 
+.menu-group-header, 
+.action-tile, 
+.stat-card, 
+.produk-card, 
+a, 
+input[type="checkbox"], 
+input[type="radio"], 
+select {
+  transition: transform 0.15s cubic-bezier(0.2, 0, 0, 1), background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+button:active, 
+.btn:active, 
+.menu-item:active, 
+.menu-group-header:active, 
+.action-tile:active, 
+.stat-card:active, 
+.produk-card:active {
+  transform: scale(0.96) translateY(1px) !important;
+}
+
+/* SMOOTH HOVER ELEVATIONS */
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.card, .stat-card, .produk-card {
+  transition: transform 0.25s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.25s ease, border-color 0.25s ease !important;
+}
+
+.card:hover, .produk-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+}
+
+/* TABLE ROW HOVER ANIMATION */
+.table tbody tr, .custom-table tbody tr {
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+.table tbody tr:hover, .custom-table tbody tr:hover {
+  background-color: #e9ecef !important;
+  transform: scale(1.002);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .resep-grid-layout {
