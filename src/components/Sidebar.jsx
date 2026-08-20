@@ -79,31 +79,15 @@ export default function Sidebar({ activeUser, activeRoleView, activeTab, onSwitc
                     type="button"
                     className={`menu-group-header ${isPembelianActive ? 'active' : ''}`}
                     onClick={() => setOpenMenuPembelian(!openMenuPembelian)}
-                    style={{
-                      display: 'flex',
-                      justify: 'space-between',
-                      alignItems: 'center',
-                      width: '100%',
-                      background: isPembelianActive ? 'rgba(245, 158, 11, 0.12)' : 'transparent',
-                      color: isPembelianActive ? 'var(--amber)' : 'var(--text-color)',
-                      border: 'none',
-                      padding: '0.65rem 0.85rem',
-                      borderRadius: '8px',
-                      fontWeight: 700,
-                      fontSize: '0.86rem',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      marginBottom: '0.25rem'
-                    }}
                   >
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                       <ShoppingCart size={18} /> Pembelian
                     </span>
                     {openMenuPembelian ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                   </button>
 
                   {openMenuPembelian && (
-                    <div className="menu-sub-items" style={{ paddingLeft: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                    <div className="menu-sub-items">
                       <a href="#pembelian-bahan" className={mi('pembelian-bahan')} onClick={e => { e.preventDefault(); nav('pembelian-bahan'); }}>
                         <ShoppingCart size={16} /><span>Pembelian</span>
                       </a>
@@ -124,36 +108,20 @@ export default function Sidebar({ activeUser, activeRoleView, activeTab, onSwitc
 
               {/* 3. Produksi (Collapsible v) */}
               {showProduksiGroup && (
-                <div className="menu-group" style={{ marginTop: '0.35rem' }}>
+                <div className="menu-group">
                   <button
                     type="button"
                     className={`menu-group-header ${isProduksiActive ? 'active' : ''}`}
                     onClick={() => setOpenMenuProduksi(!openMenuProduksi)}
-                    style={{
-                      display: 'flex',
-                      justify: 'space-between',
-                      alignItems: 'center',
-                      width: '100%',
-                      background: isProduksiActive ? 'rgba(56, 189, 248, 0.12)' : 'transparent',
-                      color: isProduksiActive ? 'var(--cyan)' : 'var(--text-color)',
-                      border: 'none',
-                      padding: '0.65rem 0.85rem',
-                      borderRadius: '8px',
-                      fontWeight: 700,
-                      fontSize: '0.86rem',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      marginBottom: '0.25rem'
-                    }}
                   >
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                       <ChefHat size={18} /> Produksi
                     </span>
                     {openMenuProduksi ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                   </button>
 
                   {openMenuProduksi && (
-                    <div className="menu-sub-items" style={{ paddingLeft: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                    <div className="menu-sub-items">
                       <a href="#emulsi" className={mi('emulsi')} onClick={e => { e.preventDefault(); nav('emulsi'); }}>
                         <FlaskConical size={16} /><span>Pengolahan Emulsi</span>
                       </a>
