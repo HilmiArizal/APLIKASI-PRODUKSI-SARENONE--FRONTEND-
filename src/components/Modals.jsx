@@ -357,7 +357,7 @@ export function ModalProduksi({ isOpen, onClose, onExecute, produkList, bahanLis
       setTargetQty('');
       setTanggal(new Date().toISOString().split('T')[0]);
     }
-  }, [defaultProdukId, sortedProdukList, isOpen]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
