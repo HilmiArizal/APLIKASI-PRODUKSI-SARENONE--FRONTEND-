@@ -1550,6 +1550,9 @@ export function ModalBayarUtangSupplier({ isOpen, onClose, utangRecord, onSubmit
     onClose();
   };
 
+  const physicalKredit = (Number(utangRecord.jumlahDiterima || 0) * Number(utangRecord.hargaSatuan || 0));
+  const physicalSisaUtang = Math.max(0, physicalKredit - Number(utangRecord.jumlahDibayar || 0));
+
   return createPortal(
     <div className="modal-overlay">
       <div className="modal-card" style={{ maxWidth: '520px' }}>
@@ -1565,24 +1568,24 @@ export function ModalBayarUtangSupplier({ isOpen, onClose, utangRecord, onSubmit
               <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#fff', marginTop: '0.2rem' }}>{utangRecord.supplier} ({utangRecord.bahanNama})</div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '0.75rem', fontSize: '0.82rem', borderTop: '1px border var(--border-color)', paddingTop: '0.5rem' }}>
-                <div>Total Tagihan: <strong>Rp {utangRecord.totalTagihan?.toLocaleString('id-ID')}</strong></div>
-                <div>Sudah Dibayar: <strong style={{ color: 'var(--emerald)' }}>Rp {utangRecord.jumlahDibayar?.toLocaleString('id-ID')}</strong></div>
+                <div>Faktur Fisik Diterima: <strong>Rp {physicalKredit.toLocaleString('id-ID')}</strong></div>
+                <div>Sudah Dibayar: <strong style={{ color: 'var(--emerald)' }}>Rp {(utangRecord.jumlahDibayar || 0).toLocaleString('id-ID')}</strong></div>
               </div>
               <div style={{ marginTop: '0.4rem', fontSize: '0.95rem', fontWeight: 800, color: 'var(--rose)' }}>
-                Sisa Utang Tempo: Rp {utangRecord.sisaUtang?.toLocaleString('id-ID')}
+                Sisa Utang Tempo Fisik: Rp {physicalSisaUtang.toLocaleString('id-ID')}
               </div>
             </div>
 
             <div className="form-group">
               <label>Jumlah Pembayaran Saat Ini (Rp) *</label>
-              <input type="number" step="any" min="1" max={utangRecord.sisaUtang} className="form-control" value={jumlahBayar} onChange={e => setJumlahBayar(e.target.value)} required />
+              <input type="number" step="any" min="1" max={physicalSisaUtang} className="form-control" value={jumlahBayar} onChange={e => setJumlahBayar(e.target.value)} required />
               <button
                 type="button"
                 className="btn btn-outline btn-emerald btn-sm"
                 style={{ marginTop: '0.4rem', width: '100%', fontSize: '0.75rem' }}
-                onClick={() => setJumlahBayar(utangRecord.sisaUtang)}
+                onClick={() => setJumlahBayar(physicalSisaUtang)}
               >
-                ⚡ Lunasi Seluruh Sisa Utang (Rp {utangRecord.sisaUtang?.toLocaleString('id-ID')})
+                ⚡ Lunasi Seluruh Sisa Utang Fisik (Rp {physicalSisaUtang.toLocaleString('id-ID')})
               </button>
             </div>
 

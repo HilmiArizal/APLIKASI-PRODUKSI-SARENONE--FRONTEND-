@@ -70,29 +70,33 @@ export default function UtangSupplierTab({
     }
 
     const itemMonth = getMonthFromDateStr(item.tanggalBeli);
-    const itemTotal = Number(item.totalTagihan || 0);
+    const unitHarga = Number(item.hargaSatuan || 0);
+    const physicalQtyDiterima = Number(item.jumlahDiterima || 0);
+
+    // UTANG / KREDIT HANYA BERTAMBAH SAAT BARANG FISIK SUDAH DITERIMA DI GUDANG
+    const itemPhysicalAccruedKredit = physicalQtyDiterima * unitHarga;
     const itemPaidTotal = Number(item.jumlahDibayar || 0);
-    const itemSisa = Number(item.sisaUtang || 0);
+    const itemSisaUtangFisik = Math.max(0, itemPhysicalAccruedKredit - itemPaidTotal);
 
     if (selectedMonth === 'ALL') {
       supplierAccountingMap[supNama].saldoAwal += 0;
-      supplierAccountingMap[supNama].kredit += itemTotal;
+      supplierAccountingMap[supNama].kredit += itemPhysicalAccruedKredit;
       supplierAccountingMap[supNama].debit += itemPaidTotal;
       supplierAccountingMap[supNama].fakturCount += 1;
-      if (item.status !== 'LUNAS' && itemSisa > 0) supplierAccountingMap[supNama].fakturBelumLunas += 1;
+      if (item.status !== 'LUNAS' && itemSisaUtangFisik > 0) supplierAccountingMap[supNama].fakturBelumLunas += 1;
 
-      globalKredit += itemTotal;
+      globalKredit += itemPhysicalAccruedKredit;
       globalDebit += itemPaidTotal;
     } else {
       if (itemMonth && itemMonth < selectedMonth) {
-        if (itemSisa > 0 || item.status !== 'LUNAS') {
-          supplierAccountingMap[supNama].saldoAwal += itemSisa;
-          globalSaldoAwal += itemSisa;
+        if (itemSisaUtangFisik > 0 || (item.status !== 'LUNAS' && itemPhysicalAccruedKredit > 0)) {
+          supplierAccountingMap[supNama].saldoAwal += itemSisaUtangFisik;
+          globalSaldoAwal += itemSisaUtangFisik;
         }
       } else if (itemMonth === selectedMonth) {
-        supplierAccountingMap[supNama].kredit += itemTotal;
+        supplierAccountingMap[supNama].kredit += itemPhysicalAccruedKredit;
         supplierAccountingMap[supNama].fakturCount += 1;
-        globalKredit += itemTotal;
+        globalKredit += itemPhysicalAccruedKredit;
 
         let paidThisMonth = itemPaidTotal;
         if (item.riwayatPembayaran && Array.isArray(item.riwayatPembayaran) && item.riwayatPembayaran.length > 0) {
@@ -103,7 +107,7 @@ export default function UtangSupplierTab({
         supplierAccountingMap[supNama].debit += paidThisMonth;
         globalDebit += paidThisMonth;
 
-        if (itemTotal - paidThisMonth > 0) supplierAccountingMap[supNama].fakturBelumLunas += 1;
+        if (itemPhysicalAccruedKredit - paidThisMonth > 0) supplierAccountingMap[supNama].fakturBelumLunas += 1;
       }
     }
   });
@@ -143,12 +147,13 @@ export default function UtangSupplierTab({
   const handlePayFromSupplierCard = (supplierNama, e) => {
     if (e) e.stopPropagation();
 
-    // Get all unpaid invoices for this supplier
-    const unpaidInvoices = utangList.filter(
-      x => (x.supplier || '').trim().toLowerCase() === (supplierNama || '').trim().toLowerCase() &&
-           x.status !== 'LUNAS' &&
-           (x.sisaUtang || 0) > 0
-    );
+    // Get all unpaid invoices for this supplier where goods have been physically received
+    const unpaidInvoices = utangList.filter(x => {
+      const isSameSupplier = (x.supplier || '').trim().toLowerCase() === (supplierNama || '').trim().toLowerCase();
+      const physicalKredit = Number(x.jumlahDiterima || 0) * Number(x.hargaSatuan || 0);
+      const sisaUtangFisik = Math.max(0, physicalKredit - Number(x.jumlahDibayar || 0));
+      return isSameSupplier && x.status !== 'LUNAS' && sisaUtangFisik > 0;
+    });
 
     if (unpaidInvoices.length === 0) {
       if (showAlert) showAlert(`Supplier ${supplierNama} tidak memiliki tunggakan utang aktif.`, 'info', 'Status Utang');
@@ -534,8 +539,14 @@ export default function UtangSupplierTab({
                 </tr>
               ) : (
                 filteredList.map(item => {
-                  const isPendingPenerimaan = (item.jumlahDiterima || 0) === 0 && (item.jumlahDibayar || 0) === 0;
-                  const isLunas = (item.status === 'LUNAS' || item.sisaUtang === 0) && !isPendingPenerimaan;
+                  const physicalQtyDiterima = Number(item.jumlahDiterima || 0);
+                  const unitHarga = Number(item.hargaSatuan || 0);
+                  const physicalKreditVal = physicalQtyDiterima * unitHarga;
+                  const itemPaidTotal = Number(item.jumlahDibayar || 0);
+                  const physicalSisaUtang = Math.max(0, physicalKreditVal - itemPaidTotal);
+
+                  const isPendingPenerimaan = physicalQtyDiterima === 0 && itemPaidTotal === 0;
+                  const isLunas = (item.status === 'LUNAS' || (physicalQtyDiterima > 0 && physicalSisaUtang === 0)) && !isPendingPenerimaan;
 
                   return (
                     <tr key={item.id || item._id || item.noFaktur}>
@@ -547,26 +558,31 @@ export default function UtangSupplierTab({
                       <td>
                         <div style={{ fontWeight: 600 }}>{item.bahanNama}</div>
                         <div className="text-muted" style={{ fontSize: '0.78rem' }}>
-                          Order: {formatNumber(item.jumlah)} {item.satuan} @ Rp {formatNumber(item.hargaSatuan)}
+                          Order Beli: {formatNumber(item.jumlah)} {item.satuan} @ Rp {formatNumber(item.hargaSatuan)} (Rp {formatNumber(item.totalTagihan)})
                         </div>
-                        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: (item.jumlahDiterima || 0) > 0 ? 'var(--cyan)' : 'var(--amber)', marginTop: '0.15rem' }}>
-                          📥 Diterima: {formatNumber(item.jumlahDiterima || 0)} / {formatNumber(item.jumlah)} {item.satuan}
+                        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: physicalQtyDiterima > 0 ? 'var(--cyan)' : 'var(--amber)', marginTop: '0.15rem' }}>
+                          📥 Diterima: {formatNumber(physicalQtyDiterima)} / {formatNumber(item.jumlah)} {item.satuan}
                         </div>
                       </td>
                       <td>
-                        <strong style={{ fontSize: '0.95rem', color: 'var(--rose)' }}>Rp {formatNumber(item.totalTagihan)}</strong>
+                        <strong style={{ fontSize: '0.95rem', color: physicalKreditVal > 0 ? 'var(--rose)' : 'var(--text-muted)' }}>
+                          Rp {formatNumber(physicalKreditVal)}
+                        </strong>
+                        {physicalQtyDiterima === 0 && (
+                          <div className="text-muted" style={{ fontSize: '0.7rem' }}>Fisik 0 kg (Pending Terima)</div>
+                        )}
                       </td>
                       <td>
                         <span style={{ color: 'var(--emerald)', fontWeight: 600 }}>
-                          Rp {formatNumber(item.jumlahDibayar)}
+                          Rp {formatNumber(itemPaidTotal)}
                         </span>
                       </td>
                       <td>
                         <strong style={{ fontSize: '1rem', color: isPendingPenerimaan ? 'var(--amber)' : (isLunas ? 'var(--emerald)' : 'var(--amber)') }}>
-                          Rp {formatNumber(item.sisaUtang)}
+                          Rp {formatNumber(physicalSisaUtang)}
                         </strong>
                         {isPendingPenerimaan && (
-                          <div className="text-muted" style={{ fontSize: '0.7rem' }}>Belum Diterima</div>
+                          <div className="text-muted" style={{ fontSize: '0.7rem' }}>Menunggu Terima Gudang</div>
                         )}
                       </td>
                       <td>
