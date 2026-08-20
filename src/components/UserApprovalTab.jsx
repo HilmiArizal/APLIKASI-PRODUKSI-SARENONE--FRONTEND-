@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { UserCheck, Check, X, Trash2, Clock, ShieldCheck, UserPlus, Search, Edit, Filter, Users, ShieldAlert, Sparkles } from 'lucide-react';
+import { UserCheck, Check, X, Trash2, Clock, ShieldCheck, UserPlus, Search, Edit, Edit3, Filter, Users, ShieldAlert, Sparkles } from 'lucide-react';
 import PasswordStrengthChecker from './PasswordStrengthChecker';
 
 export default function UserApprovalTab({ users, onApproveUser, onRejectUser, onDeleteUser, onSaveUser, showAlert, domainRoles }) {
