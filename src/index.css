@@ -626,6 +626,69 @@ body {
   color: #1f2d3d;
 }
 
+/* PRODUK CARDS GRID ADMINLTE 3 LIGHT DESIGN */
+.produk-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.25rem;
+  margin-top: 1.25rem;
+}
+
+@media (max-width: 520px) {
+  .produk-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.produk-card {
+  background-color: #ffffff;
+  border: 1px solid #dee2e6;
+  border-radius: var(--radius-sm);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  box-shadow: 0 0 1px rgba(0,0,0,.125), 0 1px 3px rgba(0,0,0,.2);
+  transition: all 0.2s ease;
+}
+
+.produk-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: #b1b7ba;
+}
+
+.produk-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.produk-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #1f2d3d;
+  margin-top: 0.15rem;
+}
+
+.produk-sku {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #6c757d;
+}
+
+.produk-stok-box {
+  background-color: #f4f6f9;
+  border: 1px solid #e9ecef;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--radius-sm);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+}
+
 /* TOOLBAR & TABLES ADMINLTE STYLING */
 .toolbar {
   display: flex;
