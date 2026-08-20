@@ -40,39 +40,42 @@ export default function BahanBakuTab({
 
     let currentStok = Number(b.stok) || 0;
     const bNameLower = String(b.nama || '').trim().toLowerCase();
-    const bId = String(b.id || b._id || '');
+    const bId = String(b.id || b._id || '').trim().toLowerCase();
+    const bSku = String(b.sku || '').trim().toLowerCase();
 
-    // 1. Rollback receipts/restocks after target date (Subtract received qty after target date)
+    // 1. Rollback physical receipts that occurred AFTER targetDateStr (Subtract received qty)
     (utangList || []).forEach(p => {
-      const pDate = (p.tanggalPenerimaan || p.tanggalBeli || p.tanggal || '').substring(0, 10);
-      if (pDate > targetDateStr) {
-        if (p.riwayatPenerimaan && Array.isArray(p.riwayatPenerimaan)) {
-          p.riwayatPenerimaan.forEach(r => {
-            const rDate = (r.tanggal || r.createdAt || pDate).substring(0, 10);
-            if (rDate > targetDateStr) {
-              const itemNm = String(r.namaBahan || p.bahanNama || '').trim().toLowerCase();
-              if (itemNm === bNameLower || p.sku === b.sku) {
-                currentStok -= Number(r.jumlah || r.diterima || 0);
-              }
-            }
-          });
-        } else if (Number(p.jumlahDiterima || 0) > 0) {
-          const itemNm = String(p.bahanNama || '').trim().toLowerCase();
-          if (itemNm === bNameLower || p.sku === b.sku) {
-            currentStok -= Number(p.jumlahDiterima || 0);
+      const itemNm = String(p.bahanNama || '').trim().toLowerCase();
+      const itemId = String(p.bahanId || '').trim().toLowerCase();
+      const itemSku = String(p.sku || '').trim().toLowerCase();
+      const isMatch = itemNm === bNameLower || (bId && itemId === bId) || (bSku && itemSku === bSku);
+
+      if (!isMatch) return;
+
+      if (p.riwayatPenerimaan && Array.isArray(p.riwayatPenerimaan) && p.riwayatPenerimaan.length > 0) {
+        p.riwayatPenerimaan.forEach(r => {
+          const rDate = (r.tanggal || p.tanggalPenerimaan || p.tanggalBeli || '').substring(0, 10);
+          if (rDate && rDate > targetDateStr) {
+            currentStok -= Number(r.jumlah || r.diterima || 0);
           }
+        });
+      } else if (Number(p.jumlahDiterima || 0) > 0) {
+        const pDate = (p.tanggalPenerimaan || p.tanggalBeli || p.tanggal || '').substring(0, 10);
+        if (pDate && pDate > targetDateStr) {
+          currentStok -= Number(p.jumlahDiterima || 0);
         }
       }
     });
 
-    // 2. Rollback production usage after target date (Add back consumed qty after target date)
+    // 2. Rollback production consumptions that occurred AFTER targetDateStr (Add back consumed qty)
     (riwayatProduksi || []).forEach(r => {
-      const rDate = (r.timestamp || r.tanggal || '').substring(0, 10);
-      if (rDate > targetDateStr) {
-        if (r.bahanDigunakan && Array.isArray(r.bahanDigunakan)) {
+      const rDate = (r.tanggal || r.timestamp || '').substring(0, 10);
+      if (rDate && rDate > targetDateStr) {
+        if (Array.isArray(r.bahanDigunakan)) {
           r.bahanDigunakan.forEach(item => {
             const itemNm = String(item.bahanNama || item.nama || '').trim().toLowerCase();
-            if (itemNm === bNameLower || item.bahanId === bId) {
+            const itemId = String(item.bahanId || '').trim().toLowerCase();
+            if (itemNm === bNameLower || (bId && itemId === bId)) {
               currentStok += Number(item.jumlah || 0);
             }
           });
@@ -80,7 +83,7 @@ export default function BahanBakuTab({
       }
     });
 
-    return Math.max(0, currentStok);
+    return Math.round(Math.max(0, currentStok) * 1000) / 1000;
   };
 
   const filteredBahan = bahanBaku
