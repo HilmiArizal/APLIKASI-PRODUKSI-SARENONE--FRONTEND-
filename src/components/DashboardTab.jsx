@@ -106,12 +106,11 @@ export default function DashboardTab({
       };
     });
 
-    const maxStock = Math.max(...chartData.map(d => d.stockQty), 100);
-    const maxUsage = Math.max(...chartData.map(d => d.usageQty), 10);
-    const maxVal = Math.max(maxStock, maxUsage * 2);
+    const maxUsageQty = Math.max(...chartData.map(d => d.usageQty), 1);
+    const maxStockQty = Math.max(...chartData.map(d => d.stockQty), 1);
     const currentMonthName = now.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
 
-    return { chartData, maxVal, totalCurrentStockQty, currentMonthName };
+    return { chartData, maxStockQty, maxUsageQty, totalCurrentStockQty, currentMonthName };
   }, [bahanBaku, riwayatProduksi, todayStr, now]);
 
   // Default: Filter by current running month (selectedMonth) plus search filter
@@ -431,37 +430,46 @@ export default function DashboardTab({
           </div>
         </div>
 
-        {/* DUAL BAR CHART GRAPH (CLEAN ADMINLTE LIGHT CONTAINER) */}
+        {/* DUAL BAR CHART GRAPH (CLEAN PROPORTIONAL ADMINLTE LIGHT CONTAINER) */}
         <div style={{ background: '#ffffff', border: '1px solid #dee2e6', borderRadius: 'var(--radius-sm)', padding: '1.25rem 1rem 1rem 1rem', overflowX: 'auto' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', height: '220px', minWidth: '950px', gap: '0.35rem', paddingBottom: '0.75rem', borderBottom: '1px solid #dee2e6' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', height: '220px', minWidth: '980px', gap: '0.4rem', paddingBottom: '0.5rem', borderBottom: '1px solid #dee2e6' }}>
             {dailyStockUsageChartData.chartData.map(item => {
-              const stockHeight = item.stockQty > 0 ? Math.max(15, Math.round((item.stockQty / dailyStockUsageChartData.maxVal) * 100)) : 8;
-              const usageHeight = item.usageQty > 0 ? Math.max(15, Math.round((item.usageQty / (dailyStockUsageChartData.maxVal / 2)) * 100)) : 8;
+              const maxStock = dailyStockUsageChartData.maxStockQty || 1;
+              const maxUsage = dailyStockUsageChartData.maxUsageQty || 1;
+
+              // Calculate handsome proportional heights
+              const stockHeightPct = item.stockQty > 0
+                ? Math.min(85, Math.max(35, Math.round((item.stockQty / maxStock) * 70)))
+                : 10;
+
+              const usageHeightPct = item.usageQty > 0
+                ? Math.min(85, Math.max(25, Math.round((item.usageQty / maxUsage) * 80)))
+                : 4;
 
               return (
-                <div key={item.dateStr} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', minWidth: '26px' }}>
+                <div key={item.dateStr} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', minWidth: '28px' }}>
                   {/* Bars Container */}
-                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: '2px', width: '100%', justifyContent: 'center', height: '78%' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: '3px', width: '100%', justifyContent: 'center', height: '80%' }}>
                     {/* Stock Bar */}
                     <div
                       style={{
                         width: '45%',
                         maxWidth: '14px',
-                        height: `${stockHeight}%`,
+                        height: `${stockHeightPct}%`,
                         background: 'linear-gradient(180deg, #007bff 0%, #0056b3 100%)',
                         borderRadius: '3px 3px 0 0',
-                        boxShadow: item.isToday ? '0 0 8px rgba(0, 123, 255, 0.4)' : 'none',
+                        boxShadow: item.isToday ? '0 0 8px rgba(0, 123, 255, 0.5)' : 'none',
                         transition: 'all 0.3s ease',
                         cursor: 'pointer'
                       }}
-                      title={`Tanggal ${item.dayNum} ${dailyStockUsageChartData.currentMonthName}: Total Stok ${formatNumber(item.stockQty)} Items`}
+                      title={`Tanggal ${item.dayNum} ${dailyStockUsageChartData.currentMonthName}: Total Stok Gudang ${formatNumber(item.stockQty)} Items`}
                     />
                     {/* Usage Bar */}
                     <div
                       style={{
                         width: '45%',
                         maxWidth: '14px',
-                        height: `${usageHeight}%`,
+                        height: `${usageHeightPct}%`,
                         background: item.usageQty > 0 ? 'linear-gradient(180deg, #dc3545 0%, #a71d2a 100%)' : '#e9ecef',
                         borderRadius: '3px 3px 0 0',
                         boxShadow: item.usageQty > 0 ? '0 0 8px rgba(220, 53, 69, 0.4)' : 'none',
@@ -473,11 +481,11 @@ export default function DashboardTab({
                   </div>
 
                   {/* Date Pill Label X-Axis */}
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '0.65rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '0.5rem', height: '36px', justifyContent: 'flex-start' }}>
                     <div
                       style={{
-                        fontSize: item.isToday ? '0.75rem' : '0.68rem',
-                        fontWeight: item.isToday ? 900 : 700,
+                        fontSize: item.isToday ? '0.75rem' : '0.7rem',
+                        fontWeight: item.isToday ? 900 : 600,
                         color: item.isToday ? '#ffffff' : (item.usageQty > 0 ? '#721c24' : '#495057'),
                         background: item.isToday
                           ? '#007bff'
@@ -485,7 +493,7 @@ export default function DashboardTab({
                         border: item.isToday
                           ? '1px solid #0056b3'
                           : (item.usageQty > 0 ? '1px solid #f5c6cb' : '1px solid #dee2e6'),
-                        padding: item.isToday ? '0.12rem 0.45rem' : '0.08rem 0.32rem',
+                        padding: item.isToday ? '0.15rem 0.45rem' : '0.1rem 0.35rem',
                         borderRadius: '4px',
                         boxShadow: item.isToday ? '0 2px 6px rgba(0, 123, 255, 0.4)' : 'none',
                         transition: 'all 0.2s ease',
@@ -497,7 +505,7 @@ export default function DashboardTab({
                       {item.dayNum}
                     </div>
                     {item.isToday && (
-                      <span style={{ fontSize: '0.55rem', fontWeight: 800, color: 'var(--cyan)', marginTop: '0.2rem', textTransform: 'uppercase', letterSpacing: '0.3px', whiteSpace: 'nowrap' }}>
+                      <span style={{ fontSize: '0.52rem', fontWeight: 800, color: '#007bff', marginTop: '0.15rem', textTransform: 'uppercase', letterSpacing: '0.3px', whiteSpace: 'nowrap' }}>
                         Hari Ini
                       </span>
                     )}
