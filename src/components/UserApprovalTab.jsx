@@ -123,44 +123,49 @@ export default function UserApprovalTab({ users, onApproveUser, onRejectUser, on
       {/* Top Banner & Title */}
 
       {/* Summary KPI Cards */}
-      <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', marginBottom: '1.5rem' }}>
-        <div className="stat-card border-indigo">
-          <div className="stat-icon icon-indigo"><Users size={24} /></div>
-          <div className="stat-details">
-            <span className="stat-title">TOTAL PENGGUNA TERDAFTAR</span>
-            <strong className="stat-value">{users.length}</strong>
-            <span className="stat-desc text-muted">Akun Super Admin &amp; Staf</span>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem', marginBottom: '1.5rem' }}>
+        {/* Card 1 */}
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderLeft: '4px solid #6366f1', borderRadius: 'var(--radius-md)', padding: '1.25rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ background: 'rgba(99, 102, 241, 0.12)', color: '#6366f1', width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Users size={24} />
+          </div>
+          <div>
+            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>TOTAL PENGGUNA</div>
+            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#1f2d3d', lineHeight: 1.2, margin: '0.15rem 0' }}>{users.length}</div>
+            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Akun Super Admin &amp; Staf</div>
           </div>
         </div>
 
-        <div className="stat-card border-amber">
-          <div className="stat-icon icon-amber"><Clock size={24} /></div>
-          <div className="stat-details">
-            <span className="stat-title">ANTREAN MENUNGGU ACC</span>
-            <strong className="stat-value" style={{ color: pendingUsers.length > 0 ? 'var(--amber)' : '#fff' }}>
+        {/* Card 2 */}
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderLeft: '4px solid var(--amber)', borderRadius: 'var(--radius-md)', padding: '1.25rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ background: 'rgba(245, 158, 11, 0.12)', color: 'var(--amber)', width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Clock size={24} />
+          </div>
+          <div>
+            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>ANTREAN ACC</div>
+            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: pendingUsers.length > 0 ? 'var(--amber)' : '#1f2d3d', lineHeight: 1.2, margin: '0.15rem 0' }}>
               {pendingUsers.length}
-            </strong>
-            <span className="stat-desc text-muted">
-              {pendingUsers.length > 0 ? 'Perlu tindakan Super Admin' : 'Tidak ada antrean'}
-            </span>
+            </div>
+            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+              {pendingUsers.length > 0 ? '⚠️ Perlu ACC Admin' : 'Tidak ada antrean'}
+            </div>
           </div>
         </div>
 
-        <div className="stat-card border-emerald">
-          <div className="stat-icon icon-emerald"><ShieldCheck size={24} /></div>
-          <div className="stat-details">
-            <span className="stat-title">PENGGUNA TERVERIFIKASI</span>
-            <strong className="stat-value text-emerald">{verifiedUsers.length}</strong>
-            <span className="stat-desc text-emerald">Aktif Mengakses Sistem</span>
+        {/* Card 3 */}
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderLeft: '4px solid var(--emerald)', borderRadius: 'var(--radius-md)', padding: '1.25rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ background: 'rgba(16, 185, 129, 0.12)', color: 'var(--emerald)', width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <ShieldCheck size={24} />
+          </div>
+          <div>
+            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>PENGGUNA AKTIF</div>
+            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--emerald)', lineHeight: 1.2, margin: '0.15rem 0' }}>{verifiedUsers.length}</div>
+            <div style={{ fontSize: '0.78rem', color: 'var(--emerald)', fontWeight: 600 }}>Terverifikasi &amp; Aktif</div>
           </div>
         </div>
       </div>
 
       <div className="tab-header" style={{ marginBottom: '1.25rem' }}>
-        {/* <div>
-          <h2 className="tab-title"><UserCheck size={24} /> Verifikasi User &amp; Akses Peran</h2>
-          <p className="tab-subtitle">Modul persetujuan pendaftaran &amp; manajemen hak akses peran pengguna.</p>
-        </div> */}
         <button className="btn btn-primary" onClick={() => setIsModalCreateOpen(true)}>
           <UserPlus size={16} /> Buat Akun Staf Baru
         </button>
@@ -242,7 +247,7 @@ export default function UserApprovalTab({ users, onApproveUser, onRejectUser, on
                           onClick={() => handleOpenEdit(u)}
                           title="Ubah Role Staf"
                         >
-                          <Edit size={14} /> Ubah Role
+                          <Edit3 size={14} />
                         </button>
 
                         {u.role !== 'ADMIN' && u.role !== 'ADMIN_PRODUK' && (
