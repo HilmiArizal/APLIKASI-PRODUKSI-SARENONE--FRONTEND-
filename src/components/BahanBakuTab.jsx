@@ -91,13 +91,13 @@ export default function BahanBakuTab({
     })
     .sort((a, b) => (a.sku || '').localeCompare(b.sku || '', undefined, { numeric: true, sensitivity: 'base' }));
 
-  // Get Unit Price on or before target date (or latest purchase price prior to target date)
+  // Get Unit Price on or before target date based strictly on PHYSICAL GOODS RECEIPT DATE
   const getBahanHargaOnDate = (b, targetDateStr) => {
     if (!b) return 0;
     const bNameLower = String(b.nama || '').trim().toLowerCase();
     const bId = String(b.id || b._id || '');
 
-    // 1. Check persistent Backend DB riwayatHarga array on item
+    // 1. Check persistent Backend DB riwayatHarga array on item (which is synced on physical receipt)
     if (Array.isArray(b.riwayatHarga) && b.riwayatHarga.length > 0) {
       const pastPrices = b.riwayatHarga
         .filter(r => (!targetDateStr || (r.tanggal && r.tanggal.substring(0, 10) <= targetDateStr)) && Number(r.harga) > 0)
@@ -107,18 +107,33 @@ export default function BahanBakuTab({
       }
     }
 
-    // 2. Search utangList for purchases ON OR BEFORE targetDateStr
-    let validInvoices = (utangList || []).filter(inv => {
-      const invDate = (inv.tanggalPenerimaan || inv.tanggalBeli || inv.tanggal || inv.createdAt || '').substring(0, 10);
-      if (targetDateStr && invDate > targetDateStr) return false;
+    // 2. Search utangList for physical receipt events ON OR BEFORE targetDateStr
+    const validReceipts = [];
+    (utangList || []).forEach(inv => {
       const itemNm = String(inv.bahanNama || inv.namaBahan || '').trim().toLowerCase();
-      return itemNm === bNameLower || inv.sku === b.sku || inv.bahanId === bId;
+      const isMatch = itemNm === bNameLower || inv.sku === b.sku || inv.bahanId === bId;
+      if (!isMatch) return;
+
+      if (Array.isArray(inv.riwayatPenerimaan) && inv.riwayatPenerimaan.length > 0) {
+        inv.riwayatPenerimaan.forEach(r => {
+          const recDate = (r.tanggal || inv.tanggalBeli || '').substring(0, 10);
+          const recPrice = Number(r.hargaSatuan || inv.hargaSatuan || 0);
+          if (recPrice > 0 && (!targetDateStr || recDate <= targetDateStr)) {
+            validReceipts.push({ tanggal: recDate, harga: recPrice });
+          }
+        });
+      } else if (Number(inv.jumlahDiterima || 0) > 0) {
+        const recDate = (inv.tanggalPenerimaan || inv.tanggalBeli || inv.tanggal || '').substring(0, 10);
+        const recPrice = Number(inv.hargaSatuan || 0);
+        if (recPrice > 0 && (!targetDateStr || recDate <= targetDateStr)) {
+          validReceipts.push({ tanggal: recDate, harga: recPrice });
+        }
+      }
     });
 
-    if (validInvoices.length > 0) {
-      const lastInv = validInvoices[validInvoices.length - 1];
-      const pPrice = Number(lastInv.hargaSatuan || lastInv.hargaBeli || lastInv.harga || 0);
-      if (pPrice > 0) return pPrice;
+    if (validReceipts.length > 0) {
+      validReceipts.sort((a, b) => (b.tanggal || '').localeCompare(a.tanggal || ''));
+      return validReceipts[0].harga;
     }
 
     // 3. Fallback to master raw material price
