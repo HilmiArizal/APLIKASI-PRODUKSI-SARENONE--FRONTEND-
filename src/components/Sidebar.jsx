@@ -26,13 +26,8 @@ export default function Sidebar({ activeUser, activeRoleView, activeTab, onSwitc
   const isPembelianActive = ['pembelian-bahan', 'penerimaan-bahan', 'utang-supplier', 'bahan-baku'].includes(activeTab);
   const isProduksiActive = ['emulsi', 'produk', 'resep', 'pemakaian-kemasan', 'riwayat-produksi', 'hpp-kalkulator'].includes(activeTab);
 
-  const [openMenuPembelian, setOpenMenuPembelian] = useState(true);
-  const [openMenuProduksi, setOpenMenuProduksi] = useState(true);
-
-  useEffect(() => {
-    if (isPembelianActive) setOpenMenuPembelian(true);
-    if (isProduksiActive) setOpenMenuProduksi(true);
-  }, [activeTab]);
+  const [openMenuPembelian, setOpenMenuPembelian] = useState(false);
+  const [openMenuProduksi, setOpenMenuProduksi] = useState(false);
 
   // Domain Bahan Baku Permissions
   const showPembelian = !isProdukDomain && activeRoleView !== 'SALES' && ['ADMIN', 'PEMBELIAN'].includes(activeRoleView);
@@ -277,9 +272,30 @@ export default function Sidebar({ activeUser, activeRoleView, activeTab, onSwitc
           )}
         </nav>
 
-        <div className="sidebar-footer">
-          <button className="btn-logout" onClick={onLogout}>
-            <LogOut size={18} /><span>Keluar Aplikasi</span>
+        <div className="sidebar-footer" style={{ padding: '1rem', borderTop: '1px solid var(--border-color)', marginTop: 'auto' }}>
+          <button
+            className="btn-logout"
+            onClick={onLogout}
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justify: 'center',
+              gap: '0.6rem',
+              padding: '0.75rem 1rem',
+              borderRadius: '10px',
+              background: 'linear-gradient(135deg, rgba(244, 63, 94, 0.15) 0%, rgba(225, 29, 72, 0.25) 100%)',
+              border: '1px solid rgba(244, 63, 94, 0.4)',
+              color: '#fecdd3',
+              fontSize: '0.88rem',
+              fontWeight: 800,
+              cursor: 'pointer',
+              transition: 'all 0.25s ease',
+              boxShadow: '0 4px 12px rgba(225, 29, 72, 0.15)'
+            }}
+          >
+            <LogOut size={18} style={{ color: '#f43f5e' }} />
+            <span>Keluar Aplikasi</span>
           </button>
         </div>
       </aside>
