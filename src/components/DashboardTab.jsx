@@ -447,7 +447,7 @@ export default function DashboardTab({
 
               const usageHeightPct = item.usageQty > 0
                 ? Math.min(85, Math.max(25, Math.round((item.usageQty / maxUsage) * 80)))
-                : 4;
+                : 14;
 
               return (
                 <div key={item.dateStr} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', minWidth: '28px' }}>
@@ -473,7 +473,10 @@ export default function DashboardTab({
                         width: '45%',
                         maxWidth: '14px',
                         height: `${usageHeightPct}%`,
-                        background: item.usageQty > 0 ? 'linear-gradient(180deg, #fd7e14 0%, #d97706 100%)' : '#e9ecef',
+                        background: item.usageQty > 0
+                          ? 'linear-gradient(180deg, #ff922b 0%, #fd7e14 100%)'
+                          : 'linear-gradient(180deg, #ffe8cc 0%, #ffd8a8 100%)',
+                        borderTop: '2px solid #fd7e14',
                         borderRadius: '3px 3px 0 0',
                         boxShadow: item.usageQty > 0 ? '0 0 8px rgba(253, 126, 20, 0.5)' : 'none',
                         transition: 'all 0.3s ease',
