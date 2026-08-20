@@ -575,33 +575,76 @@ export function ModalImportBahanExcel({ isOpen, onClose, onImport, showAlert }) 
   };
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-card" style={{ maxWidth: '750px' }}>
-        <div className="modal-header">
-          <h3><FileSpreadsheet size={20} style={{ color: 'var(--emerald)' }} /> Import Bahan Baku dari Excel / CSV</h3>
+    <div className="modal-overlay" style={{ zIndex: 99999 }}>
+      <div className="modal-card" style={{ maxWidth: '750px', background: '#ffffff', borderRadius: '8px', border: '1px solid #dee2e6', boxShadow: '0 10px 30px rgba(0,0,0,0.25)' }}>
+        <div className="modal-header" style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #dee2e6', background: '#ffffff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: '#1f2d3d', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <FileSpreadsheet size={22} style={{ color: '#28a745' }} /> Import Bahan Baku dari Excel / CSV
+          </h3>
           <button className="btn btn-outline btn-sm" onClick={onClose}><X size={16} /></button>
         </div>
-        <div className="modal-body">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-            <p className="text-muted" style={{ fontSize: '0.85rem' }}>
-              Unggah file spreadsheet `.xlsx`, `.xls`, atau `.csv` berisi daftar bahan baku dapur Anda.
-            </p>
-            <button className="btn btn-sm btn-outline" onClick={handleDownloadTemplate} title="Unduh Contoh Format Excel">
-              <Download size={14} style={{ color: 'var(--cyan)' }} /> Unduh Template Excel
+        <div className="modal-body" style={{ padding: '1.25rem', background: '#ffffff', color: '#212529' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.1rem', flexWrap: 'wrap', gap: '0.75rem', background: '#f8f9fa', padding: '0.85rem 1rem', borderRadius: '6px', border: '1px solid #e9ecef' }}>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#1f2d3d' }}>Petunjuk Format File</div>
+              <p className="text-muted" style={{ fontSize: '0.8rem', margin: 0, color: '#6c757d' }}>
+                Gunakan template spreadsheet resmi agar kolom SKU, Nama, Kategori &amp; Stok terbaca otomatis.
+              </p>
+            </div>
+            <button className="btn btn-sm btn-emerald" onClick={handleDownloadTemplate} title="Unduh Contoh Format Excel" style={{ whiteSpace: 'nowrap' }}>
+              <Download size={14} /> Unduh Template Excel
             </button>
           </div>
 
-          <div className="form-group">
-            <label>Pilih File Excel (.xlsx / .csv) *</label>
-            <input type="file" accept=".xlsx, .xls, .csv" className="form-control" onChange={handleFileChange} />
+          {/* DYNAMIC DROPZONE FILE UPLOADER */}
+          <div style={{
+            border: file ? '2px solid #28a745' : '2px dashed #007bff',
+            background: file ? '#f4fbf7' : '#f8f9fa',
+            borderRadius: '8px',
+            padding: '1.5rem 1rem',
+            textAlign: 'center',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            position: 'relative',
+            marginBottom: '1rem'
+          }}>
+            <input
+              type="file"
+              accept=".xlsx, .xls, .csv"
+              onChange={handleFileChange}
+              style={{
+                position: 'absolute',
+                inset: 0,
+                width: '100%',
+                height: '100%',
+                opacity: 0,
+                cursor: 'pointer'
+              }}
+            />
+            <Upload size={32} style={{ color: file ? '#28a745' : '#007bff', marginBottom: '0.5rem' }} />
+            {file ? (
+              <div>
+                <div style={{ fontWeight: 700, color: '#155724', fontSize: '0.95rem' }}>✓ {file.name}</div>
+                <div style={{ fontSize: '0.78rem', color: '#6c757d', marginTop: '0.2rem' }}>
+                  ({(file.size / 1024).toFixed(1)} KB) • <strong>{parsedData.length} baris data</strong> berhasil terbaca!
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div style={{ fontWeight: 700, color: '#1f2d3d', fontSize: '0.95rem' }}>Klik atau Seret File Excel (.xlsx / .csv) Ke Sini</div>
+                <div style={{ fontSize: '0.78rem', color: '#6c757d', marginTop: '0.2rem' }}>
+                  Mendukung file spreadsheet format Microsoft Excel &amp; CSV
+                </div>
+              </div>
+            )}
           </div>
 
           {parsedData.length > 0 && (
             <div className="mt-3">
-              <h4 style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: 'var(--emerald)' }}>
+              <h4 style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: '#28a745', fontWeight: 700 }}>
                 ✓ Pratinjau Data ({parsedData.length} Baris Bahan Baku Ditemukan):
               </h4>
-              <div className="table-container" style={{ maxHeight: '250px', overflowY: 'auto' }}>
+              <div className="table-container" style={{ maxHeight: '220px', overflowY: 'auto', border: '1px solid #dee2e6', borderRadius: '6px' }}>
                 <table className="custom-table">
                   <thead>
                     <tr>
@@ -619,9 +662,9 @@ export function ModalImportBahanExcel({ isOpen, onClose, onImport, showAlert }) 
                       <tr key={idx}>
                         <td>{idx + 1}</td>
                         <td><span className="badge badge-cyan">{row.sku}</span></td>
-                        <td style={{ fontWeight: 600 }}>{row.nama}</td>
+                        <td style={{ fontWeight: 600, color: '#1f2d3d' }}>{row.nama}</td>
                         <td>{row.kategori}</td>
-                        <td style={{ fontWeight: 700 }}>{row.stok}</td>
+                        <td style={{ fontWeight: 700, color: '#007bff' }}>{row.stok}</td>
                         <td className="text-muted">{row.minStok}</td>
                         <td>{row.satuan}</td>
                       </tr>
@@ -633,15 +676,16 @@ export function ModalImportBahanExcel({ isOpen, onClose, onImport, showAlert }) 
           )}
         </div>
 
-        <div className="modal-footer">
+        <div className="modal-footer" style={{ padding: '0.85rem 1.25rem', borderTop: '1px solid #dee2e6', background: '#f4f6f9', display: 'flex', justifyContent: 'flex-end', gap: '0.65rem' }}>
           <button type="button" className="btn btn-secondary" onClick={onClose}>Batal</button>
           <button
             type="button"
             className="btn btn-emerald"
             disabled={parsedData.length === 0 || isProcessing}
             onClick={handleCommitImport}
+            style={{ fontWeight: 700 }}
           >
-            <Upload size={16} /> {isProcessing ? 'Proses Import...' : `Import ${parsedData.length} Data ke Database`}
+            {isProcessing ? 'Memproses Import...' : `Import ${parsedData.length} Data Bahan`}
           </button>
         </div>
       </div>
@@ -736,49 +780,92 @@ export function ModalImportResepExcel({ isOpen, onClose, onImport, showAlert }) 
   };
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-card" style={{ maxWidth: '780px' }}>
-        <div className="modal-header">
-          <h3><FileSpreadsheet size={20} style={{ color: 'var(--amber)' }} /> Import Formulasi Resep (BOM) dari Excel / CSV</h3>
+    <div className="modal-overlay" style={{ zIndex: 99999 }}>
+      <div className="modal-card" style={{ maxWidth: '780px', background: '#ffffff', borderRadius: '8px', border: '1px solid #dee2e6', boxShadow: '0 10px 30px rgba(0,0,0,0.25)' }}>
+        <div className="modal-header" style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #dee2e6', background: '#ffffff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: '#1f2d3d', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <FileSpreadsheet size={22} style={{ color: '#007bff' }} /> Import Formulasi Resep (BOM) dari Excel / CSV
+          </h3>
           <button className="btn btn-outline btn-sm" onClick={onClose}><X size={16} /></button>
         </div>
-        <div className="modal-body">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-            <p className="text-muted" style={{ fontSize: '0.85rem' }}>
-              Unggah file spreadsheet `.xlsx`, `.xls`, atau `.csv` berisi takaran bahan baku per produk.
-            </p>
-            <button className="btn btn-sm btn-outline" onClick={handleDownloadTemplate} title="Unduh Contoh Format Excel Resep">
-              <Download size={14} style={{ color: 'var(--cyan)' }} /> Unduh Template Excel Resep
+        <div className="modal-body" style={{ padding: '1.25rem', background: '#ffffff', color: '#212529' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.1rem', flexWrap: 'wrap', gap: '0.75rem', background: '#f8f9fa', padding: '0.85rem 1rem', borderRadius: '6px', border: '1px solid #e9ecef' }}>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#1f2d3d' }}>Petunjuk Format Resep</div>
+              <p className="text-muted" style={{ fontSize: '0.8rem', margin: 0, color: '#6c757d' }}>
+                Gunakan template Excel resmi agar relasi SKU Produk, SKU Bahan, &amp; Takaran 1 batch terbaca otomatis.
+              </p>
+            </div>
+            <button className="btn btn-sm btn-primary" onClick={handleDownloadTemplate} title="Unduh Contoh Format Excel Resep" style={{ whiteSpace: 'nowrap' }}>
+              <Download size={14} /> Unduh Template Excel Resep
             </button>
           </div>
 
-          <div className="form-group">
-            <label>Pilih File Excel Resep (.xlsx / .csv) *</label>
-            <input type="file" accept=".xlsx, .xls, .csv" className="form-control" onChange={handleFileChange} />
+          {/* DYNAMIC DROPZONE FILE UPLOADER */}
+          <div style={{
+            border: file ? '2px solid #28a745' : '2px dashed #007bff',
+            background: file ? '#f4fbf7' : '#f8f9fa',
+            borderRadius: '8px',
+            padding: '1.5rem 1rem',
+            textAlign: 'center',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            position: 'relative',
+            marginBottom: '1rem'
+          }}>
+            <input
+              type="file"
+              accept=".xlsx, .xls, .csv"
+              onChange={handleFileChange}
+              style={{
+                position: 'absolute',
+                inset: 0,
+                width: '100%',
+                height: '100%',
+                opacity: 0,
+                cursor: 'pointer'
+              }}
+            />
+            <Upload size={32} style={{ color: file ? '#28a745' : '#007bff', marginBottom: '0.5rem' }} />
+            {file ? (
+              <div>
+                <div style={{ fontWeight: 700, color: '#155724', fontSize: '0.95rem' }}>✓ {file.name}</div>
+                <div style={{ fontSize: '0.78rem', color: '#6c757d', marginTop: '0.2rem' }}>
+                  ({(file.size / 1024).toFixed(1)} KB) • <strong>{parsedData.length} baris takaran resep</strong> berhasil terbaca!
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div style={{ fontWeight: 700, color: '#1f2d3d', fontSize: '0.95rem' }}>Klik atau Seret File Excel Resep (.xlsx / .csv) Ke Sini</div>
+                <div style={{ fontSize: '0.78rem', color: '#6c757d', marginTop: '0.2rem' }}>
+                  Mendukung file spreadsheet format Microsoft Excel &amp; CSV
+                </div>
+              </div>
+            )}
           </div>
 
           {parsedData.length > 0 && (
             <div className="mt-3">
-              <h4 style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: 'var(--amber)' }}>
+              <h4 style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: '#28a745', fontWeight: 700 }}>
                 ✓ Pratinjau Formulasi ({parsedData.length} Baris Takaran Ditemukan):
               </h4>
-              <div className="table-container" style={{ maxHeight: '250px', overflowY: 'auto' }}>
+              <div className="table-container" style={{ maxHeight: '220px', overflowY: 'auto', border: '1px solid #dee2e6', borderRadius: '6px' }}>
                 <table className="custom-table">
                   <thead>
                     <tr>
                       <th>#</th>
                       <th>PRODUK (SKU / NAMA)</th>
                       <th>BAHAN BAKU (SKU / NAMA)</th>
-                      <th>TAKARAN (PER 1 PCS)</th>
+                      <th>TAKARAN (PER 1 BATCH)</th>
                     </tr>
                   </thead>
                   <tbody>
                     {parsedData.map((row, idx) => (
                       <tr key={idx}>
                         <td>{idx + 1}</td>
-                        <td style={{ fontWeight: 600 }}>{row.produkSku || row.produkNama} {row.produkNama && `(${row.produkNama})`}</td>
-                        <td style={{ fontWeight: 600, color: 'var(--cyan)' }}>{row.bahanSku || row.bahanNama} {row.bahanNama && `(${row.bahanNama})`}</td>
-                        <td style={{ fontWeight: 700, color: 'var(--amber)' }}>{row.takaran}</td>
+                        <td style={{ fontWeight: 600, color: '#1f2d3d' }}>{row.produkSku || row.produkNama} {row.produkNama && `(${row.produkNama})`}</td>
+                        <td style={{ fontWeight: 600, color: '#17a2b8' }}>{row.bahanSku || row.bahanNama} {row.bahanNama && `(${row.bahanNama})`}</td>
+                        <td style={{ fontWeight: 700, color: '#007bff' }}>{row.takaran}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -788,15 +875,16 @@ export function ModalImportResepExcel({ isOpen, onClose, onImport, showAlert }) 
           )}
         </div>
 
-        <div className="modal-footer">
+        <div className="modal-footer" style={{ padding: '0.85rem 1.25rem', borderTop: '1px solid #dee2e6', background: '#f4f6f9', display: 'flex', justifyContent: 'flex-end', gap: '0.65rem' }}>
           <button type="button" className="btn btn-secondary" onClick={onClose}>Batal</button>
           <button
             type="button"
-            className="btn btn-amber"
+            className="btn btn-primary"
             disabled={parsedData.length === 0 || isProcessing}
             onClick={handleCommitImport}
+            style={{ fontWeight: 700 }}
           >
-            <Upload size={16} /> {isProcessing ? 'Proses Import...' : `Import ${parsedData.length} Resep ke Database`}
+            {isProcessing ? 'Memproses Import...' : `Import ${parsedData.length} Resep ke Database`}
           </button>
         </div>
       </div>
