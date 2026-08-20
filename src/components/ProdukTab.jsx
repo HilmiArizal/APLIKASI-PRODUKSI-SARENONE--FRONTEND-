@@ -91,11 +91,7 @@ export default function ProdukTab({
         </select>
 
         <div className="toolbar-actions">
-          {isSuperAdmin && (
-            <button className="btn btn-outline" onClick={onOpenKelolaKategori} title="Kelola Kategori Produk">
-              <Tag size={16} style={{ color: 'var(--amber)' }} /> Kategori
-            </button>
-          )}
+          {/* Kategori button removed */}
 
           {/* <button className="btn btn-outline" onClick={handleExportExcel} title="Export Data ke Excel (.csv)">
             <FileSpreadsheet size={16} style={{ color: 'var(--emerald)' }} /> Excel
