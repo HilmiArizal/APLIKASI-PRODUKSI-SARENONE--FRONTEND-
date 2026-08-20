@@ -511,8 +511,8 @@ export function ModalImportBahanExcel({ isOpen, onClose, onImport, showAlert }) 
 
   const handleDownloadTemplate = () => {
     const templateData = [
-      { 'SKU': 'BB1', 'NAMA BAHAN BAKU': 'Daging Ayam', 'KATEGORI': 'Bahan Utama', 'STOK': 50, 'STOK MINIMAL': 10, 'SATUAN': 'kg' },
-      { 'SKU': 'BB2', 'NAMA BAHAN BAKU': 'Daging Sapi', 'KATEGORI': 'Bahan Utama', 'STOK': 25, 'STOK MINIMAL': 5, 'SATUAN': 'kg' }
+      { 'SKU': 'BB1', 'NAMA BAHAN BAKU': 'Daging Ayam', 'KATEGORI': 'Bahan Utama', 'HARGA (RP)': 45000, 'STOK': 50, 'STOK MINIMAL': 10, 'SATUAN': 'kg' },
+      { 'SKU': 'BB2', 'NAMA BAHAN BAKU': 'Daging Sapi', 'KATEGORI': 'Bahan Utama', 'HARGA (RP)': 110000, 'STOK': 25, 'STOK MINIMAL': 5, 'SATUAN': 'kg' }
     ];
     const ws = XLSX.utils.json_to_sheet(templateData);
     const wb = XLSX.utils.book_new();
@@ -538,6 +538,7 @@ export function ModalImportBahanExcel({ isOpen, onClose, onImport, showAlert }) 
           const skuKey = Object.keys(row).find(k => k.toLowerCase().includes('sku') || k.toLowerCase().includes('kode')) || '';
           const namaKey = Object.keys(row).find(k => k.toLowerCase().includes('nama') || k.toLowerCase().includes('bahan')) || '';
           const katKey = Object.keys(row).find(k => k.toLowerCase().includes('kategori')) || '';
+          const hargaKey = Object.keys(row).find(k => k.toLowerCase().includes('harga') || k.toLowerCase().includes('price') || k.toLowerCase().includes('hpp')) || '';
           const stokKey = Object.keys(row).find(k => k.toLowerCase() === 'stok' || k.toLowerCase().includes('stok saat ini')) || '';
           const minKey = Object.keys(row).find(k => k.toLowerCase().includes('min') || k.toLowerCase().includes('batas')) || '';
           const satKey = Object.keys(row).find(k => k.toLowerCase().includes('satuan')) || '';
@@ -547,6 +548,7 @@ export function ModalImportBahanExcel({ isOpen, onClose, onImport, showAlert }) 
             sku: String(row[skuKey] || `BHN-${Math.floor(100 + Math.random() * 900)}`).trim(),
             nama: String(row[namaKey] || '').trim(),
             kategori: String(row[katKey] || 'Bahan Utama').trim(),
+            harga: parseFloat(row[hargaKey]) || 0,
             stok: parseFloat(row[stokKey]) || 0,
             minStok: parseFloat(row[minKey]) || 0,
             satuan: String(row[satKey] || 'kg').trim()
@@ -589,7 +591,7 @@ export function ModalImportBahanExcel({ isOpen, onClose, onImport, showAlert }) 
             <div>
               <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#1f2d3d' }}>Petunjuk Format File</div>
               <p className="text-muted" style={{ fontSize: '0.8rem', margin: 0, color: '#6c757d' }}>
-                Gunakan template spreadsheet resmi agar kolom SKU, Nama, Kategori &amp; Stok terbaca otomatis.
+                Gunakan template spreadsheet resmi agar kolom SKU, Nama, Kategori, Harga, &amp; Stok terbaca otomatis.
               </p>
             </div>
             <button className="btn btn-sm btn-emerald" onClick={handleDownloadTemplate} title="Unduh Contoh Format Excel" style={{ whiteSpace: 'nowrap' }}>
@@ -653,6 +655,7 @@ export function ModalImportBahanExcel({ isOpen, onClose, onImport, showAlert }) 
                       <th>SKU</th>
                       <th>NAMA BAHAN</th>
                       <th>KATEGORI</th>
+                      <th>HARGA (RP)</th>
                       <th>STOK</th>
                       <th>MIN STOK</th>
                       <th>SATUAN</th>
@@ -665,6 +668,7 @@ export function ModalImportBahanExcel({ isOpen, onClose, onImport, showAlert }) 
                         <td><span className="badge badge-cyan">{row.sku}</span></td>
                         <td style={{ fontWeight: 600, color: '#1f2d3d' }}>{row.nama}</td>
                         <td>{row.kategori}</td>
+                        <td style={{ fontWeight: 700, color: '#28a745' }}>Rp {formatNumber(row.harga)}</td>
                         <td style={{ fontWeight: 700, color: '#007bff' }}>{row.stok}</td>
                         <td className="text-muted">{row.minStok}</td>
                         <td>{row.satuan}</td>
