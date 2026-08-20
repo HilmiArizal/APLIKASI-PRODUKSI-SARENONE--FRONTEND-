@@ -355,12 +355,12 @@ export default function App() {
 
     const startSmartPolling = () => {
       if (syncTimer) clearInterval(syncTimer);
-      // Smart 20-second background polling (Menghemat 75% Bandwidth & Request Vercel)
+      // Super Efficient 45-second background polling (Menghemat 60% Vercel Serverless Execution & Bandwidth)
       syncTimer = setInterval(() => {
         if (!document.hidden) {
           fetchAllDataFromBackend(true);
         }
-      }, 20000);
+      }, 45000);
     };
 
     const handleVisibilityChange = () => {
