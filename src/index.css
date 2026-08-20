@@ -843,27 +843,39 @@ button:active,
   background-color: #f2f4f7;
 }
 
-/* MODAL POPUPS ADMINLTE 3 STYLING */
+/* MODAL POPUPS ADMINLTE 3 STYLING (DEAD CENTERED) */
 .modal-backdrop, .modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5) !important;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-  padding: 1rem;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: rgba(0, 0, 0, 0.55) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 999999 !important;
+  padding: 1rem !important;
+  box-sizing: border-box !important;
+  overflow-y: auto !important;
 }
 
 .modal-content, .modal-card {
   background: #ffffff !important;
   border: 1px solid #dee2e6 !important;
   border-radius: var(--radius-md) !important;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2) !important;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25) !important;
   color: #212529 !important;
   overflow: hidden;
   max-width: 680px;
   width: 95%;
+  margin: auto !important;
+  position: relative !important;
+  max-height: 90vh !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 
 .modal-header {
