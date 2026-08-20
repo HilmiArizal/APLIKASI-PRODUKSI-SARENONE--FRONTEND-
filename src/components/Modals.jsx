@@ -575,8 +575,8 @@ export function ModalImportBahanExcel({ isOpen, onClose, onImport, showAlert }) 
   };
 
   return (
-    <div className="modal-overlay" style={{ zIndex: 999999 }}>
-      <div className="modal-card" style={{ maxWidth: '750px', width: '95%', margin: 'auto', background: '#ffffff', borderRadius: '8px', border: '1px solid #dee2e6', boxShadow: '0 15px 35px rgba(0,0,0,0.25)' }}>
+    <div className="modal-overlay">
+      <div className="modal-card" style={{ maxWidth: '720px' }}>
         <div className="modal-header" style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #dee2e6', background: '#ffffff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: '#1f2d3d', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <FileSpreadsheet size={22} style={{ color: '#28a745' }} /> Import Bahan Baku dari Excel / CSV
@@ -780,8 +780,8 @@ export function ModalImportResepExcel({ isOpen, onClose, onImport, showAlert }) 
   };
 
   return (
-    <div className="modal-overlay" style={{ zIndex: 999999 }}>
-      <div className="modal-card" style={{ maxWidth: '780px', width: '95%', margin: 'auto', background: '#ffffff', borderRadius: '8px', border: '1px solid #dee2e6', boxShadow: '0 15px 35px rgba(0,0,0,0.25)' }}>
+    <div className="modal-overlay">
+      <div className="modal-card" style={{ maxWidth: '750px' }}>
         <div className="modal-header" style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #dee2e6', background: '#ffffff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: '#1f2d3d', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <FileSpreadsheet size={22} style={{ color: '#007bff' }} /> Import Formulasi Resep (BOM) dari Excel / CSV
