@@ -315,38 +315,38 @@ export default function DashboardTab({
           </div>
         </div>
       )}
-      {/* HERO WELCOME BANNER (PERSIS TEMA MOCKUP BOOKING TOUR) */}
+      {/* HERO WELCOME BANNER (ADMINLTE 3 EXECUTIVE THEME) */}
       <div style={{
-        background: 'linear-gradient(135deg, #7dd3fc 0%, #38bdf8 50%, #0284c7 100%)',
-        borderRadius: 'var(--radius-md)',
-        padding: '1.75rem 2rem',
-        marginBottom: '1.5rem',
+        background: 'linear-gradient(135deg, #007bff 0%, #0056b3 100%)',
+        borderRadius: 'var(--radius-sm)',
+        padding: '1.5rem 1.8rem',
+        marginBottom: '1.25rem',
         color: '#ffffff',
         display: 'flex',
         justify: 'space-between',
         alignItems: 'center',
-        boxShadow: '0 10px 30px rgba(56, 189, 248, 0.25)',
+        boxShadow: '0 4px 14px rgba(0, 123, 255, 0.3)',
         position: 'relative',
         overflow: 'hidden'
       }}>
         <div>
-          <h2 style={{ fontSize: '1.6rem', fontWeight: 900, marginBottom: '0.4rem', color: '#ffffff' }}>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '0.35rem', color: '#ffffff' }}>
             Hai, Saren One Team 👋
           </h2>
-          <p style={{ fontSize: '0.92rem', opacity: 0.95, margin: 0, fontWeight: 500 }}>
-            Selamat datang kembali, dasbor manajemen persediaan stok &amp; produksi sudah siap!
+          <p style={{ fontSize: '0.9rem', opacity: 0.95, margin: 0, fontWeight: 500 }}>
+            Selamat datang kembali! Dasbor manajemen persediaan stok bahan baku &amp; produksi olahan siap digunakan.
           </p>
         </div>
         <button
           className="btn"
           onClick={onOpenModalProduksi}
           style={{
-            background: '#facc15',
-            color: '#1e293b',
+            background: '#ffc107',
+            color: '#1f2d3d',
             fontWeight: 800,
             fontSize: '0.9rem',
-            padding: '0.75rem 1.4rem',
-            boxShadow: '0 4px 14px rgba(250, 204, 21, 0.4)',
+            padding: '0.65rem 1.3rem',
+            boxShadow: '0 4px 12px rgba(255, 193, 7, 0.4)',
             border: 'none'
           }}
         >
@@ -364,7 +364,7 @@ export default function DashboardTab({
           <div className="stat-icon icon-cyan"><Factory size={24} /></div>
           <div className="stat-details">
             <span className="stat-title">Eksekusi Batch Produksi</span>
-            <h3 className="stat-value" style={{ fontSize: '1.2rem', color: 'var(--cyan)' }}>+ Batch Produksi</h3>
+            <h3 className="stat-value" style={{ fontSize: '1.2rem', color: '#17a2b8' }}>+ Batch Produksi</h3>
             <span className="stat-desc text-cyan" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
               Otomatis Potong Stok Bahan <ArrowRight size={12} />
             </span>
@@ -380,7 +380,7 @@ export default function DashboardTab({
           <div className="stat-icon icon-amber"><AlertCircle size={24} /></div>
           <div className="stat-details">
             <span className="stat-title">Bahan Baku Menipis</span>
-            <h3 className="stat-value">{lowStockList.length} Items</h3>
+            <h3 className="stat-value" style={{ color: '#d39e00' }}>{lowStockList.length} Items</h3>
             <span className="stat-desc text-amber" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
               Membutuhkan Restock <ArrowRight size={12} />
             </span>
@@ -393,12 +393,12 @@ export default function DashboardTab({
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
               <div>
                 <span className="stat-title">Produksi Hari Ini ({todayStr})</span>
-                <h3 className="stat-value">{todayProduksiCount} Batch</h3>
+                <h3 className="stat-value" style={{ color: '#6610f2' }}>{todayProduksiCount} Batch</h3>
                 <span className="stat-desc text-indigo">Sesi Produksi Batch Hari Ini</span>
               </div>
               <button
                 className="btn btn-sm btn-outline"
-                style={{ fontSize: '0.78rem', padding: '0.4rem 0.75rem', borderColor: 'rgba(99, 102, 241, 0.5)', color: '#818cf8', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                style={{ fontSize: '0.78rem', padding: '0.35rem 0.65rem', borderColor: '#6610f2', color: '#6610f2', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
                 onClick={() => setIsModalRekapOpen(true)}
                 title="Lihat rekapitulasi total produksi per tanggal secara detail"
               >
@@ -410,30 +410,30 @@ export default function DashboardTab({
       </div>
 
       {/* ===== GRAFIK STOK VS PEMAKAIAN BAHAN BAKU PER HARI SECTION ===== */}
-      <div className="card" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1.5rem', marginTop: '1.5rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+      <div className="card" style={{ background: '#ffffff', border: '1px solid #dee2e6', borderRadius: 'var(--radius-sm)', padding: '1.25rem', marginTop: '1.25rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.15rem', flexWrap: 'wrap', gap: '0.75rem' }}>
           <div>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
-              <Activity size={20} style={{ color: 'var(--cyan)' }} /> Grafik Stok vs Pemakaian Bahan Baku (Bulan Berjalan: {dailyStockUsageChartData.currentMonthName})
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#1f2d3d', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
+              <Activity size={20} style={{ color: '#17a2b8' }} /> Grafik Stok vs Pemakaian Bahan Baku (Bulan Berjalan: {dailyStockUsageChartData.currentMonthName})
             </h3>
-            <p className="text-muted" style={{ fontSize: '0.8rem', marginTop: '0.2rem', margin: 0 }}>
-              Perbandingan total persediaan stok bahan baku gudang dengan tingkat pemakaian olahan dapur per hari di bulan berjalan.
+            <p className="text-muted" style={{ fontSize: '0.82rem', marginTop: '0.2rem', margin: 0 }}>
+              Perbandingan persediaan stok gudang dengan pemakaian dapur per hari di bulan berjalan.
             </p>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#38bdf8', fontWeight: 700 }}>
-              <span style={{ width: 12, height: 12, background: 'var(--cyan)', borderRadius: '3px', display: 'inline-block' }}></span> Total Stok Bahan Baku
+            <span style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#007bff', fontWeight: 700 }}>
+              <span style={{ width: 12, height: 12, background: '#007bff', borderRadius: '3px', display: 'inline-block' }}></span> Total Stok Bahan Baku
             </span>
-            <span style={{ fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#f43f5e', fontWeight: 700 }}>
-              <span style={{ width: 12, height: 12, background: 'var(--rose)', borderRadius: '3px', display: 'inline-block' }}></span> Pemakaian Dapur / Hari
+            <span style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#dc3545', fontWeight: 700 }}>
+              <span style={{ width: 12, height: 12, background: '#dc3545', borderRadius: '3px', display: 'inline-block' }}></span> Pemakaian Dapur / Hari
             </span>
           </div>
         </div>
 
-        {/* DUAL BAR CHART GRAPH (FULL MONTHLY CALENDAR SCROLLABLE) */}
-        <div style={{ background: 'rgba(15, 23, 42, 0.65)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1.5rem 1rem 1rem 1rem', overflowX: 'auto' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', height: '220px', minWidth: '950px', gap: '0.35rem', paddingBottom: '0.75rem', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+        {/* DUAL BAR CHART GRAPH (CLEAN ADMINLTE LIGHT CONTAINER) */}
+        <div style={{ background: '#ffffff', border: '1px solid #dee2e6', borderRadius: 'var(--radius-sm)', padding: '1.25rem 1rem 1rem 1rem', overflowX: 'auto' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', height: '220px', minWidth: '950px', gap: '0.35rem', paddingBottom: '0.75rem', borderBottom: '1px solid #dee2e6' }}>
             {dailyStockUsageChartData.chartData.map(item => {
               const stockHeight = item.stockQty > 0 ? Math.max(15, Math.round((item.stockQty / dailyStockUsageChartData.maxVal) * 100)) : 8;
               const usageHeight = item.usageQty > 0 ? Math.max(15, Math.round((item.usageQty / (dailyStockUsageChartData.maxVal / 2)) * 100)) : 8;
@@ -448,9 +448,9 @@ export default function DashboardTab({
                         width: '45%',
                         maxWidth: '14px',
                         height: `${stockHeight}%`,
-                        background: 'linear-gradient(180deg, #38bdf8 0%, #0284c7 100%)',
+                        background: 'linear-gradient(180deg, #007bff 0%, #0056b3 100%)',
                         borderRadius: '3px 3px 0 0',
-                        boxShadow: item.isToday ? '0 0 10px rgba(56, 189, 248, 0.5)' : 'none',
+                        boxShadow: item.isToday ? '0 0 8px rgba(0, 123, 255, 0.4)' : 'none',
                         transition: 'all 0.3s ease',
                         cursor: 'pointer'
                       }}
@@ -462,9 +462,9 @@ export default function DashboardTab({
                         width: '45%',
                         maxWidth: '14px',
                         height: `${usageHeight}%`,
-                        background: item.usageQty > 0 ? 'linear-gradient(180deg, #f43f5e 0%, #be123c 100%)' : 'rgba(148, 163, 184, 0.2)',
+                        background: item.usageQty > 0 ? 'linear-gradient(180deg, #dc3545 0%, #a71d2a 100%)' : '#e9ecef',
                         borderRadius: '3px 3px 0 0',
-                        boxShadow: item.usageQty > 0 ? '0 0 10px rgba(244, 63, 94, 0.5)' : 'none',
+                        boxShadow: item.usageQty > 0 ? '0 0 8px rgba(220, 53, 69, 0.4)' : 'none',
                         transition: 'all 0.3s ease',
                         cursor: 'pointer'
                       }}
@@ -478,16 +478,16 @@ export default function DashboardTab({
                       style={{
                         fontSize: item.isToday ? '0.75rem' : '0.68rem',
                         fontWeight: item.isToday ? 900 : 700,
-                        color: item.isToday ? '#0f172a' : (item.usageQty > 0 ? '#f8fafc' : 'var(--text-muted)'),
+                        color: item.isToday ? '#ffffff' : (item.usageQty > 0 ? '#721c24' : '#495057'),
                         background: item.isToday
-                          ? 'linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)'
-                          : (item.usageQty > 0 ? 'rgba(244, 63, 94, 0.25)' : 'rgba(30, 41, 59, 0.6)'),
+                          ? '#007bff'
+                          : (item.usageQty > 0 ? '#f8d7da' : '#f8f9fa'),
                         border: item.isToday
-                          ? '1px solid #38bdf8'
-                          : (item.usageQty > 0 ? '1px solid rgba(244, 63, 94, 0.45)' : '1px solid rgba(255,255,255,0.08)'),
+                          ? '1px solid #0056b3'
+                          : (item.usageQty > 0 ? '1px solid #f5c6cb' : '1px solid #dee2e6'),
                         padding: item.isToday ? '0.12rem 0.45rem' : '0.08rem 0.32rem',
-                        borderRadius: '6px',
-                        boxShadow: item.isToday ? '0 0 10px rgba(56, 189, 248, 0.6)' : 'none',
+                        borderRadius: '4px',
+                        boxShadow: item.isToday ? '0 2px 6px rgba(0, 123, 255, 0.4)' : 'none',
                         transition: 'all 0.2s ease',
                         cursor: 'pointer',
                         lineHeight: 1
