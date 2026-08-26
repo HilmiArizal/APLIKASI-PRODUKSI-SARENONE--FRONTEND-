@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Package, MinusCircle, CheckCircle, Search, Calendar, History, Clock, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
-import { formatNumber } from '../data/initialData';
+import { formatNumber, STOCK_AWAL_JULI, getBahanSatuan } from '../data/initialData';
 import { ModalPemakaianKemasan } from './Modals';
 
 export default function PemakaianKemasanTab({
@@ -94,6 +94,44 @@ export default function PemakaianKemasanTab({
     return totalUsed;
   };
 
+  // Calculate real-time continuous stock for packaging material b (Starting Stock - Usage)
+  const getPackagingRealStock = (b) => {
+    if (!b) return 0;
+    const bSku = String(b.sku || b.kode || '').trim().toUpperCase();
+
+    // 1. Initial / Starting Stock
+    let currentStock = 0;
+    const localStokAwal = localStorage.getItem('STOK_AWAL_' + bSku);
+    if (b.stokAwal !== undefined && b.stokAwal !== null && !isNaN(Number(b.stokAwal))) {
+      currentStock = Number(b.stokAwal);
+    } else if (localStokAwal !== null && !isNaN(Number(localStokAwal))) {
+      currentStock = Number(localStokAwal);
+    } else if (STOCK_AWAL_JULI[bSku] !== undefined) {
+      currentStock = Number(STOCK_AWAL_JULI[bSku]);
+    } else {
+      currentStock = Number(b.stok) || 0;
+    }
+
+    // 2. Subtract total usage from auditLog
+    const bName = (b.nama || '').trim().toLowerCase();
+    let totalUsed = 0;
+    (auditLog || []).forEach(log => {
+      const aksi = (log.aksi || '').toLowerCase();
+      const detail = (log.detail || '').toLowerCase();
+      if (aksi.includes('kemasan') || detail.includes('pemakaian')) {
+        const mainPhrase = detail.split('keterangan:')[0] || detail;
+        if (mainPhrase.includes(bName) || (bSku && mainPhrase.toLowerCase().includes(bSku.toLowerCase()))) {
+          const match = detail.match(/Pemakaian\s+([0-9.]+)/i);
+          if (match && match[1]) {
+            totalUsed += parseFloat(match[1]) || 0;
+          }
+        }
+      }
+    });
+
+    return Math.max(0, Math.round((currentStock - totalUsed) * 1000) / 1000);
+  };
+
   // Calculate total Vacumbag used on target date (or today)
   const targetDateForVacum = selectedDateFilter || todayStr;
   const vacumbagItems = bahanBaku.filter(b => (b.nama || '').toLowerCase().includes('vacum'));
@@ -161,14 +199,15 @@ export default function PemakaianKemasanTab({
         }}
       >
         {displayMaterials.map(b => {
-          const isStokThin = b.stok <= b.minStok && b.stok > 0;
-          const isStokEmpty = b.stok === 0;
+          const realStok = getPackagingRealStock(b);
+          const bSatuan = getBahanSatuan(b);
+          const isStokThin = realStok <= b.minStok && realStok > 0;
+          const isStokEmpty = realStok === 0;
 
           // Compute usage metrics for selected date (For Sticker Barcode & Sticker Produk, match total Vacumbag used today)
           const nameLower = (b.nama || '').toLowerCase();
           const isSticker = nameLower.includes('sticker') || nameLower.includes('stiker') || nameLower.includes('barcode');
           const dateUsedQty = isSticker ? totalVacumbagUsedToday : getItemDateUsage(b, selectedDateFilter);
-          const todayUsedQty = getItemDateUsage(b, todayStr);
 
           return (
             <div
@@ -198,13 +237,13 @@ export default function PemakaianKemasanTab({
               <div style={{ marginTop: '1rem' }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem' }}>
                   <span style={{ fontSize: '1.8rem', fontWeight: 800, color: isStokEmpty ? 'var(--rose)' : isStokThin ? 'var(--amber)' : 'var(--emerald)' }}>
-                    {formatNumber(b.stok)}
+                    {formatNumber(realStok)}
                   </span>
-                  <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{b.satuan} (Sisa)</span>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{bSatuan} (Sisa)</span>
                 </div>
 
                 <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.3rem', color: dateUsedQty > 0 ? 'var(--rose)' : 'var(--text-muted)' }}>
-                  🔻 Terpakai ({selectedDateFilter === todayStr ? 'Hari Ini' : (selectedDateFilter || 'Semua')}): <strong>{formatNumber(dateUsedQty)} {b.satuan}</strong>
+                  🔻 Terpakai ({selectedDateFilter === todayStr ? 'Hari Ini' : (selectedDateFilter || 'Semua')}): <strong>{formatNumber(dateUsedQty)} {bSatuan}</strong>
                 </div>
               </div>
             </div>
@@ -269,8 +308,10 @@ export default function PemakaianKemasanTab({
               </tr>
             ) : (
               displayMaterials.map(b => {
-                const isThin = b.stok <= b.minStok && b.stok > 0;
-                const isEmpty = b.stok === 0;
+                const realStok = getPackagingRealStock(b);
+                const bSatuan = getBahanSatuan(b);
+                const isThin = realStok <= b.minStok && realStok > 0;
+                const isEmpty = realStok === 0;
 
                 return (
                   <tr key={b.id || b._id || b.sku}>
@@ -278,9 +319,9 @@ export default function PemakaianKemasanTab({
                     <td style={{ fontWeight: 600 }}>{b.nama}</td>
                     <td><span className="badge badge-amber">{b.kategori || 'Bahan Kemasan'}</span></td>
                     <td style={{ fontWeight: 700, fontSize: '1rem', color: isEmpty ? 'var(--rose)' : isThin ? 'var(--amber)' : 'var(--emerald)' }}>
-                      {formatNumber(b.stok)} {b.satuan}
+                      {formatNumber(realStok)} {bSatuan}
                     </td>
-                    <td>{formatNumber(b.minStok)} {b.satuan}</td>
+                    <td>{formatNumber(b.minStok)} {bSatuan}</td>
                     <td>
                       {isEmpty ? (
                         <span className="badge badge-danger">Habis (Restock!)</span>

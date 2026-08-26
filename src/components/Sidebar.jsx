@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   LayoutDashboard, Boxes, Package, BookOpen, ChefHat, History, UserCheck,
   LogOut, X, Layers, Tag, Users, FlaskConical, CreditCard, PackageCheck,
-  Building2, ShoppingCart, Megaphone, TrendingUp, ChevronDown, ChevronRight
+  Building2, ShoppingCart, Megaphone, TrendingUp, ChevronDown, ChevronRight, ClipboardCheck
 } from 'lucide-react';
 import logoImg from '../assets/logo.png';
 
@@ -23,8 +23,8 @@ export default function Sidebar({ activeUser, activeRoleView, activeTab, onSwitc
   const isProdukDomain = ['ADMIN_PRODUK', 'TIM_PENJUALAN', 'TIM_MARKETING'].includes(activeRoleView);
 
   // Group Active Checks
-  const isPembelianActive = ['pembelian-bahan', 'penerimaan-bahan', 'utang-supplier', 'bahan-baku'].includes(activeTab);
-  const isProduksiActive = ['emulsi', 'produk', 'resep', 'pemakaian-kemasan', 'riwayat-produksi', 'hpp-kalkulator'].includes(activeTab);
+  const isPembelianActive = ['pembelian-bahan', 'penerimaan-bahan', 'utang-supplier', 'bahan-baku', 'audit-stok'].includes(activeTab);
+  const isProduksiActive = ['emulsi', 'produk', 'resep', 'pemakaian-kemasan', 'hasil-produksi', 'riwayat-produksi', 'hpp-kalkulator'].includes(activeTab);
 
   const [openMenuPembelian, setOpenMenuPembelian] = useState(false);
   const [openMenuProduksi, setOpenMenuProduksi] = useState(false);
@@ -49,7 +49,7 @@ export default function Sidebar({ activeUser, activeRoleView, activeTab, onSwitc
 
       <aside className={`sidebar ${isMobileOpen ? 'mobile-open' : ''}`}>
         <div className="sidebar-brand">
-          <img src={logoImg} alt="SAREN ONE" className="sidebar-logo" />
+          <img src={logoImg} alt="HEAVEN SENTOSA" className="sidebar-logo" />
           <button className="mobile-close-btn" onClick={onCloseMobile}><X size={20} /></button>
         </div>
 
@@ -101,6 +101,9 @@ export default function Sidebar({ activeUser, activeRoleView, activeTab, onSwitc
                         <Boxes size={16} /><span>Stock Bahan Baku</span>
                         {lowStockCount > 0 && <span className="badge badge-amber">{lowStockCount}</span>}
                       </a>
+                      <a href="#audit-stok" className={mi('audit-stok')} onClick={e => { e.preventDefault(); nav('audit-stok'); }}>
+                        <ClipboardCheck size={16} /><span>Stok Fisik &amp; Opname</span>
+                      </a>
                     </div>
                   )}
                 </div>
@@ -133,6 +136,9 @@ export default function Sidebar({ activeUser, activeRoleView, activeTab, onSwitc
                       </a>
                       <a href="#pemakaian-kemasan" className={mi('pemakaian-kemasan')} onClick={e => { e.preventDefault(); nav('pemakaian-kemasan'); }}>
                         <Package size={16} /><span>Pemakaian Kemasan</span>
+                      </a>
+                      <a href="#hasil-produksi" className={mi('hasil-produksi')} onClick={e => { e.preventDefault(); nav('hasil-produksi'); }}>
+                        <PackageCheck size={16} /><span>Hasil Produksi</span>
                       </a>
                       <a href="#riwayat-produksi" className={mi('riwayat-produksi')} onClick={e => { e.preventDefault(); nav('riwayat-produksi'); }}>
                         <ChefHat size={16} /><span>Riwayat Produksi</span>

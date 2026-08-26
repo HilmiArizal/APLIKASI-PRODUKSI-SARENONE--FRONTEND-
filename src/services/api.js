@@ -1,5 +1,6 @@
 // SAREN ONE REST API INTEGRATION SERVICE
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://aplikasi-produksi-sarenone-backend.vercel.app/api';
+const LOCAL_API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
+const PROD_API_URL = 'https://aplikasi-produksi-sarenone-backend.vercel.app/api';
 
 async function request(endpoint, options = {}) {
   const config = {
@@ -10,23 +11,29 @@ async function request(endpoint, options = {}) {
     ...options
   };
 
+  const primaryUrl = import.meta.env.DEV ? LOCAL_API_URL : PROD_API_URL;
+
   try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
-    if (!response.ok) {
-      const errorText = await response.text();
-      try {
-        const parsed = JSON.parse(errorText);
-        return { success: false, message: parsed.message || `Gagal mengeksekusi (Status ${response.status})` };
-      } catch {
-        return { success: false, message: errorText || `Gagal mengeksekusi (Status ${response.status})` };
-      }
+    const response = await fetch(`${primaryUrl}${endpoint}`, config);
+    if (response.ok) {
+      const result = await response.json();
+      return result;
     }
-    const result = await response.json();
-    return result;
   } catch (error) {
-    console.warn(`[API Fallback] Gagal terhubung ke ${API_BASE_URL}${endpoint}:`, error.message);
-    return { success: false, isOffline: true, message: 'Server backend sedang offline.' };
+    // Jika server backend lokal belum dinyalakan/offline, otomatis fallback ke Vercel Cloud API agar data tidak kosong!
+    if (primaryUrl !== PROD_API_URL) {
+      try {
+        const prodRes = await fetch(`${PROD_API_URL}${endpoint}`, config);
+        if (prodRes.ok) {
+          const prodResult = await prodRes.json();
+          return prodResult;
+        }
+      } catch (e2) {}
+    }
+    console.warn(`[API Fallback] Gagal terhubung ke ${primaryUrl}${endpoint}:`, error.message);
   }
+
+  return { success: false, isOffline: true, message: 'Server backend sedang offline.' };
 }
 
 // 1. AUTH & USER APPROVAL ENDPOINTS
@@ -292,6 +299,13 @@ export async function processEmulsiApi(data, activeUser) {
   return request('/emulsi/process', {
     method: 'POST',
     body: JSON.stringify({ ...data, user: activeUser })
+  });
+}
+
+export async function rollbackEmulsiApi(logId, activeUser) {
+  return request('/emulsi/rollback', {
+    method: 'POST',
+    body: JSON.stringify({ logId, user: activeUser })
   });
 }
 
@@ -579,6 +593,58 @@ export async function deleteEstimasiPOApi(id, activeUser) {
     body: JSON.stringify({ user: activeUser })
   });
 }
+
+// 19. HPP PRODUKSI SAVED RECORDS
+export async function getHppListApi() {
+  return request('/hpp');
+}
+
+export async function saveHppApi(data) {
+  return request('/hpp/save', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+}
+
+export async function deleteHppApi(id) {
+  return request(`/hpp/${id}`, {
+    method: 'DELETE'
+  });
+}
+
+// 20. AUDIT STOK FISIK & PENYESUAIAN SUSUT ENDPOINTS
+export async function getAuditStokListApi(bulan = '') {
+  const query = bulan ? `?bulan=${bulan}` : '';
+  return request(`/audit-stok${query}`);
+}
+
+export async function saveAuditStokApi(data) {
+  return request('/audit-stok', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+}
+
+export async function deleteAuditStokApi(id) {
+  return request(`/audit-stok/${id}`, {
+    method: 'DELETE'
+  });
+}
+
+export async function deleteAuditStokByDateApi(tanggal) {
+  return request(`/audit-stok/tanggal/${tanggal}`, {
+    method: 'DELETE'
+  });
+}
+
+export async function deleteAuditStokBatchApi(ids) {
+  return request('/audit-stok/delete-batch', {
+    method: 'POST',
+    body: JSON.stringify({ ids })
+  });
+}
+
+
 
 
 

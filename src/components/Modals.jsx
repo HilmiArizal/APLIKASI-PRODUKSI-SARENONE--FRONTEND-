@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Save, ArrowDownLeft, Play, Plus, Edit3, Upload, Download, FileSpreadsheet, MinusCircle, Package } from 'lucide-react';
+import { X, Save, ArrowDownLeft, Play, Plus, Edit3, Upload, Download, FileSpreadsheet, MinusCircle, Package, Calendar } from 'lucide-react';
 import * as XLSX from 'xlsx';
-import { formatNumber } from '../data/initialData';
+import { formatNumber, STOCK_AWAL_JULI, HARGA_AWAL_JULI, getSkuSortIndex, getBahanSatuan, INITIAL_PRODUK_MASTER } from '../data/initialData';
 
 export function ModalBahan({ isOpen, onClose, onSave, editingItem, kategoriList = [], bahanList = [] }) {
   const [sku, setSku] = useState('');
@@ -741,6 +741,282 @@ export function ModalImportBahanExcel({ isOpen, onClose, onImport, showAlert }) 
   );
 }
 
+export function ModalImportStokAwalExcel({ isOpen, onClose, onImportStokAwal, bahanBaku = [], showAlert }) {
+  const [file, setFile] = useState(null);
+  const [parsedData, setParsedData] = useState([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const currentYearNum = new Date().getFullYear();
+  const currentMonthNum = new Date().getMonth() + 1;
+  const [selectedBulan, setSelectedBulan] = useState(String(currentMonthNum).padStart(2, '0'));
+  const [selectedTahun, setSelectedTahun] = useState(String(currentYearNum));
+
+  const bulanList = [
+    { code: '01', name: 'Januari' },
+    { code: '02', name: 'Februari' },
+    { code: '03', name: 'Maret' },
+    { code: '04', name: 'April' },
+    { code: '05', name: 'Mei' },
+    { code: '06', name: 'Juni' },
+    { code: '07', name: 'Juli' },
+    { code: '08', name: 'Agustus' },
+    { code: '09', name: 'September' },
+    { code: '10', name: 'Oktober' },
+    { code: '11', name: 'November' },
+    { code: '12', name: 'Desember' }
+  ];
+
+  const periodeKey = `${selectedTahun}-${selectedBulan}`;
+  const selectedBulanObj = bulanList.find(b => b.code === selectedBulan);
+  const periodeLabel = `${selectedBulanObj ? selectedBulanObj.name : ''} ${selectedTahun}`;
+
+  useEffect(() => {
+    if (!isOpen) {
+      setFile(null);
+      setParsedData([]);
+      setIsProcessing(false);
+    }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  const handleDownloadTemplate = () => {
+    // Generate complete 56 SKUs pre-populated spreadsheet with BLANK 'STOK AWAL BULAN' for fresh input
+    const sortedBahan = [...(bahanBaku && bahanBaku.length > 0 ? bahanBaku : [])].sort((a, b) => getSkuSortIndex(a.sku) - getSkuSortIndex(b.sku));
+
+    const templateData = sortedBahan.map((b, idx) => {
+      const bSku = b.sku || `BB${idx + 1}`;
+      const hargaAwalVal = b.hargaAwal !== undefined && b.hargaAwal !== null ? b.hargaAwal : (HARGA_AWAL_JULI[bSku] !== undefined ? HARGA_AWAL_JULI[bSku] : b.harga || 0);
+
+      return {
+        'SKU': bSku,
+        'NAMA BAHAN BAKU': b.nama || '',
+        'SATUAN': getBahanSatuan(b),
+        'STOK AWAL BULAN': '', // Kosong untuk diisi stok fisik awal periode
+        'HARGA AWAL (RP)': hargaAwalVal // Referensi harga bahan baku awal bulan
+      };
+    });
+
+    const ws = XLSX.utils.json_to_sheet(templateData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, `Stok_Awal_${selectedBulan}_${selectedTahun}`);
+    XLSX.writeFile(wb, `Template_Stok_Awal_Bulan_${selectedBulan}_${selectedTahun}_Bahan_Baku.xlsx`);
+  };
+
+  const handleFileChange = (e) => {
+    const selectedFile = e.target.files[0];
+    if (!selectedFile) return;
+    setFile(selectedFile);
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const bstr = evt.target.result;
+        const wb = XLSX.read(bstr, { type: 'binary' });
+        const wsName = wb.SheetNames[0];
+        const ws = wb.Sheets[wsName];
+        const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+        const mapped = json.map((row, index) => {
+          const skuKey = Object.keys(row).find(k => k.toLowerCase().includes('sku') || k.toLowerCase().includes('kode')) || '';
+          const namaKey = Object.keys(row).find(k => k.toLowerCase().includes('nama') || k.toLowerCase().includes('bahan')) || '';
+          const satuanKey = Object.keys(row).find(k => k.toLowerCase().includes('satuan') || k.toLowerCase().includes('unit')) || '';
+          const stokAwalKey = Object.keys(row).find(k => k.toLowerCase().includes('stok awal') || k.toLowerCase().includes('awal') || k.toLowerCase() === 'stok') || '';
+          const hargaAwalKey = Object.keys(row).find(k => k.toLowerCase().includes('harga awal') || k.toLowerCase().includes('h. awal') || k.toLowerCase().includes('harga')) || '';
+
+          const itemSku = String(row[skuKey] || '').trim().toUpperCase();
+          const itemNama = String(row[namaKey] || '').trim();
+          const itemSatuan = String(row[satuanKey] || '').trim() || getBahanSatuan({ sku: itemSku, nama: itemNama });
+
+          return {
+            id: index + 1,
+            sku: itemSku,
+            nama: itemNama,
+            satuan: itemSatuan,
+            stokAwal: parseFloat(row[stokAwalKey]) >= 0 ? parseFloat(row[stokAwalKey]) : 0,
+            hargaAwal: parseFloat(row[hargaAwalKey]) >= 0 ? parseFloat(row[hargaAwalKey]) : 0
+          };
+        }).filter(item => item.sku.length > 0 || item.nama.length > 0);
+
+        if (mapped.length === 0) {
+          if (showAlert) showAlert('File Excel kosong atau format kolom SKU / Stok Awal tidak dikenali!', 'error', 'Format File Salah');
+          setParsedData([]);
+          return;
+        }
+
+        const sortedMapped = mapped.sort((a, b) => getSkuSortIndex(a.sku) - getSkuSortIndex(b.sku));
+        setParsedData(sortedMapped);
+      } catch (err) {
+        if (showAlert) showAlert('Gagal membaca file Excel Stok Awal: ' + err.message, 'error', 'Error File');
+      }
+    };
+    reader.readAsBinaryString(selectedFile);
+  };
+
+  const handleCommitImport = async () => {
+    if (parsedData.length === 0) return;
+    setIsProcessing(true);
+    await onImportStokAwal(parsedData, periodeKey, periodeLabel);
+    setIsProcessing(false);
+    onClose();
+  };
+
+  return createPortal(
+    <div className="modal-overlay">
+      <div className="modal-card" style={{ maxWidth: '750px' }}>
+        <div className="modal-header" style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #dee2e6', background: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <span className="badge badge-emerald" style={{ fontSize: '0.72rem', padding: '0.2rem 0.5rem', marginBottom: '0.2rem' }}>
+              🛡️ KHUSUS SUPER ADMIN BAHAN BAKU
+            </span>
+            <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <FileSpreadsheet size={22} style={{ color: '#10b981' }} /> Import Stok Awal Periode: <span style={{ color: '#0284c7' }}>{periodeLabel}</span>
+            </h3>
+          </div>
+          <button className="btn btn-outline btn-sm" onClick={onClose}><X size={16} /></button>
+        </div>
+
+        <div className="modal-body" style={{ padding: '1.25rem', background: '#ffffff', color: '#212529' }}>
+          {/* PERIODE SELECTION PICKER */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', background: '#f1f5f9', padding: '0.85rem 1.1rem', borderRadius: '8px', marginBottom: '1.1rem', border: '1px solid #cbd5e1', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 800, fontSize: '0.88rem', color: '#0f172a' }}>
+              <Calendar size={18} style={{ color: '#0284c7' }} />
+              PILIH PERIODE STOK AWAL BULAN:
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <select
+                className="select-input"
+                style={{ width: '130px', padding: '0.35rem 0.65rem', fontSize: '0.85rem', fontWeight: 700 }}
+                value={selectedBulan}
+                onChange={(e) => setSelectedBulan(e.target.value)}
+              >
+                {bulanList.map(b => (
+                  <option key={b.code} value={b.code}>{b.name}</option>
+                ))}
+              </select>
+
+              <select
+                className="select-input"
+                style={{ width: '90px', padding: '0.35rem 0.65rem', fontSize: '0.85rem', fontWeight: 700 }}
+                value={selectedTahun}
+                onChange={(e) => setSelectedTahun(e.target.value)}
+              >
+                <option value="2026">2026</option>
+                <option value="2027">2027</option>
+                <option value="2025">2025</option>
+              </select>
+
+              <span className="badge badge-cyan" style={{ fontSize: '0.78rem', fontWeight: 700 }}>
+                Posisi: 01/{selectedBulan}/{selectedTahun}
+              </span>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.1rem', flexWrap: 'wrap', gap: '0.75rem', background: '#ecfdf5', padding: '0.85rem 1rem', borderRadius: '8px', border: '1px solid #a7f3d0' }}>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#065f46' }}>Petunjuk Format File Stok Awal Bulan</div>
+              <p style={{ fontSize: '0.8rem', margin: 0, color: '#047857' }}>
+                Unduh template resmi 56 SKU. Isi kolom <strong>STOK AWAL BULAN</strong> &amp; <strong>HARGA AWAL</strong> untuk menetapkan saldo persediaan awal periode <strong>{periodeLabel}</strong>.
+              </p>
+            </div>
+            <button className="btn btn-sm btn-emerald" onClick={handleDownloadTemplate} title="Unduh Contoh Format Excel Stok Awal" style={{ whiteSpace: 'nowrap' }}>
+              <Download size={14} /> Unduh Template 56 SKU
+            </button>
+          </div>
+
+          <div style={{
+            border: file ? '2px solid #10b981' : '2px dashed #0284c7',
+            background: file ? '#f0fdf4' : '#f8fafc',
+            borderRadius: '8px',
+            padding: '1.5rem 1rem',
+            textAlign: 'center',
+            cursor: 'pointer',
+            position: 'relative',
+            marginBottom: '1rem'
+          }}>
+            <input
+              type="file"
+              accept=".xlsx, .xls, .csv"
+              onChange={handleFileChange}
+              style={{
+                position: 'absolute',
+                inset: 0,
+                width: '100%',
+                height: '100%',
+                opacity: 0,
+                cursor: 'pointer'
+              }}
+            />
+            <Upload size={32} style={{ color: file ? '#10b981' : '#0284c7', marginBottom: '0.5rem' }} />
+            {file ? (
+              <div>
+                <div style={{ fontWeight: 700, color: '#065f46', fontSize: '0.95rem' }}>✓ {file.name}</div>
+                <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '0.2rem' }}>
+                  ({(file.size / 1024).toFixed(1)} KB) • <strong>{parsedData.length} baris Stok Awal SKU</strong> berhasil terbaca!
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.95rem' }}>Klik atau Seret File Excel (.xlsx / .csv) Ke Sini</div>
+                <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '0.2rem' }}>
+                  Mendukung file spreadsheet Microsoft Excel &amp; CSV format 56 SKU
+                </div>
+              </div>
+            )}
+          </div>
+
+          {parsedData.length > 0 && (
+            <div className="mt-3">
+              <h4 style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: '#10b981', fontWeight: 700 }}>
+                ✓ Pratinjau Update Stok Awal ({parsedData.length} SKU Ditemukan):
+              </h4>
+              <div className="table-container" style={{ maxHeight: '220px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '6px' }}>
+                <table className="custom-table">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>SKU</th>
+                      <th>NAMA BAHAN</th>
+                      <th>STOK AWAL BULAN BARU</th>
+                      <th>HARGA AWAL BARU</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {parsedData.map((row, idx) => (
+                      <tr key={idx}>
+                        <td>{idx + 1}</td>
+                        <td><span className="badge badge-cyan">{row.sku}</span></td>
+                        <td style={{ fontWeight: 600, color: '#0f172a' }}>{row.nama || '-'}</td>
+                        <td style={{ fontWeight: 800, color: '#0284c7' }}>{formatNumber(row.stokAwal)}</td>
+                        <td style={{ fontWeight: 700, color: '#166534' }}>Rp {formatNumber(row.hargaAwal)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="modal-footer" style={{ padding: '0.85rem 1.25rem', borderTop: '1px solid #dee2e6', background: '#f8fafc', display: 'flex', justifyContent: 'flex-end', gap: '0.65rem' }}>
+          <button type="button" className="btn btn-secondary" onClick={onClose}>Batal</button>
+          <button
+            type="button"
+            className="btn btn-emerald"
+            disabled={parsedData.length === 0 || isProcessing}
+            onClick={handleCommitImport}
+            style={{ fontWeight: 700 }}
+          >
+            {isProcessing ? 'Memproses Import Stok Awal...' : `Terapkan ${parsedData.length} Stok Awal Bulan`}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 export function ModalImportResepExcel({ isOpen, onClose, onImport, showAlert }) {
   const [file, setFile] = useState(null);
   const [parsedData, setParsedData] = useState([]);
@@ -941,7 +1217,7 @@ export function ModalImportResepExcel({ isOpen, onClose, onImport, showAlert }) 
   );
 }
 
-export function ModalPengolahanEmulsi({ isOpen, onClose, onProcess, bahanList = [], showAlert }) {
+export function ModalPengolahanEmulsi({ isOpen, onClose, onProcess, bahanList = [], defaultTanggal, showAlert }) {
   const [jenisEmulsi, setJenisEmulsi] = useState('ISP');
   const [jumlahBatch, setJumlahBatch] = useState(1);
   const [tanggal, setTanggal] = useState('');
@@ -950,10 +1226,15 @@ export function ModalPengolahanEmulsi({ isOpen, onClose, onProcess, bahanList = 
   useEffect(() => {
     if (isOpen) {
       setJumlahBatch(1);
-      setTanggal(new Date().toISOString().split('T')[0]);
+      const fallbackDate = new Date().toISOString().split('T')[0];
+      let initialDate = defaultTanggal || fallbackDate;
+      if (initialDate && initialDate.length === 7) {
+        initialDate = `${initialDate}-01`;
+      }
+      setTanggal(initialDate);
       setIsSubmitting(false);
     }
-  }, [isOpen]);
+  }, [isOpen, defaultTanggal]);
 
   if (!isOpen) return null;
 
@@ -963,9 +1244,9 @@ export function ModalPengolahanEmulsi({ isOpen, onClose, onProcess, bahanList = 
   // Calculations per factory batch spec
   const marksoyQty = isTvp ? 0 : 2 * bNum;
   const tvpQty = isTvp ? 1 * bNum : 0;
-  const waterQty = (isTvp ? 3 : 4) * bNum;
+  const waterQty = isTvp ? 0 : 4 * bNum; // Emulsi TVP menggunakan Air Biasa (tanpa potong stok Air Es Batu)
   const oilPouchQty = isTvp ? 0 : 4 * bNum;
-  const totalYield = (isTvp ? 3.5 : 20) * bNum;
+  const totalYield = (isTvp ? 4 : 20) * bNum;
 
   // Real-time Stock Lookup in bahanList (Strictly EXCLUDING Emulsi items!)
   const mainBahan = bahanList.find(b => {
@@ -978,11 +1259,11 @@ export function ModalPengolahanEmulsi({ isOpen, onClose, onProcess, bahanList = 
     }
   });
 
-  const waterBahan = bahanList.find(b => {
+  const waterBahan = !isTvp ? bahanList.find(b => {
     const name = (b.nama || '').toLowerCase();
     const sku = (b.sku || '').toLowerCase();
     return !name.includes('emulsi') && (name.includes('air') || name.includes('es') || sku.includes('air'));
-  });
+  }) : null;
 
   const oilBahan = !isTvp ? bahanList.find(b => {
     const name = (b.nama || '').toLowerCase();
@@ -995,7 +1276,7 @@ export function ModalPengolahanEmulsi({ isOpen, onClose, onProcess, bahanList = 
   const oilBahanStok = oilBahan ? oilBahan.stok : 0;
 
   const isMainEnough = isTvp ? (mainBahanStok >= tvpQty) : (mainBahanStok >= marksoyQty);
-  const isWaterEnough = waterBahanStok >= waterQty;
+  const isWaterEnough = isTvp ? true : (waterBahanStok >= waterQty);
   const isOilEnough = isTvp ? true : (oilBahanStok >= oilPouchQty);
 
   const isAnyInsufficient = !isMainEnough || !isWaterEnough || !isOilEnough;
@@ -1115,18 +1396,7 @@ export function ModalPengolahanEmulsi({ isOpen, onClose, onProcess, bahanList = 
                       </span>
                     </li>
 
-                    <li style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span>🔻 Pemotongan Air Es Batu: <strong>{waterQty} kg</strong></span>
-                      <span style={{ fontSize: '0.8rem' }}>
-                        (Stok Tersedia: <strong>{waterBahanStok} {waterBahan?.satuan || 'kg'}</strong>){' '}
-                        {isWaterEnough ? (
-                          <span style={{ color: 'var(--emerald)', fontWeight: 700 }}>✓ Cukup</span>
-                        ) : (
-                          <span style={{ color: 'var(--rose)', fontWeight: 700 }}>✗ Stok Kurang!</span>
-                        )}
-                      </span>
-                    </li>
-
+                    <li className="text-muted">🔹 Pemakaian Air: <strong>{3 * bNum} kg Air Biasa (Tanpa Potong Stok Air Es)</strong></li>
                     <li className="text-muted">🔹 Minyak Goreng: <strong>0 (Tanpa Minyak)</strong></li>
                   </>
                 )}
@@ -1312,7 +1582,7 @@ export function ModalPemakaianKemasan({ isOpen, onClose, onUseKemasan, bahanList
 // ----------------------------------------------------
 // MODAL TAMBAH UTANG / FAKTUR SUPPLIER BARU
 // ----------------------------------------------------
-export function ModalTambahUtangSupplier({ isOpen, onClose, bahanList = [], suppliersList = [], onSubmit, onOpenKelolaSupplier, showAlert }) {
+export function ModalTambahUtangSupplier({ isOpen, onClose, bahanList = [], suppliersList = [], utangList = [], onSubmit, onOpenKelolaSupplier, showAlert }) {
   const [noFaktur, setNoFaktur] = useState('');
   const [supplier, setSupplier] = useState('');
   const [bahanId, setBahanId] = useState('');
@@ -1323,6 +1593,12 @@ export function ModalTambahUtangSupplier({ isOpen, onClose, bahanList = [], supp
   const [jatuhTempo, setJatuhTempo] = useState('');
   const [catatan, setCatatan] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const isDuplicateNoFaktur = React.useMemo(() => {
+    if (!noFaktur || !noFaktur.trim()) return false;
+    const clean = noFaktur.trim().toLowerCase();
+    return (utangList || []).some(x => String(x.noFaktur || '').trim().toLowerCase() === clean);
+  }, [noFaktur, utangList]);
 
   const sortedBahanList = React.useMemo(() => {
     return [...bahanList].sort((a, b) => {
@@ -1381,7 +1657,11 @@ export function ModalTambahUtangSupplier({ isOpen, onClose, bahanList = [], supp
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!supplier || !noFaktur || parseFloat(jumlah) <= 0) {
-      if (showAlert) showAlert('Supplier, No Faktur, dan Jumlah wajib diisi (>0).', 'error', 'Validasi Gagal');
+      if (showAlert) showAlert('Supplier, No Faktur / No PO, dan Jumlah wajib diisi (>0).', 'error', 'Validasi Gagal');
+      return;
+    }
+    if (isDuplicateNoFaktur) {
+      if (showAlert) showAlert(`Nomor Faktur / No PO "${noFaktur}" sudah pernah digunakan! Gunakan No PO unik yang berbeda.`, 'error', 'No PO Duplikat!');
       return;
     }
 
@@ -1415,15 +1695,25 @@ export function ModalTambahUtangSupplier({ isOpen, onClose, bahanList = [], supp
           <div className="modal-body">
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
               <div className="form-group">
-                <label>Nomor Faktur / Invoice *</label>
+                <label>Nomor Faktur / No PO / Invoice *</label>
                 <input
                   type="text"
                   className="form-control"
-                  placeholder="Masukkan No Faktur / Invoice"
+                  style={{
+                    borderColor: isDuplicateNoFaktur ? '#f43f5e' : undefined,
+                    background: isDuplicateNoFaktur ? '#fff1f2' : undefined,
+                    color: isDuplicateNoFaktur ? '#be123c' : undefined
+                  }}
+                  placeholder="Masukkan No Faktur / No PO"
                   value={noFaktur}
                   onChange={e => setNoFaktur(e.target.value)}
                   required
                 />
+                {isDuplicateNoFaktur && (
+                  <div style={{ color: '#e11d48', fontSize: '0.74rem', fontWeight: 800, marginTop: '0.25rem' }}>
+                    ⚠️ Nomor Faktur/PO "{noFaktur}" sudah terdaftar! Harap pakai No PO unik.
+                  </div>
+                )}
               </div>
               <div className="form-group">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
@@ -2080,6 +2370,422 @@ export function ModalKelolaSupplier({ isOpen, onClose, suppliersList = [], onCre
         </div>
         <div className="modal-footer">
           <button type="button" className="btn btn-secondary" onClick={onClose}>Selesai &amp; Tutup</button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+export function ModalCatatHasilProduksi({ isOpen, onClose, onSave, produkList = [], showAlert }) {
+  const todayStr = new Date().toISOString().substring(0, 10);
+  const [tanggal, setTanggal] = useState(todayStr);
+  const [selectedProdukId, setSelectedProdukId] = useState('');
+  const [jumlahPcs, setJumlahPcs] = useState('');
+  const [catatan, setCatatan] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const allProducts = INITIAL_PRODUK_MASTER;
+
+  useEffect(() => {
+    if (isOpen) {
+      setTanggal(todayStr);
+      setSelectedProdukId(allProducts[0] ? (allProducts[0].id || allProducts[0].kode || allProducts[0].sku) : '');
+      setJumlahPcs('');
+      setCatatan('Hasil Produksi Harian');
+      setIsSubmitting(false);
+    }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!selectedProdukId || !jumlahPcs || parseFloat(jumlahPcs) <= 0) {
+      if (showAlert) showAlert('Pilih produk dan isi jumlah hasil produksi (> 0).', 'error', 'Form Tidak Lengkap');
+      return;
+    }
+
+    const prod = allProducts.find(p => (p.id || p.kode || p.sku) === selectedProdukId) || allProducts[0];
+    const newPayload = {
+      id: 'YIELD-' + Date.now() + Math.floor(Math.random() * 1000),
+      tanggal: tanggal || todayStr,
+      produkId: prod.id || prod.kode || prod.sku,
+      kode: prod.kode || prod.sku || 'P1',
+      alias: prod.alias || prod.sku || prod.kode || 'RCS 250',
+      produkNama: prod.nama || 'Red Cocktail Sausage 250g',
+      brand: prod.brand || 'SAREN ONE',
+      jumlahPcs: parseFloat(jumlahPcs),
+      satuan: prod.satuan || 'pack',
+      harga: prod.harga || 0,
+      catatan: catatan || 'Catatan Manual Dapur',
+      timestamp: `${tanggal || todayStr} ${new Date().toTimeString().substring(0, 5)}`
+    };
+
+    setIsSubmitting(true);
+    await onSave(newPayload);
+    setIsSubmitting(false);
+    onClose();
+  };
+
+  return createPortal(
+    <div className="modal-overlay">
+      <div className="modal-card" style={{ maxWidth: '560px' }}>
+        <div className="modal-header" style={{ background: '#f8fafc', borderBottom: '1px solid #cbd5e1', padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <span className="badge badge-emerald" style={{ fontSize: '0.72rem', padding: '0.2rem 0.5rem', marginBottom: '0.2rem' }}>
+              📦 OUTPUT PRODUK JADI
+            </span>
+            <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Package size={20} style={{ color: '#0284c7' }} /> Catat Hasil Produksi Harian
+            </h3>
+          </div>
+          <button className="btn btn-outline btn-sm" onClick={onClose}><X size={16} /></button>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div className="modal-body" style={{ padding: '1.25rem', background: '#ffffff', color: '#212529', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div>
+              <label style={{ display: 'block', fontWeight: 700, fontSize: '0.84rem', color: '#334155', marginBottom: '0.35rem' }}>
+                📅 Tanggal Produksi:
+              </label>
+              <input
+                type="date"
+                className="form-control"
+                style={{ width: '100%', padding: '0.5rem 0.75rem', fontWeight: 700 }}
+                value={tanggal}
+                onChange={(e) => setTanggal(e.target.value)}
+                required
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontWeight: 700, fontSize: '0.84rem', color: '#334155', marginBottom: '0.35rem' }}>
+                📦 Pilih Nama Item Produk Olahan Jadi:
+              </label>
+              <select
+                className="select-input"
+                style={{ width: '100%', padding: '0.6rem 0.75rem', fontWeight: 700, fontSize: '0.88rem' }}
+                value={selectedProdukId}
+                onChange={(e) => setSelectedProdukId(e.target.value)}
+                required
+              >
+                {allProducts.map((p) => {
+                  const key = p.id || p.kode || p.sku;
+                  return (
+                    <option key={key} value={key}>
+                      {p.nama} ({p.alias || p.sku || p.kode} - {p.brand || 'SAREN ONE'})
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontWeight: 700, fontSize: '0.84rem', color: '#334155', marginBottom: '0.35rem' }}>
+                🔢 Jumlah Hasil Produksi (Pack/Pcs):
+              </label>
+              <input
+                type="number"
+                step="any"
+                min="0.1"
+                className="form-control"
+                placeholder="Contoh: 150"
+                style={{ width: '100%', padding: '0.55rem 0.75rem', fontWeight: 800, fontSize: '0.95rem', color: '#059669' }}
+                value={jumlahPcs}
+                onChange={(e) => setJumlahPcs(e.target.value)}
+                required
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontWeight: 700, fontSize: '0.84rem', color: '#334155', marginBottom: '0.35rem' }}>
+                📝 Catatan / Shift Produksi (Opsional):
+              </label>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Contoh: Shift 1 - Batch Dapur 3"
+                style={{ width: '100%', padding: '0.5rem 0.75rem' }}
+                value={catatan}
+                onChange={(e) => setCatatan(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="modal-footer" style={{ padding: '0.85rem 1.25rem', background: '#f8fafc', borderTop: '1px solid #cbd5e1', display: 'flex', justifyContent: 'flex-end', gap: '0.65rem' }}>
+            <button type="button" className="btn btn-secondary" onClick={onClose}>Batal</button>
+            <button type="submit" className="btn btn-emerald" disabled={isSubmitting}>
+              <Save size={15} /> {isSubmitting ? 'Simpan...' : 'Simpan Hasil Produksi'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+export function ModalImportHasilProduksiExcel({ isOpen, onClose, onImport, produkList = [], showAlert }) {
+  const [file, setFile] = useState(null);
+  const [parsedData, setParsedData] = useState([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const currentYearNum = new Date().getFullYear();
+  const currentMonthNum = new Date().getMonth() + 1;
+  const [selectedBulan, setSelectedBulan] = useState(String(currentMonthNum).padStart(2, '0'));
+  const [selectedTahun, setSelectedTahun] = useState(String(currentYearNum));
+
+  const bulanList = [
+    { code: '01', name: 'Januari' }, { code: '02', name: 'Februari' }, { code: '03', name: 'Maret' },
+    { code: '04', name: 'April' }, { code: '05', name: 'Mei' }, { code: '06', name: 'Juni' },
+    { code: '07', name: 'Juli' }, { code: '08', name: 'Agustus' }, { code: '09', name: 'September' },
+    { code: '10', name: 'Oktober' }, { code: '11', name: 'November' }, { code: '12', name: 'Desember' }
+  ];
+
+  const periodeKey = `${selectedTahun}-${selectedBulan}`;
+  const selectedBulanObj = bulanList.find(b => b.code === selectedBulan);
+  const periodeLabel = `${selectedBulanObj ? selectedBulanObj.name : ''} ${selectedTahun}`;
+
+  const allProducts = INITIAL_PRODUK_MASTER;
+
+  useEffect(() => {
+    if (!isOpen) {
+      setFile(null);
+      setParsedData([]);
+      setIsProcessing(false);
+    }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  const handleDownloadTemplate = () => {
+    const defaultDate = `${periodeKey}-01`;
+    const templateData = allProducts.map((p, idx) => ({
+      'KODE ALIAS': p.alias || p.sku || p.kode || `P${idx + 1}`,
+      'NAMA PRODUK JADI': p.nama || '',
+      'BRAND': p.brand || 'SAREN ONE',
+      'TANGGAL': defaultDate,
+      'JUMLAH HASIL PRODUKSI (PACK/PCS)': '', // Kosong untuk diisi hasil penimbangan
+      'CATATAN / SHIFT': 'Hasil Produksi Dapur'
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(templateData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, `Hasil_Produksi_${selectedBulan}_${selectedTahun}`);
+    XLSX.writeFile(wb, `Template_Hasil_Produksi_${selectedBulan}_${selectedTahun}_48_SKU.xlsx`);
+  };
+
+  const handleFileChange = (e) => {
+    const selectedFile = e.target.files[0];
+    if (!selectedFile) return;
+    setFile(selectedFile);
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const bstr = evt.target.result;
+        const wb = XLSX.read(bstr, { type: 'binary' });
+        const wsName = wb.SheetNames[0];
+        const ws = wb.Sheets[wsName];
+        const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+        const mapped = json.map((row, index) => {
+          const aliasKey = Object.keys(row).find(k => k.toLowerCase().includes('alias') || k.toLowerCase().includes('kode') || k.toLowerCase().includes('sku')) || '';
+          const namaKey = Object.keys(row).find(k => k.toLowerCase().includes('nama') || k.toLowerCase().includes('produk')) || '';
+          const qtyKey = Object.keys(row).find(k => k.toLowerCase().includes('jumlah') || k.toLowerCase().includes('hasil') || k.toLowerCase().includes('pcs') || k.toLowerCase().includes('qty')) || '';
+          const dateKey = Object.keys(row).find(k => k.toLowerCase().includes('tanggal') || k.toLowerCase().includes('date') || k.toLowerCase().includes('waktu')) || '';
+          const noteKey = Object.keys(row).find(k => k.toLowerCase().includes('catatan') || k.toLowerCase().includes('shift') || k.toLowerCase().includes('keterangan')) || '';
+
+          const rawAlias = String(row[aliasKey] || '').trim();
+          const rawNama = String(row[namaKey] || '').trim();
+          const rawDate = String(row[dateKey] || '').trim() || `${periodeKey}-01`;
+          const qtyVal = parseFloat(row[qtyKey]) > 0 ? parseFloat(row[qtyKey]) : 0;
+
+          // Smart Auto-Mapping to Master Products
+          const matchedProd = allProducts.find(p => {
+            const pAlias = (p.alias || '').trim().toLowerCase();
+            const pSku = (p.sku || p.kode || '').trim().toLowerCase();
+            const pName = (p.nama || '').trim().toLowerCase();
+            const searchA = rawAlias.toLowerCase();
+            const searchN = rawNama.toLowerCase();
+
+            return (searchA && (searchA === pAlias || searchA === pSku)) ||
+                   (searchN && (searchN === pName || pName.includes(searchN) || searchN.includes(pName)));
+          });
+
+          const finalAlias = matchedProd ? (matchedProd.alias || matchedProd.sku || matchedProd.kode) : (rawAlias || 'P1');
+          const finalNama = matchedProd ? matchedProd.nama : (rawNama || 'Red Cocktail Sausage 250g');
+          const finalBrand = matchedProd ? (matchedProd.brand || 'SAREN ONE') : 'SAREN ONE';
+          const finalHarga = matchedProd ? (matchedProd.harga || 0) : 0;
+
+          return {
+            id: 'YIELD-IMP-' + Date.now() + '_' + index,
+            tanggal: rawDate,
+            alias: finalAlias,
+            kode: matchedProd ? (matchedProd.kode || matchedProd.sku) : finalAlias,
+            produkNama: finalNama,
+            brand: finalBrand,
+            jumlahPcs: qtyVal,
+            harga: finalHarga,
+            catatan: String(row[noteKey] || 'Import Excel Produksi').trim(),
+            timestamp: `${rawDate} 08:00`
+          };
+        }).filter(item => item.jumlahPcs > 0);
+
+        if (mapped.length === 0) {
+          if (showAlert) showAlert('Tidak ditemukan baris hasil produksi dengan jumlah > 0!', 'error', 'Format File Kosong');
+          setParsedData([]);
+          return;
+        }
+
+        setParsedData(mapped);
+      } catch (err) {
+        if (showAlert) showAlert('Gagal membaca file Excel Hasil Produksi: ' + err.message, 'error', 'Error File');
+      }
+    };
+    reader.readAsBinaryString(selectedFile);
+  };
+
+  const handleCommitImport = async () => {
+    if (parsedData.length === 0) return;
+    setIsProcessing(true);
+    await onImport(parsedData, periodeKey, periodeLabel);
+    setIsProcessing(false);
+    onClose();
+  };
+
+  return createPortal(
+    <div className="modal-overlay">
+      <div className="modal-card" style={{ maxWidth: '750px' }}>
+        <div className="modal-header" style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #dee2e6', background: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <span className="badge badge-emerald" style={{ fontSize: '0.72rem', padding: '0.2rem 0.5rem', marginBottom: '0.2rem' }}>
+              🛡️ TIM PRODUKSI &amp; SUPER ADMIN
+            </span>
+            <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <FileSpreadsheet size={22} style={{ color: '#0284c7' }} /> Import Excel Hasil Produksi: <span style={{ color: '#0284c7' }}>{periodeLabel}</span>
+            </h3>
+          </div>
+          <button className="btn btn-outline btn-sm" onClick={onClose}><X size={16} /></button>
+        </div>
+
+        <div className="modal-body" style={{ padding: '1.25rem', background: '#ffffff', color: '#212529' }}>
+          {/* PERIODE SELECTION PICKER */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', background: '#f1f5f9', padding: '0.85rem 1.1rem', borderRadius: '8px', marginBottom: '1.1rem', border: '1px solid #cbd5e1', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 800, fontSize: '0.88rem', color: '#0f172a' }}>
+              <Calendar size={18} style={{ color: '#0284c7' }} />
+              PERIODE TEMPLATE &amp; IMPORT:
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <select
+                className="select-input"
+                style={{ width: '130px', padding: '0.35rem 0.65rem', fontSize: '0.85rem', fontWeight: 700 }}
+                value={selectedBulan}
+                onChange={(e) => setSelectedBulan(e.target.value)}
+              >
+                {bulanList.map(b => (
+                  <option key={b.code} value={b.code}>{b.name}</option>
+                ))}
+              </select>
+
+              <select
+                className="select-input"
+                style={{ width: '90px', padding: '0.35rem 0.65rem', fontSize: '0.85rem', fontWeight: 700 }}
+                value={selectedTahun}
+                onChange={(e) => setSelectedTahun(e.target.value)}
+              >
+                <option value="2026">2026</option>
+                <option value="2027">2027</option>
+                <option value="2025">2025</option>
+              </select>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.1rem', flexWrap: 'wrap', gap: '0.75rem', background: '#e0f2fe', padding: '0.85rem 1rem', borderRadius: '8px', border: '1px solid #7dd3fc' }}>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#0369a1' }}>Petunjuk Format Import Hasil Produksi</div>
+              <p style={{ fontSize: '0.8rem', margin: 0, color: '#0284c7' }}>
+                Unduh template resmi 48 SKU. Kode alias (seperti <strong>RCS 250, FS 500, SCM 500</strong>) otomatis dipetakan ke Nama Produk Jadi lengkap!
+              </p>
+            </div>
+            <button className="btn btn-sm btn-emerald" onClick={handleDownloadTemplate} title="Unduh Contoh Format Excel Hasil Produksi" style={{ whiteSpace: 'nowrap' }}>
+              <Download size={14} /> Unduh Template 48 SKU
+            </button>
+          </div>
+
+          <div style={{
+            border: file ? '2px solid #10b981' : '2px dashed #0284c7',
+            background: file ? '#f0fdf4' : '#f8fafc',
+            borderRadius: '8px',
+            padding: '1.5rem 1rem',
+            textAlign: 'center',
+            cursor: 'pointer',
+            position: 'relative',
+            marginBottom: '1rem'
+          }}>
+            <input
+              type="file"
+              accept=".xlsx, .xls, .csv"
+              onChange={handleFileChange}
+              style={{
+                position: 'absolute',
+                inset: 0,
+                width: '100%',
+                height: '100%',
+                opacity: 0,
+                cursor: 'pointer'
+              }}
+            />
+            <FileSpreadsheet size={36} style={{ color: file ? '#10b981' : '#0284c7', marginBottom: '0.5rem' }} />
+            <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0f172a' }}>
+              {file ? file.name : 'Klik atau Tarik File Excel Hasil Produksi Ke Sini'}
+            </div>
+            <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '0.2rem' }}>
+              Format didukung: .xlsx, .xls, .csv
+            </div>
+          </div>
+
+          {parsedData.length > 0 && (
+            <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0.85rem 1rem' }}>
+              <div style={{ fontWeight: 800, fontSize: '0.86rem', color: '#059669', marginBottom: '0.5rem' }}>
+                ✅ Berhasil Menganalisis {parsedData.length} Baris Hasil Produksi:
+              </div>
+              <div style={{ maxHeight: '180px', overflowY: 'auto' }}>
+                <table style={{ width: '100%', fontSize: '0.78rem' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid #cbd5e1', textTransform: 'uppercase', color: '#64748b' }}>
+                      <th style={{ textAlign: 'left' }}>Alias</th>
+                      <th style={{ textAlign: 'left' }}>Nama Produk Jadi</th>
+                      <th style={{ textAlign: 'right' }}>Jumlah Hasil</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {parsedData.map((item, idx) => (
+                      <tr key={idx} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                        <td style={{ fontWeight: 800, color: '#0284c7' }}>{item.alias}</td>
+                        <td style={{ fontWeight: 700 }}>{item.produkNama}</td>
+                        <td style={{ textAlign: 'right', fontWeight: 900, color: '#059669' }}>+{item.jumlahPcs} pack</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="modal-footer" style={{ padding: '0.85rem 1.25rem', background: '#f8fafc', borderTop: '1px solid #cbd5e1', display: 'flex', justifyContent: 'flex-end', gap: '0.65rem' }}>
+          <button type="button" className="btn btn-secondary" onClick={onClose}>Batal</button>
+          <button
+            type="button"
+            className="btn btn-emerald"
+            disabled={parsedData.length === 0 || isProcessing}
+            onClick={handleCommitImport}
+          >
+            <CheckCircle2 size={16} /> {isProcessing ? 'Memproses...' : `Impor ${parsedData.length} Hasil Produksi`}
+          </button>
         </div>
       </div>
     </div>,

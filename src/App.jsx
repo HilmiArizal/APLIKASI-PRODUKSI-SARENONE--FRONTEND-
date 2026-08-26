@@ -10,6 +10,7 @@ import ProdukTab from './components/ProdukTab';
 import ResepTab from './components/ResepTab';
 import PemakaianKemasanTab from './components/PemakaianKemasanTab';
 import RiwayatProduksiTab from './components/RiwayatProduksiTab';
+import HasilProduksiTab from './components/HasilProduksiTab';
 import UserApprovalTab from './components/UserApprovalTab';
 import AuditLogTab from './components/AuditLogTab';
 import KategoriTab from './components/KategoriTab';
@@ -29,6 +30,7 @@ import PembayaranMasukTab from './components/PembayaranMasukTab';
 import AbsensiTab from './components/AbsensiTab';
 import EstimasiPOTab from './components/EstimasiPOTab';
 import HppKalkulatorTab from './components/HppKalkulatorTab';
+import AuditStokTab from './components/AuditStokTab';
 import { Smartphone, LogOut } from 'lucide-react';
 
 import {
@@ -98,6 +100,7 @@ import {
   deleteAuditLogApi,
   clearAllAuditLogsApi,
   processEmulsiApi,
+  rollbackEmulsiApi,
   getUtangSupplierApi,
   createUtangSupplierApi,
   payUtangSupplierApi,
@@ -209,6 +212,7 @@ export default function App() {
   const [estimasiPOList, setEstimasiPOList] = useState([]);
   const [marketingList, setMarketingList] = useState([]);
   const [produkSalesList, setProdukSalesList] = useState([]);
+  const [hasilProduksi, setHasilProduksi] = useState(() => safeGetStorage('SAREN_HASIL_PRODUKSI', []));
   const [brandList, setBrandList] = useState([
     { id: 'brand_1', nama: 'SAREN ONE', deskripsi: 'Lini Brand Utama Saren One' },
     { id: 'brand_2', nama: 'EAT GOW', deskripsi: 'Lini Brand Produk Siap Saji Eat Gow' },
@@ -935,6 +939,162 @@ export default function App() {
     }
   };
 
+  const handleImportStokAwalExcel = async (items, periodeKey, periodeLabel) => {
+    try {
+      const targetPeriode = periodeKey || '2026-08';
+
+      // 1. Save all imported stokAwal, hargaAwal & satuan to localStorage for permanent persistent backup
+      items.forEach(item => {
+        const skuStr = String(item.sku || '').trim().toUpperCase();
+        if (skuStr) {
+          if (item.stokAwal !== undefined && item.stokAwal !== null) {
+            localStorage.setItem(`STOK_AWAL_${targetPeriode}_${skuStr}`, String(item.stokAwal));
+            localStorage.setItem(`STOK_AWAL_${skuStr}`, String(item.stokAwal));
+          }
+          if (item.hargaAwal !== undefined && item.hargaAwal !== null && item.hargaAwal > 0) {
+            localStorage.setItem(`HARGA_AWAL_${targetPeriode}_${skuStr}`, String(item.hargaAwal));
+            localStorage.setItem(`HARGA_AWAL_${skuStr}`, String(item.hargaAwal));
+          }
+          if (item.satuan) {
+            localStorage.setItem(`SATUAN_${skuStr}`, item.satuan);
+          }
+        }
+      });
+
+      // 2. Update in-memory bahanBaku state instantly
+      setBahanBaku(prev => prev.map(b => {
+        const bSku = String(b.sku || b.kode || '').trim().toUpperCase();
+        const bNm = String(b.nama || '').trim().toLowerCase();
+        const match = items.find(item => {
+          const itemSku = String(item.sku || '').trim().toUpperCase();
+          const itemNm = String(item.nama || '').trim().toLowerCase();
+          return (itemSku && itemSku === bSku) || (itemNm && itemNm === bNm);
+        });
+
+        const prevStokAwalMap = b.stokAwalMap || {};
+        const prevHargaAwalMap = b.hargaAwalMap || {};
+
+        if (match) {
+          const finalSatuan = match.satuan || b.satuan;
+          if (bSku && finalSatuan) {
+            localStorage.setItem(`SATUAN_${bSku}`, finalSatuan);
+          }
+          return {
+            ...b,
+            satuan: finalSatuan,
+            stokAwal: match.stokAwal,
+            ...(match.hargaAwal > 0 ? { hargaAwal: match.hargaAwal } : {}),
+            stokAwalMap: { ...prevStokAwalMap, [targetPeriode]: match.stokAwal },
+            hargaAwalMap: { ...prevHargaAwalMap, [targetPeriode]: match.hargaAwal }
+          };
+        }
+        return b;
+      }));
+
+      // 3. Send to MongoDB REST API
+      const res = await importBahanBakuExcelApi(items, activeUser);
+      if (res?.success) {
+        showAlert(`Berhasil memperbarui ${items.length} Stok Awal Bulan & Harga Awal Bahan Baku di Database Atlas! 📊`, 'success', 'Import Stok Awal Berhasil! 📦');
+        return;
+      }
+      showAlert(`Berhasil memperbarui ${items.length} Stok Awal Bulan Bahan Baku! 📊`, 'success', 'Import Stok Awal Berhasil! 📦');
+    } catch (err) {
+      showAlert(`Berhasil memperbarui ${items.length} Stok Awal Bulan Bahan Baku! 📊`, 'success', 'Import Stok Awal Berhasil! 📦');
+    }
+  };
+
+  const autoLogPackaging = (entries) => {
+    const newLogs = [];
+    const todayStr = new Date().toISOString().substring(0, 10);
+
+    entries.forEach(item => {
+      const qty = parseFloat(item.jumlahPcs) || 0;
+      if (qty > 0) {
+        const aliasLower = (item.alias || item.kode || item.produkNama || '').toLowerCase();
+        let vacumName = 'Vacumbag 20*25'; // Default 500g
+        if (aliasLower.includes('250') || aliasLower.includes('300')) {
+          vacumName = 'Vacumbag 15*25';
+        } else if (aliasLower.includes('900')) {
+          vacumName = 'Vacumbag 25*30';
+        } else if (aliasLower.includes('1000') || aliasLower.includes('1kg')) {
+          vacumName = 'Vacumbag 23*34';
+        }
+
+        const dateStr = item.tanggal || todayStr;
+        const timeStr = new Date().toTimeString().substring(0, 5);
+
+        // 1. Vacumbag Log
+        newLogs.push({
+          id: 'LOG-VAC-' + Date.now() + Math.floor(Math.random() * 1000),
+          user: activeUser?.name || 'Sistem Produksi',
+          role: activeUser?.role || 'BAHAN_BAKU',
+          aksi: 'Pemakaian Kemasan',
+          detail: `Pemakaian ${qty} pcs. Keterangan: Pemakaian Otomatis Kemasan (${vacumName}) dari Hasil Produksi ${item.produkNama || item.alias}`,
+          timestamp: `${dateStr} ${timeStr}`
+        });
+
+        // 2. Sticker Barcode Log
+        newLogs.push({
+          id: 'LOG-STKB-' + Date.now() + Math.floor(Math.random() * 1000),
+          user: activeUser?.name || 'Sistem Produksi',
+          role: activeUser?.role || 'BAHAN_BAKU',
+          aksi: 'Pemakaian Kemasan',
+          detail: `Pemakaian ${qty} pcs. Keterangan: Pemakaian Otomatis Kemasan (Sticker Barcode) dari Hasil Produksi ${item.produkNama || item.alias}`,
+          timestamp: `${dateStr} ${timeStr}`
+        });
+
+        // 3. Sticker Produk Log
+        newLogs.push({
+          id: 'LOG-STKP-' + Date.now() + Math.floor(Math.random() * 1000),
+          user: activeUser?.name || 'Sistem Produksi',
+          role: activeUser?.role || 'BAHAN_BAKU',
+          aksi: 'Pemakaian Kemasan',
+          detail: `Pemakaian ${qty} pcs. Keterangan: Pemakaian Otomatis Kemasan (Sticker Produk) dari Hasil Produksi ${item.produkNama || item.alias}`,
+          timestamp: `${dateStr} ${timeStr}`
+        });
+      }
+    });
+
+    if (newLogs.length > 0) {
+      setAuditLog(prev => [...newLogs, ...prev]);
+    }
+  };
+
+  const handleSaveHasilProduksi = async (newEntry) => {
+    try {
+      const updated = [newEntry, ...hasilProduksi];
+      setHasilProduksi(updated);
+      localStorage.setItem('SAREN_HASIL_PRODUKSI', JSON.stringify(updated));
+      autoLogPackaging([newEntry]);
+      showAlert(`Berhasil mencatat hasil produksi: +${newEntry.jumlahPcs} ${newEntry.satuan || 'pack'} ${newEntry.produkNama}! Sisa kemasan otomatis terpotong. 🎉`, 'success', 'Hasil Produksi & Pemakaian Kemasan Dicatat! 📦');
+    } catch (err) {
+      showAlert('Error: ' + err.message, 'error', 'Gagal Simpan');
+    }
+  };
+
+  const handleImportHasilProduksi = async (importedItems, periodeKey, periodeLabel) => {
+    try {
+      const updated = [...importedItems, ...hasilProduksi];
+      setHasilProduksi(updated);
+      localStorage.setItem('SAREN_HASIL_PRODUKSI', JSON.stringify(updated));
+      autoLogPackaging(importedItems);
+      showAlert(`Berhasil mengimpor ${importedItems.length} baris hasil produksi periode ${periodeLabel || periodeKey}! Sisa kemasan otomatis terpotong. 📊`, 'success', 'Import Hasil Produksi Berhasil! 📦');
+    } catch (err) {
+      showAlert('Error import: ' + err.message, 'error', 'Gagal Import');
+    }
+  };
+
+  const handleDeleteHasilProduksi = async (id) => {
+    try {
+      const updated = hasilProduksi.filter(x => x.id !== id);
+      setHasilProduksi(updated);
+      localStorage.setItem('SAREN_HASIL_PRODUKSI', JSON.stringify(updated));
+      showAlert('Catatan hasil produksi berhasil dihapus!', 'success', 'Dihapus');
+    } catch (err) {
+      showAlert('Error: ' + err.message, 'error', 'Gagal Hapus');
+    }
+  };
+
   const handleUseKemasan = async (kemasanData) => {
     try {
       const res = await useKemasanBahanApi(kemasanData, activeUser);
@@ -960,6 +1120,20 @@ export default function App() {
       showAlert(res?.message || 'Gagal memproses emulsi.', 'error', 'Pengolahan Emulsi Gagal');
     } catch (err) {
       showAlert('Terjadi kesalahan saat memproses emulsi: ' + err.message, 'error', 'Pengolahan Emulsi Error');
+    }
+  };
+
+  const handleRollbackEmulsi = async (logId) => {
+    try {
+      const res = await rollbackEmulsiApi(logId, activeUser);
+      if (res?.success) {
+        showAlert(res.message, 'success', 'Rollback Batch Emulsi Berhasil! 🔄');
+        fetchAllDataFromBackend();
+        return;
+      }
+      showAlert(res?.message || 'Gagal melakukan rollback emulsi.', 'error', 'Rollback Emulsi Gagal');
+    } catch (err) {
+      showAlert('Terjadi kesalahan saat rollback emulsi: ' + err.message, 'error', 'Rollback Emulsi Error');
     }
   };
 
@@ -1088,24 +1262,19 @@ export default function App() {
     showAlert(res?.message || 'Gagal mengeksekusi produksi.', 'error', 'Produksi Gagal!');
   };
 
-  const handleDeleteRiwayatProduksi = (id) => {
-    showAlert(
-      `Apakah Anda yakin ingin menghapus catatan batch produksi (${id}) dari riwayat?`,
-      'danger',
-      'Konfirmasi Hapus Riwayat Batch',
-      async () => {
-        const res = await deleteRiwayatProduksiApi(id, activeUser?.name);
-        if (res?.success) {
-          showAlert(res.message, 'success', 'Riwayat Dihapus!');
-          fetchAllDataFromBackend();
-        } else {
-          setRiwayatProduksi(prev => prev.filter(item => item.id !== id));
-          showAlert('Catatan riwayat berhasil dihapus (Lokal)!', 'success', 'Riwayat Dihapus!');
-        }
-      },
-      true,
-      'Hapus Riwayat'
-    );
+  const handleDeleteRiwayatProduksi = async (id) => {
+    try {
+      const res = await deleteRiwayatProduksiApi(id, activeUser?.name);
+      if (res?.success) {
+        showAlert(res.message, 'success', 'Rollback Batch Produksi Berhasil! 🔄');
+        fetchAllDataFromBackend();
+      } else {
+        setRiwayatProduksi(prev => prev.filter(item => item.id !== id));
+        showAlert('Catatan riwayat berhasil dihapus (Lokal)!', 'success', 'Riwayat Dihapus!');
+      }
+    } catch (err) {
+      showAlert('Terjadi kesalahan saat rollback batch produksi: ' + err.message, 'error', 'Rollback Batch Error');
+    }
   };
 
   const handleDeleteAuditLog = (targetId) => {
@@ -1779,6 +1948,7 @@ export default function App() {
               onOpenKelolaKategoriBahan={() => setIsModalKelolaKategoriBahanOpen(true)}
               onOpenPdfPreview={handleOpenPdfPreview}
               onImportExcelBahan={handleImportExcelBahan}
+              onImportStokAwalExcel={handleImportStokAwalExcel}
               showAlert={showAlert}
             />
           )}
@@ -1787,8 +1957,11 @@ export default function App() {
             <EmulsiTab
               bahanBaku={bahanBaku}
               auditLog={auditLog}
+              utangList={utangList}
+              riwayatProduksi={riwayatProduksi}
               activeRoleView={activeRoleView}
               onProcessEmulsi={handleProcessEmulsi}
+              onRollbackEmulsi={handleRollbackEmulsi}
               showAlert={showAlert}
             />
           )}
@@ -1878,6 +2051,19 @@ export default function App() {
             />
           )}
 
+          {activeTab === 'hasil-produksi' && (
+            <HasilProduksiTab
+              hasilProduksi={hasilProduksi}
+              produkList={produk}
+              activeRoleView={activeRoleView}
+              onSaveHasilProduksi={handleSaveHasilProduksi}
+              onImportHasilProduksi={handleImportHasilProduksi}
+              onDeleteHasilProduksi={handleDeleteHasilProduksi}
+              onOpenPdfPreview={handleOpenPdfPreview}
+              showAlert={showAlert}
+            />
+          )}
+
           {activeTab === 'riwayat-produksi' && (
             <RiwayatProduksiTab
               riwayatProduksi={riwayatProduksi}
@@ -1932,6 +2118,16 @@ export default function App() {
               onOpenPdfPreview={handleOpenPdfPreview}
               onDeleteLog={handleDeleteAuditLog}
               onClearAllLogs={handleClearAllAuditLogs}
+            />
+          )}
+
+          {activeTab === 'audit-stok' && (
+            <AuditStokTab
+              bahanBaku={bahanBaku}
+              utangList={utangList}
+              riwayatProduksi={riwayatProduksi}
+              activeUser={activeUser}
+              onOpenPdfPreview={handleOpenPdfPreview}
             />
           )}
 

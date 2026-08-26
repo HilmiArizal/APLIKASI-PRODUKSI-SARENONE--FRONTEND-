@@ -129,9 +129,9 @@ export default function Login({ onLogin, onRegister, showAlert }) {
         {/* Brand Header */}
         <div className="login-header" style={{ marginBottom: '1.25rem', textAlign: 'center' }}>
           <img src={logoImg} alt="SAREN ONE Logo" style={{ height: isRegisterMode ? '48px' : '65px', marginBottom: '0.4rem' }} />
-          <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em' }}>SAREN ONE SYSTEM</h2>
+          <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em' }}>SYSTEM ADMINISTRATOR</h2>
           <p className="text-muted" style={{ fontSize: '0.82rem', marginTop: '0.2rem' }}>
-            {isRegisterMode ? 'Pendaftaran Akun Pengguna Staf Baru' : 'Sistem Manajerial Persediaan Bahan Baku'}
+            {isRegisterMode ? 'Pendaftaran Akun Pengguna Staf Baru' : 'Sistem Manajerial CV. Heaven Sentosa'}
           </p>
         </div>
 

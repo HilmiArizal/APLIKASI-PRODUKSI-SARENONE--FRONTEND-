@@ -344,6 +344,7 @@ export default function PembelianBahanTab({
         onClose={() => setIsTambahOpen(false)}
         bahanList={bahanBaku}
         suppliersList={suppliersList}
+        utangList={utangList}
         onSubmit={onCreateUtang}
         onOpenKelolaSupplier={() => setIsKelolaSupplierOpen(true)}
         showAlert={showAlert}
