@@ -1,9 +1,24 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, FileSpreadsheet, FileText, Trash2, Eye, Boxes, X, Calendar, RotateCcw, Clock } from 'lucide-react';
+import { Search, FileSpreadsheet, FileText, Trash2, Eye, Boxes, X, Calendar, RotateCcw, Clock, Factory, Layers } from 'lucide-react';
+import { ModernMonthPicker } from './ModernDatePicker';
 import { exportToExcel, exportToPDF } from '../utils/exportUtils';
 
-export default function RiwayatProduksiTab({ riwayatProduksi, activeRoleView, onOpenPdfPreview, onDeleteHistory }) {
+const formatMonthLabel = (ymStr) => {
+  if (!ymStr || ymStr === 'semua') return 'Semua Periode (All Time)';
+  const [year, month] = ymStr.split('-');
+  const monthNames = [
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+  ];
+  const idx = parseInt(month, 10) - 1;
+  if (idx >= 0 && idx < 12) {
+    return `${monthNames[idx]} ${year}`;
+  }
+  return ymStr;
+};
+
+export default function RiwayatProduksiTab({ riwayatProduksi = [], activeRoleView, onOpenPdfPreview, onDeleteHistory }) {
   const now = new Date();
   const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
@@ -13,11 +28,13 @@ export default function RiwayatProduksiTab({ riwayatProduksi, activeRoleView, on
   const [selectedRollbackBatch, setSelectedRollbackBatch] = useState(null);
   const isSuperAdmin = activeRoleView === 'ALL' || activeRoleView === 'ADMIN' || activeRoleView === 'ADMIN_PRODUK' || (activeRoleView && String(activeRoleView).includes('ADMIN'));
 
-  const filtered = riwayatProduksi.filter(h => {
-    const matchMonth = selectedMonth ? (h.timestamp && h.timestamp.startsWith(selectedMonth)) : true;
+  const filtered = (riwayatProduksi || []).filter(h => {
+    const rawDate = h.timestamp || h.tanggal || h.createdAt || '';
+    const matchMonth = selectedMonth === 'semua' || (selectedMonth ? rawDate.startsWith(selectedMonth) : true);
+    const s = search.toLowerCase();
     const matchSearch =
-      h.produkNama.toLowerCase().includes(search.toLowerCase()) ||
-      h.id.toLowerCase().includes(search.toLowerCase());
+      (h.produkNama || '').toLowerCase().includes(s) ||
+      (h.id || '').toLowerCase().includes(s);
     return matchMonth && matchSearch;
   });
 
@@ -44,10 +61,10 @@ export default function RiwayatProduksiTab({ riwayatProduksi, activeRoleView, on
     ]);
     const config = {
       title: 'Jurnal Rekam Jejak Batch Produksi Dapur',
-      subtitle: `Menampilkan ${filtered.length} riwayat hasil pemrosesan roti & konsumsi stok bahan baku (Periode: ${selectedMonth || 'Semua'}).`,
+      subtitle: `Menampilkan ${filtered.length} riwayat hasil pemrosesan roti & konsumsi stok bahan baku (Periode: ${formatMonthLabel(selectedMonth)}).`,
       headers,
       rows,
-      summaryText: `Total Batch Diproses: ${filtered.length} | Total Hasil Batch: ${filtered.reduce((acc, curr) => acc + curr.jumlahPcs, 0)} Batch`,
+      summaryText: `Total Sesi Batch: ${filtered.length} | Total Hasil Yield: ${filtered.reduce((acc, curr) => acc + (Number(curr.jumlahPcs) || 0), 0)} Batch`,
       filename: 'Jurnal_Batch_Produksi'
     };
     if (onOpenPdfPreview) {
@@ -59,101 +76,182 @@ export default function RiwayatProduksiTab({ riwayatProduksi, activeRoleView, on
 
   return (
     <div className="tab-pane active">
-      <div className="toolbar" style={{ gap: '0.75rem', flexWrap: 'wrap' }}>
-        <div className="search-box">
-          <Search size={16} />
-          <input
-            type="text"
-            placeholder="Cari riwayat (misal: RCS, BS dll)..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-
-        {/* Month Selector Filter Control */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <Calendar size={14} style={{ color: 'var(--indigo)' }} /> Periode Bulan:
+      {/* 1. PALING ATAS: Executive Summary Stat Cards Perbulan (Identik dengan Tab Pembelian & Bahan Baku) */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem', marginBottom: '0.75rem' }}>
+        {/* Total Yield Produksi (Batch) */}
+        <div className="summary-stat-card" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', border: '1px solid rgba(16, 185, 129, 0.25)', borderTop: '3.5px solid var(--emerald)', borderRadius: '10px', padding: '0.75rem 0.95rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Total Hasil Produksi (Batch)</span>
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(16, 185, 129, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Factory size={16} style={{ color: 'var(--emerald)' }} />
+            </div>
+          </div>
+          <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#ffffff', marginTop: '0.35rem', letterSpacing: '-0.02em' }}>
+            {filtered.reduce((acc, curr) => acc + (Number(curr.jumlahPcs) || 0), 0)} <span style={{ fontSize: '0.8rem', color: '#34d399', fontWeight: 700 }}>Batch</span>
+          </div>
+          <span style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: '0.15rem', display: 'block' }}>
+            Hasil olah dapur: {formatMonthLabel(selectedMonth)}
           </span>
-          <input
-            type="month"
-            style={{
-              background: 'rgba(15, 23, 42, 0.75)',
-              border: '1px solid rgba(99, 102, 241, 0.4)',
-              color: '#f8fafc',
-              borderRadius: '8px',
-              padding: '0.45rem 0.85rem',
-              fontSize: '0.82rem',
-              fontWeight: '600',
-              outline: 'none',
-              cursor: 'pointer'
-            }}
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
-          />
-
-          {selectedMonth !== currentMonthStr && (
-            <button
-              className="btn btn-sm btn-outline"
-              onClick={() => setSelectedMonth(currentMonthStr)}
-              title="Reset ke bulan berjalan"
-            >
-              Bulan Berjalan
-            </button>
-          )}
         </div>
 
-        <div className="toolbar-actions" style={{ marginLeft: 'auto' }}>
-          <button className="btn btn-outline" onClick={handleExportExcel} title="Export Jurnal ke Excel (.csv)">
-            <FileSpreadsheet size={16} style={{ color: 'var(--emerald)' }} /> Excel
+        {/* Total Sesi Olah Dapur */}
+        <div className="summary-stat-card" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', border: '1px solid rgba(56, 189, 248, 0.25)', borderTop: '3.5px solid var(--cyan)', borderRadius: '10px', padding: '0.75rem 0.95rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Total Sesi Transaksi Batch</span>
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(6, 182, 212, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Layers size={16} style={{ color: 'var(--cyan)' }} />
+            </div>
+          </div>
+          <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#ffffff', marginTop: '0.35rem', letterSpacing: '-0.02em' }}>
+            {filtered.length} <span style={{ fontSize: '0.8rem', color: '#38bdf8', fontWeight: 700 }}>Sesi</span>
+          </div>
+          <span style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: '0.15rem', display: 'block' }}>
+            Frekuensi pemrosesan: {formatMonthLabel(selectedMonth)}
+          </span>
+        </div>
+
+        {/* Total Pemotongan Bahan Baku */}
+        <div className="summary-stat-card" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', border: '1px solid rgba(99, 102, 241, 0.25)', borderTop: '3.5px solid #6366f1', borderRadius: '10px', padding: '0.75rem 0.95rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Total Resep Bahan Terpotong</span>
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(99, 102, 241, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Boxes size={16} style={{ color: '#818cf8' }} />
+            </div>
+          </div>
+          <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#ffffff', marginTop: '0.35rem', letterSpacing: '-0.02em' }}>
+            {filtered.reduce((acc, curr) => acc + (curr.pemotonganBahan || []).length, 0)} <span style={{ fontSize: '0.8rem', color: '#818cf8', fontWeight: 700 }}>Item</span>
+          </div>
+          <span style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: '0.15rem', display: 'block' }}>
+            Konsumsi persediaan: {formatMonthLabel(selectedMonth)}
+          </span>
+        </div>
+      </div>
+
+      {/* 2. DIBAWAHNYA: Header Toolbar (Modern Month Picker di Kiri & Search/Export di Kanan) */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+        {/* Left (Position Start): Modern Custom Month Picker */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <ModernMonthPicker
+            value={selectedMonth}
+            onChange={(val) => setSelectedMonth(val)}
+            allowAll={true}
+          />
+        </div>
+
+        {/* Right (Position End): Search Input & Export Actions */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginLeft: 'auto' }}>
+          <div className="search-box" style={{ height: '32px' }}>
+            <Search size={14} />
+            <input
+              type="text"
+              placeholder="Cari riwayat (misal: RCS, BS dll)..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{ fontSize: '0.78rem' }}
+            />
+          </div>
+          <button className="btn btn-sm btn-outline" onClick={handleExportExcel} style={{ fontSize: '0.75rem', height: '32px', fontWeight: 800 }}>
+            <FileSpreadsheet size={14} style={{ color: 'var(--emerald)' }} /> Excel
           </button>
-          <button className="btn btn-outline" onClick={handleExportPDF} title="Cetak Jurnal PDF">
-            <FileText size={16} style={{ color: 'var(--amber)' }} /> Cetak PDF
+          <button className="btn btn-sm btn-outline" onClick={handleExportPDF} style={{ fontSize: '0.75rem', height: '32px', fontWeight: 800 }}>
+            <FileText size={14} style={{ color: 'var(--amber)' }} /> Cetak PDF
           </button>
         </div>
       </div>
 
-      <div className="table-container mt-4">
-        <table className="custom-table">
+      {/* 3. TABLE CONTAINER (BERSIH, RAPIH & MATCHING 100% DENGAN TAB PEMBELIAN!) */}
+      <div className="table-container">
+        <div style={{ padding: '0.5rem 0.85rem', borderBottom: '1px solid var(--border-color)', background: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a' }}>
+              Jurnal Rekam Jejak Batch Produksi Dapur
+            </span>
+            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#0369a1', background: '#e0f2fe', padding: '0.15rem 0.5rem', borderRadius: '6px', border: '1px solid #bae6fd' }}>
+              {filtered.length} Transaksi Terfilter
+            </span>
+          </div>
+        </div>
+
+        <table className="custom-table" style={{ width: '100%', fontSize: '0.72rem', borderCollapse: 'separate', borderSpacing: 0 }}>
           <thead>
-            <tr>
-              <th>ID BATCH</th>
-              <th>WAKTU OLAH DAPUR</th>
-              <th>PRODUK OLAHAN</th>
-              <th>JUMLAH BATCH</th>
-              <th>PEMOTONGAN STOK BAHAN BAKU</th>
-              {isSuperAdmin && <th style={{ textAlign: 'right' }}>AKSI</th>}
+            <tr style={{ background: '#f8fafc' }}>
+              <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', whiteSpace: 'nowrap' }}>ID BATCH</th>
+              <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', whiteSpace: 'nowrap' }}>WAKTU OLAH DAPUR</th>
+              <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', whiteSpace: 'nowrap' }}>PRODUK OLAHAN</th>
+              <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', whiteSpace: 'nowrap' }}>JUMLAH BATCH</th>
+              <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', whiteSpace: 'nowrap' }}>PEMOTONGAN STOK BAHAN BAKU</th>
+              {isSuperAdmin && <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', textAlign: 'right', whiteSpace: 'nowrap' }}>AKSI</th>}
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
               <tr>
                 <td colSpan={isSuperAdmin ? 6 : 5} style={{ textAlign: 'center', padding: '2rem' }} className="text-muted">
-                  Belum ada riwayat batch produksi olahan dapur.
+                  Belum ada riwayat batch produksi olahan dapur untuk {formatMonthLabel(selectedMonth)}.
                 </td>
               </tr>
             ) : (
               filtered.map(h => (
-                <tr key={h.id}>
-                  <td><span className="badge badge-cyan">{h.id}</span></td>
-                  <td className="text-muted" style={{ fontSize: '0.8rem' }}>{h.timestamp}</td>
-                  <td style={{ fontWeight: 700 }}>{h.produkNama}</td>
-                  <td>
-                    <strong style={{ fontSize: '1rem', color: 'var(--emerald)' }}>{h.jumlahPcs} Batch</strong>
+                <tr key={h.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  <td style={{ padding: '0.32rem 0.55rem', whiteSpace: 'nowrap' }}>
+                    <span style={{ background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd', fontSize: '0.68rem', fontWeight: 800, padding: '0.12rem 0.45rem', borderRadius: '5px' }}>
+                      {h.id}
+                    </span>
                   </td>
-                  <td>
-                    <button className="btn btn-sm btn-outline" onClick={() => setSelectedBatchDetail(h)} title="Klik untuk melihat rincian pemotongan bahan baku">
-                      <Eye size={14} style={{ color: 'var(--cyan)' }} /> Lihat Bahan ({(h.pemotonganBahan || []).length} Item)
+                  <td style={{ padding: '0.32rem 0.55rem', whiteSpace: 'nowrap' }}>
+                    <span style={{ color: '#64748b', fontSize: '0.7rem', fontWeight: 600 }}>{h.timestamp}</span>
+                  </td>
+                  <td style={{ padding: '0.32rem 0.55rem', whiteSpace: 'nowrap' }}>
+                    <span style={{ color: '#0f172a', fontWeight: 800, fontSize: '0.74rem' }}>{h.produkNama}</span>
+                  </td>
+                  <td style={{ padding: '0.32rem 0.55rem', whiteSpace: 'nowrap' }}>
+                    <strong style={{ fontSize: '0.78rem', color: '#059669', fontWeight: 900 }}>{h.jumlahPcs} Batch</strong>
+                  </td>
+                  <td style={{ padding: '0.32rem 0.55rem', whiteSpace: 'nowrap' }}>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedBatchDetail(h)}
+                      style={{
+                        background: '#f0f9ff',
+                        color: '#0284c7',
+                        border: '1px solid #bae6fd',
+                        borderRadius: '5px',
+                        fontWeight: 700,
+                        fontSize: '0.68rem',
+                        padding: '0.15rem 0.45rem',
+                        height: '24px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.3rem',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                      title="Klik untuk melihat rincian pemotongan bahan baku"
+                    >
+                      <Eye size={12} style={{ color: '#0284c7' }} /> Lihat Bahan ({(h.pemotonganBahan || []).length} Item)
                     </button>
                   </td>
                   {isSuperAdmin && (
-                    <td style={{ textAlign: 'right' }}>
+                    <td style={{ padding: '0.32rem 0.55rem', textAlign: 'right', whiteSpace: 'nowrap' }}>
                       <button
-                        className="btn btn-sm btn-outline btn-danger"
+                        type="button"
                         onClick={() => setSelectedRollbackBatch(h)}
+                        style={{
+                          background: '#fef2f2',
+                          color: '#ef4444',
+                          border: '1px solid #fecaca',
+                          borderRadius: '5px',
+                          width: '24px',
+                          height: '24px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
                         title="Batalkan Batch Ini & Kembalikan Stok Bahan Baku (Khusus Super Admin)"
                       >
-                        <Trash2 size={14} />
+                        <Trash2 size={12} />
                       </button>
                     </td>
                   )}
@@ -164,7 +262,6 @@ export default function RiwayatProduksiTab({ riwayatProduksi, activeRoleView, on
         </table>
       </div>
 
-      {/* Modal Detail Pemotongan Bahan Baku */}
       {/* Modal Detail Pemotongan Bahan Baku */}
       {selectedBatchDetail && createPortal(
         <div className="modal-overlay" style={{
@@ -224,7 +321,7 @@ export default function RiwayatProduksiTab({ riwayatProduksi, activeRoleView, on
               }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.2rem' }}>
-                    <span className="badge badge-cyan" style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.2rem 0.6rem', borderRadius: '6px' }}>
+                    <span style={{ background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd', fontSize: '0.75rem', fontWeight: 700, padding: '0.2rem 0.6rem', borderRadius: '6px' }}>
                       {selectedBatchDetail.id}
                     </span>
                     <span className="text-muted" style={{ fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>

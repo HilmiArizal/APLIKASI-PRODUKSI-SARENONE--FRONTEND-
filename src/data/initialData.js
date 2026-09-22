@@ -20,6 +20,17 @@ export const DEFAULT_USERS = [
     status: 'VERIFIED',
     provider: 'local',
     createdAt: '2026-07-30 00:00'
+  },
+  {
+    id: 'u_adminproduk_alias',
+    username: 'adminproduk',
+    email: 'adminproduk@sarenone.com',
+    pass: 'adminproduk',
+    name: 'Admin Produk',
+    role: 'ADMIN_PRODUK',
+    status: 'VERIFIED',
+    provider: 'local',
+    createdAt: '2026-07-30 00:00'
   }
 ];
 
@@ -32,8 +43,127 @@ export const INITIAL_KATEGORI_BAHAN = [];
 export const INITIAL_BAHAN_BAKU = [];
 export const INITIAL_PRODUK = [];
 export const INITIAL_RESEP = {};
-export const INITIAL_AUDIT_LOG = [];
+export const INITIAL_AUDIT_LOG = [
+  {
+    id: 'LOG-INIT-101',
+    user: 'Tim Produksi',
+    role: 'PRODUKSI',
+    aksi: 'Pemakaian Kemasan',
+    detail: 'Pemakaian 120 pcs Vacumbag 20*25 - Otomatis via Hasil Produksi (Sosis Cocktail Merah 500g)',
+    timestamp: '2026-08-01 08:30'
+  },
+  {
+    id: 'LOG-INIT-102',
+    user: 'Tim Produksi',
+    role: 'PRODUKSI',
+    aksi: 'Pemakaian Kemasan',
+    detail: 'Pemakaian 120 pcs Sticker Barcode - Otomatis via Hasil Produksi (Sosis Cocktail Merah 500g)',
+    timestamp: '2026-08-01 08:30'
+  },
+  {
+    id: 'LOG-INIT-103',
+    user: 'Tim Produksi',
+    role: 'PRODUKSI',
+    aksi: 'Pemakaian Kemasan',
+    detail: 'Pemakaian 120 pcs Sticker Produk - Otomatis via Hasil Produksi (Sosis Cocktail Merah 500g)',
+    timestamp: '2026-08-01 08:30'
+  }
+];
+export const INITIAL_ABSENSI = [
+  {
+    id: 'ABS-101',
+    name: 'Taupika Wirdan',
+    username: 'wirdan-sales',
+    role: 'SALES',
+    type: 'Check-In',
+    waktu: '08:15:22',
+    tanggal: '2026-08-31',
+    timestamp: '2026-08-31T08:15:22.000Z',
+    latitude: -6.9175,
+    longitude: 107.6191,
+    lokasiNama: 'Toko Berkah Frozen, Bandung',
+    keterangan: 'Absen masuk toko area Rajawali',
+    foto: ''
+  },
+  {
+    id: 'ABS-102',
+    name: 'Wulan Ramadani',
+    username: 'wulan-sales',
+    role: 'SALES',
+    type: 'Check-In',
+    waktu: '08:30:10',
+    tanggal: '2026-08-31',
+    timestamp: '2026-08-31T08:30:10.000Z',
+    latitude: -6.9211,
+    longitude: 107.6095,
+    lokasiNama: 'Rajawali Sosis Baso, Bandung',
+    keterangan: 'Kunjungan sales pagi',
+    foto: ''
+  },
+  {
+    id: 'ABS-103',
+    name: 'Sany Nisfi',
+    username: 'sany-sales',
+    role: 'SALES',
+    type: 'Check-In',
+    waktu: '08:45:00',
+    tanggal: '2026-08-31',
+    timestamp: '2026-08-31T08:45:00.000Z',
+    latitude: -6.9300,
+    longitude: 107.6250,
+    lokasiNama: 'Outlet Saren One Express, Bandung',
+    keterangan: 'Check-in lokasi outlet',
+    foto: ''
+  },
+  {
+    id: 'ABS-104',
+    name: 'Taupika Wirdan',
+    username: 'wirdan-sales',
+    role: 'SALES',
+    type: 'Check-Out',
+    waktu: '17:00:15',
+    tanggal: '2026-08-31',
+    timestamp: '2026-08-31T17:00:15.000Z',
+    latitude: -6.9175,
+    longitude: 107.6191,
+    lokasiNama: 'Toko Berkah Frozen, Bandung',
+    keterangan: 'Selesai kunjungan & rekap pesanan',
+    foto: ''
+  }
+];
 export const INITIAL_RIWAYAT_PRODUKSI = [];
+export const INITIAL_HASIL_PRODUKSI = [
+  {
+    id: 'YIELD-INIT-1',
+    tanggal: '2026-08-01',
+    produkId: 'P14',
+    kode: 'SCM 500',
+    alias: 'SCM 500',
+    produkNama: 'Sosis Cocktail Merah 500g',
+    brand: 'EATGOW',
+    jumlahPcs: 120,
+    satuan: 'pack',
+    harga: 33000,
+    hppPerPack: 22627,
+    catatan: 'Hasil Produksi Harian',
+    timestamp: '2026-08-01 08:30'
+  },
+  {
+    id: 'YIELD-INIT-2',
+    tanggal: '2026-08-01',
+    produkId: 'P15',
+    kode: 'SCM 900',
+    alias: 'SCM 900',
+    produkNama: 'Sosis Cocktail Merah 900g',
+    brand: 'EATGOW',
+    jumlahPcs: 80,
+    satuan: 'pack',
+    harga: 62500,
+    hppPerPack: 43534,
+    catatan: 'Hasil Produksi Harian',
+    timestamp: '2026-08-01 08:30'
+  }
+];
 
 // Definisi Resmi Stok Akhir Juli (Stok Awal per 1 Agustus 2026)
 export const STOCK_AWAL_JULI = {
@@ -92,7 +222,9 @@ export const STOCK_AWAL_JULI = {
   BB53: 0,
   BB54: 115.57,
   BB55: 3.575,
-  BB56: 9.22
+  BB56: 9.22,
+  BB60: 5000,
+  BB61: 5000
 };
 
 // Master Initial Unit Price Dictionary (H. AWAL per SKU BB1..BB56)
@@ -244,6 +376,60 @@ export function getBahanSatuan(b) {
   return 'kg';
 }
 
+export const KATEGORI_MASTER_SKU = {
+  BB1: 'Daging & Protein',  BB2: 'Daging & Protein',  BB3: 'Daging & Protein',  BB4: 'Daging & Protein',
+  BB5: 'Emulsi & Adonan',   BB6: 'Daging & Protein',  BB7: 'Minyak & Olahan',   BB8: 'Air & Es',
+  BB9: 'Tepung & Pati',    BB10: 'Tepung & Pati',   BB11: 'Tepung & Pati',   BB12: 'Bumbu & Rempah',
+  BB13: 'Bumbu & Rempah',   BB14: 'Bumbu & Rempah',   BB15: 'Bumbu & Rempah',   BB16: 'Bumbu & Rempah',
+  BB17: 'Bumbu & Rempah',   BB18: 'Bumbu & Rempah',   BB19: 'Bumbu & Rempah',   BB20: 'Bumbu & Rempah',
+  BB21: 'Bumbu & Rempah',   BB22: 'Bumbu & Rempah',   BB23: 'Bumbu & Rempah',   BB24: 'Bumbu & Rempah',
+
+  // Casing Sosis Devro (roll)
+  BB25: 'Kemasan & Casing', BB26: 'Kemasan & Casing', BB27: 'Kemasan & Casing', BB28: 'Kemasan & Casing', BB29: 'Kemasan & Casing',
+
+  // Kantong Plastik Vacuum (pcs)
+  BB30: 'Kemasan & Plastik', BB31: 'Kemasan & Plastik', BB32: 'Kemasan & Plastik', BB33: 'Kemasan & Plastik', BB34: 'Kemasan & Plastik',
+
+  // Sticker & Label (pcs)
+  BB35: 'Sticker & Label',   BB36: 'Sticker & Label',
+
+  // Keju & Additives
+  BB37: 'Keju & Spesial',    BB38: 'Bumbu & Additive', BB39: 'Bumbu & Additive', BB40: 'Bumbu & Additive',
+  BB41: 'Bumbu & Additive',  BB42: 'Bumbu & Additive', BB43: 'Bumbu & Additive',
+
+  // Dus Box, Lakban & Kemasan
+  BB44: 'Kemasan Dus & Box', BB45: 'Kemasan Dus & Box', BB46: 'Lakban & Perlengkapan', BB47: 'Lakban & Perlengkapan',
+  BB48: 'Kemasan Dus & Box', BB49: 'Kemasan Dus & Box', BB50: 'Kemasan Dus & Box',     BB51: 'Kemasan Dus & Box',
+  BB52: 'Kemasan Dus & Box', BB53: 'Lakban & Perlengkapan', BB54: 'Kemasan Dus & Box', BB55: 'Kemasan Dus & Box',
+  BB56: 'Kemasan Dus & Box'
+};
+
+export function getBahanKategori(b) {
+  if (!b) return 'Bahan Baku';
+  const bSku = String(b.sku || b.kode || '').trim().toUpperCase();
+  const rawKat = String(b.kategori || '').trim();
+
+  // 1. Explicit property from material object (from user edit or Excel import)
+  if (rawKat.length > 0) {
+    return rawKat;
+  }
+
+  // 2. localStorage backup from Excel import
+  if (bSku) {
+    const localKategori = localStorage.getItem(`KATEGORI_${bSku}`);
+    if (localKategori && localKategori.trim().length > 0) {
+      return localKategori.trim();
+    }
+  }
+
+  // 3. SKU Master dictionary fallback
+  if (bSku && KATEGORI_MASTER_SKU[bSku]) {
+    return KATEGORI_MASTER_SKU[bSku];
+  }
+
+  return 'Bahan Baku';
+}
+
 export const INITIAL_PRODUK_MASTER = [
   { id: 'P1', kode: 'P1', sku: 'P1', alias: 'RCS 250', brand: 'SAREN ONE', nama: 'Red Cocktail Sausage 250g', satuan: 'pack', harga: 20500 },
   { id: 'P2', kode: 'P2', sku: 'P2', alias: 'RCS 500', brand: 'SAREN ONE', nama: 'Red Cocktail Sausage 500g', satuan: 'pack', harga: 36500 },
@@ -286,3 +472,51 @@ export const INITIAL_PRODUK_MASTER = [
   { id: 'P47', kode: 'P47', sku: 'P47', alias: 'RCH 500', brand: 'SAREN ONE', nama: 'Red Cocktail Horeca 500g', satuan: 'pack', harga: 33000 },
   { id: 'P48', kode: 'P48', sku: 'P48', alias: 'RCH 900', brand: 'SAREN ONE', nama: 'Red Cocktail Horeca 900g', satuan: 'pack', harga: 57500 }
 ];
+
+export function getDefaultPackagingForProduct(p) {
+  const nameLower = (p.nama || p.alias || '').toLowerCase();
+  let vacumSku = 'BB32';
+  let vacumNama = 'Vacumbag 20*25';
+
+  if (nameLower.includes('250') || nameLower.includes('300')) {
+    vacumSku = 'BB30';
+    vacumNama = 'Vacumbag 15*25';
+  } else if (nameLower.includes('900')) {
+    vacumSku = 'BB31';
+    vacumNama = 'Vacumbag 25*30';
+  } else if (nameLower.includes('1000') || nameLower.includes('1kg') || nameLower.includes('kg')) {
+    vacumSku = 'BB34';
+    vacumNama = 'Vacumbag 23*34';
+  }
+
+  return {
+    vacumbagSku: vacumSku,
+    vacumbagNama: vacumNama,
+    stickerBarcodeSku: 'BB60',
+    stickerBarcodeNama: 'Sticker Barcode',
+    stickerProdukSku: 'BB61',
+    stickerProdukNama: 'Sticker Produk'
+  };
+}
+
+export const DEFAULT_PRODUK_KEMASAN_MAP = (() => {
+  const map = {};
+  INITIAL_PRODUK_MASTER.forEach(p => {
+    const rule = getDefaultPackagingForProduct(p);
+    map[p.id] = rule;
+    if (p.alias) map[p.alias] = rule;
+    if (p.sku) map[p.sku] = rule;
+    if (p.kode) map[p.kode] = rule;
+  });
+  return map;
+})();
+
+export function getProdukKemasanMap() {
+  try {
+    const saved = localStorage.getItem('SAREN_PRODUK_KEMASAN_MAP');
+    if (saved) {
+      return { ...DEFAULT_PRODUK_KEMASAN_MAP, ...JSON.parse(saved) };
+    }
+  } catch (e) {}
+  return DEFAULT_PRODUK_KEMASAN_MAP;
+}

@@ -321,6 +321,13 @@ export async function createUtangSupplierApi(data, activeUser) {
   });
 }
 
+export async function updateUtangSupplierApi(id, data, activeUser) {
+  return request(`/utang-supplier/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ ...data, user: activeUser })
+  });
+}
+
 export async function payUtangSupplierApi(id, data, activeUser) {
   return request(`/utang-supplier/${id}/pay`, {
     method: 'POST',
@@ -612,6 +619,23 @@ export async function deleteHppApi(id) {
   });
 }
 
+export async function getHasilProduksiApi() {
+  return request('/produksi/hasil');
+}
+
+export async function saveHasilProduksiApi(data) {
+  return request('/produksi/hasil', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+}
+
+export async function deleteHasilProduksiApi(id) {
+  return request(`/produksi/hasil/${id}`, {
+    method: 'DELETE'
+  });
+}
+
 // 20. AUDIT STOK FISIK & PENYESUAIAN SUSUT ENDPOINTS
 export async function getAuditStokListApi(bulan = '') {
   const query = bulan ? `?bulan=${bulan}` : '';
@@ -641,6 +665,17 @@ export async function deleteAuditStokBatchApi(ids) {
   return request('/audit-stok/delete-batch', {
     method: 'POST',
     body: JSON.stringify({ ids })
+  });
+}
+
+export async function fetchProdukKemasanMapApi() {
+  return request('/produk/kemasan-map');
+}
+
+export async function saveProdukKemasanMapApi(mapping, user) {
+  return request('/produk/kemasan-map', {
+    method: 'POST',
+    body: JSON.stringify({ mapping, user })
   });
 }
 

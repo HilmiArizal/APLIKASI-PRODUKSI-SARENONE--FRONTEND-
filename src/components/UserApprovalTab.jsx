@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { UserCheck, Check, X, Trash2, Clock, ShieldCheck, UserPlus, Search, Edit, Edit3, Filter, Users, ShieldAlert, Sparkles } from 'lucide-react';
 import PasswordStrengthChecker from './PasswordStrengthChecker';
 
@@ -119,144 +120,197 @@ export default function UserApprovalTab({ users, onApproveUser, onRejectUser, on
   };
 
   return (
-    <div className="tab-pane active">
-      {/* Top Banner & Title */}
-
+    <div className="tab-pane active" style={{ maxWidth: '100%', overflowX: 'hidden', color: '#1e293b' }}>
       {/* Summary KPI Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem', marginBottom: '1.5rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.65rem', marginBottom: '0.75rem' }}>
         {/* Card 1 */}
-        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderLeft: '4px solid #6366f1', borderRadius: 'var(--radius-md)', padding: '1.25rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div style={{ background: 'rgba(99, 102, 241, 0.12)', color: '#6366f1', width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Users size={24} />
+        <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderLeft: '4px solid #6366f1', borderRadius: '10px', padding: '0.65rem 0.85rem', display: 'flex', alignItems: 'center', gap: '0.65rem', boxShadow: '0 3px 10px rgba(0,0,0,0.03)' }}>
+          <div style={{ background: '#e0e7ff', color: '#4338ca', width: '32px', height: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Users size={16} />
           </div>
           <div>
-            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>TOTAL PENGGUNA</div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#1f2d3d', lineHeight: 1.2, margin: '0.15rem 0' }}>{users.length}</div>
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Akun Super Admin &amp; Staf</div>
+            <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.03em' }}>TOTAL PENGGUNA</div>
+            <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', lineHeight: 1.1 }}>{users.length}</div>
+            <div style={{ fontSize: '0.68rem', color: '#64748b' }}>Akun Super Admin &amp; Staf</div>
           </div>
         </div>
 
         {/* Card 2 */}
-        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderLeft: '4px solid var(--amber)', borderRadius: 'var(--radius-md)', padding: '1.25rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div style={{ background: 'rgba(245, 158, 11, 0.12)', color: 'var(--amber)', width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Clock size={24} />
+        <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderLeft: '4px solid #f59e0b', borderRadius: '10px', padding: '0.65rem 0.85rem', display: 'flex', alignItems: 'center', gap: '0.65rem', boxShadow: '0 3px 10px rgba(0,0,0,0.03)' }}>
+          <div style={{ background: '#fef3c7', color: '#b45309', width: '32px', height: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Clock size={16} />
           </div>
           <div>
-            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>ANTREAN ACC</div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: pendingUsers.length > 0 ? 'var(--amber)' : '#1f2d3d', lineHeight: 1.2, margin: '0.15rem 0' }}>
+            <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.03em' }}>ANTREAN ACC</div>
+            <div style={{ fontSize: '1.25rem', fontWeight: 900, color: pendingUsers.length > 0 ? '#d97706' : '#0f172a', lineHeight: 1.1 }}>
               {pendingUsers.length}
             </div>
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+            <div style={{ fontSize: '0.68rem', color: '#64748b' }}>
               {pendingUsers.length > 0 ? '⚠️ Perlu ACC Admin' : 'Tidak ada antrean'}
             </div>
           </div>
         </div>
 
         {/* Card 3 */}
-        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderLeft: '4px solid var(--emerald)', borderRadius: 'var(--radius-md)', padding: '1.25rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div style={{ background: 'rgba(16, 185, 129, 0.12)', color: 'var(--emerald)', width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <ShieldCheck size={24} />
+        <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderLeft: '4px solid #10b981', borderRadius: '10px', padding: '0.65rem 0.85rem', display: 'flex', alignItems: 'center', gap: '0.65rem', boxShadow: '0 3px 10px rgba(0,0,0,0.03)' }}>
+          <div style={{ background: '#d1fae5', color: '#047857', width: '32px', height: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <ShieldCheck size={16} />
           </div>
           <div>
-            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>PENGGUNA AKTIF</div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--emerald)', lineHeight: 1.2, margin: '0.15rem 0' }}>{verifiedUsers.length}</div>
-            <div style={{ fontSize: '0.78rem', color: 'var(--emerald)', fontWeight: 600 }}>Terverifikasi &amp; Aktif</div>
+            <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.03em' }}>PENGGUNA AKTIF</div>
+            <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#059669', lineHeight: 1.1 }}>{verifiedUsers.length}</div>
+            <div style={{ fontSize: '0.68rem', color: '#059669', fontWeight: 700 }}>Terverifikasi &amp; Aktif</div>
           </div>
         </div>
       </div>
 
-      <div className="tab-header" style={{ marginBottom: '1.25rem' }}>
-        <button className="btn btn-primary" onClick={() => setIsModalCreateOpen(true)}>
-          <UserPlus size={16} /> Buat Akun Staf Baru
+      <div style={{ marginBottom: '0.75rem', display: 'flex', justifyContent: 'flex-start' }}>
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={() => setIsModalCreateOpen(true)}
+          style={{ height: '32px', fontSize: '0.78rem', fontWeight: 800, padding: '0 0.85rem', borderRadius: '6px', boxShadow: '0 3px 10px rgba(2, 132, 199, 0.3)', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+        >
+          <UserPlus size={14} /> Buat Akun Staf Baru
         </button>
       </div>
 
       {/* Main Users Table Directory */}
-      <div className="table-container">
+      <div className="table-container" style={{ background: '#ffffff', borderRadius: '10px', border: '1px solid #cbd5e1', boxShadow: '0 3px 10px rgba(0,0,0,0.03)' }}>
         <div style={{ overflowX: 'auto', width: '100%' }}>
-          <table className="custom-table" style={{ width: '100%', minWidth: '980px' }}>
+          <table className="custom-table" style={{ width: '100%', fontSize: '0.72rem', borderCollapse: 'separate', borderSpacing: 0 }}>
             <thead>
-              <tr>
-                <th style={{ minWidth: '250px' }}>PROFIL PENGGUNA</th>
-                <th style={{ minWidth: '150px' }}>METODE LOGIN</th>
-                <th style={{ minWidth: '170px' }}>ROLE / PERAN AKTIF</th>
-                <th style={{ minWidth: '150px' }}>STATUS VERIFIKASI</th>
-                <th style={{ minWidth: '150px' }}>TANGGAL DAFTAR</th>
-                <th style={{ minWidth: '160px', textAlign: 'right' }}>AKSI MANAJEMEN ADMIN</th>
+              <tr style={{ background: '#f8fafc' }}>
+                <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', whiteSpace: 'nowrap' }}>PROFIL PENGGUNA</th>
+                <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', whiteSpace: 'nowrap' }}>METODE LOGIN</th>
+                <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', whiteSpace: 'nowrap' }}>ROLE / PERAN AKTIF</th>
+                <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', whiteSpace: 'nowrap' }}>STATUS VERIFIKASI</th>
+                <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', whiteSpace: 'nowrap' }}>TANGGAL DAFTAR</th>
+                <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', textAlign: 'right', whiteSpace: 'nowrap' }}>AKSI MANAJEMEN ADMIN</th>
               </tr>
             </thead>
             <tbody>
               {filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+                  <td colSpan={6} style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>
                     Tidak ada data pengguna yang sesuai dengan filter pencarian.
                   </td>
                 </tr>
               ) : (
                 filteredUsers.map(u => (
-                  <tr key={u.id || u._id}>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <div className="avatar-icon" style={{ width: '36px', height: '36px', fontSize: '0.95rem', fontWeight: 800 }}>
+                  <tr key={u.id || u._id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '0.32rem 0.55rem', whiteSpace: 'nowrap' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <div className="avatar-icon" style={{ width: '28px', height: '28px', fontSize: '0.74rem', fontWeight: 800, borderRadius: '50%', background: '#0284c7', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           {u.name ? u.name.charAt(0).toUpperCase() : 'U'}
                         </div>
                         <div>
-                          <strong style={{ color: '#1f2d3d', fontSize: '0.9rem', display: 'block' }}>{u.name}</strong>
-                          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                          <strong style={{ color: '#0f172a', fontSize: '0.74rem', display: 'block' }}>{u.name}</strong>
+                          <div style={{ fontSize: '0.68rem', color: '#64748b' }}>
                             {u.email} (@{u.username})
                           </div>
                         </div>
                       </div>
                     </td>
-                    <td>
+                    <td style={{ padding: '0.32rem 0.55rem', whiteSpace: 'nowrap' }}>
                       {u.googleId ? (
-                        <span className="badge badge-cyan">Google Auth</span>
+                        <span style={{ background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd', fontSize: '0.68rem', fontWeight: 800, padding: '0.12rem 0.45rem', borderRadius: '5px', display: 'inline-block' }}>
+                          Google Auth
+                        </span>
                       ) : (
-                        <span className="badge badge-emerald">Manual Password</span>
+                        <span style={{ background: '#d1fae5', color: '#047857', border: '1px solid #a7f3d0', fontSize: '0.68rem', fontWeight: 800, padding: '0.12rem 0.45rem', borderRadius: '5px', display: 'inline-block' }}>
+                          Manual Password
+                        </span>
                       )}
                     </td>
-                    <td>
-                      <span className={`badge ${getRoleBadgeClass(u.role || u.requestedRole)}`}>
+                    <td style={{ padding: '0.32rem 0.55rem', whiteSpace: 'nowrap' }}>
+                      <span className={`badge ${getRoleBadgeClass(u.role || u.requestedRole)}`} style={{ fontSize: '0.68rem', fontWeight: 800, padding: '0.12rem 0.45rem', borderRadius: '5px' }}>
                         {getRoleLabel(u.role || u.requestedRole)}
                       </span>
                     </td>
-                    <td>
+                    <td style={{ padding: '0.32rem 0.55rem', whiteSpace: 'nowrap' }}>
                       {u.status === 'PENDING' ? (
-                        <span className="status-badge status-warning">⏳ Pending ACC</span>
+                        <span style={{ background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a', fontSize: '0.68rem', fontWeight: 800, padding: '0.12rem 0.45rem', borderRadius: '5px', display: 'inline-block' }}>
+                          ⏳ Pending ACC
+                        </span>
                       ) : u.status === 'VERIFIED' ? (
-                        <span className="status-badge status-safe">✓ Terverifikasi</span>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#059669', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
+                          ✓ Terverifikasi
+                        </span>
                       ) : (
-                        <span className="status-badge status-danger">✕ Ditolak</span>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#ef4444', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
+                          ✕ Ditolak
+                        </span>
                       )}
                     </td>
-                    <td className="text-muted" style={{ fontSize: '0.78rem', whiteSpace: 'nowrap' }}>{u.createdAt}</td>
-                    <td style={{ textAlign: 'right' }}>
-                      <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'flex-end' }}>
+                    <td style={{ padding: '0.32rem 0.55rem', fontSize: '0.72rem', color: '#475569', whiteSpace: 'nowrap' }}>{u.createdAt}</td>
+                    <td style={{ padding: '0.32rem 0.55rem', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                      <div style={{ display: 'flex', gap: '0.3rem', justifyContent: 'flex-end' }}>
                         {u.status === 'PENDING' && (
                           <button
-                            className="btn btn-sm btn-emerald"
+                            type="button"
+                            style={{
+                              background: '#ecfdf5',
+                              color: '#059669',
+                              border: '1px solid #a7f3d0',
+                              borderRadius: '5px',
+                              fontWeight: 700,
+                              fontSize: '0.68rem',
+                              padding: '0 0.45rem',
+                              height: '24px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.25rem',
+                              cursor: 'pointer'
+                            }}
                             onClick={() => onApproveUser(u.id || u._id, u.requestedRole || 'BAHAN_BAKU')}
                             title="ACC & Verifikasi Akun Ini"
                           >
-                            <Check size={14} /> ACC
+                            <Check size={12} /> ACC
                           </button>
                         )}
 
                         <button
-                          className="btn btn-sm btn-outline"
+                          type="button"
+                          style={{
+                            background: '#f0f9ff',
+                            color: '#0284c7',
+                            border: '1px solid #bae6fd',
+                            borderRadius: '5px',
+                            width: '24px',
+                            height: '24px',
+                            padding: 0,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer'
+                          }}
                           onClick={() => handleOpenEdit(u)}
                           title="Ubah Role Staf"
                         >
-                          <Edit3 size={14} />
+                          <Edit3 size={12} />
                         </button>
 
                         {u.role !== 'ADMIN' && u.role !== 'ADMIN_PRODUK' && (
                           <button
-                            className="btn btn-sm btn-outline btn-danger"
+                            type="button"
+                            style={{
+                              background: '#fef2f2',
+                              color: '#ef4444',
+                              border: '1px solid #fecaca',
+                              borderRadius: '5px',
+                              width: '24px',
+                              height: '24px',
+                              padding: 0,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              cursor: 'pointer'
+                            }}
                             onClick={() => onDeleteUser(u.id || u._id)}
                             title="Hapus Akun Pengguna"
                           >
-                            <Trash2 size={14} />
+                            <Trash2 size={12} />
                           </button>
                         )}
                       </div>
@@ -270,42 +324,46 @@ export default function UserApprovalTab({ users, onApproveUser, onRejectUser, on
       </div>
 
       {/* Modal 1: Tambah Staf Baru oleh Admin */}
-      {isModalCreateOpen && (
-        <div className="modal-overlay" onClick={() => setIsModalCreateOpen(false)}>
-          <div className="modal-card" style={{ maxWidth: '480px' }} onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3><UserPlus size={20} style={{ color: 'var(--emerald)' }} /> Tambah Staf Baru</h3>
-              <button className="btn btn-outline btn-sm" onClick={() => setIsModalCreateOpen(false)}><X size={16} /></button>
+      {isModalCreateOpen && createPortal(
+        <div className="modal-overlay" onClick={() => setIsModalCreateOpen(false)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(6px)', padding: '1rem', boxSizing: 'border-box' }}>
+          <div className="modal-card" style={{ maxWidth: '480px', width: '100%', maxHeight: '85vh', display: 'flex', flexDirection: 'column', background: '#ffffff', borderRadius: '12px', border: '1px solid #cbd5e1', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.3)', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header" style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc', flexShrink: 0 }}>
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <UserPlus size={16} style={{ color: '#059669' }} /> Tambah Staf Baru
+              </h3>
+              <button type="button" className="btn btn-outline btn-sm" onClick={() => setIsModalCreateOpen(false)} style={{ height: '24px', width: '24px', padding: 0, borderRadius: '5px' }}>
+                <X size={14} />
+              </button>
             </div>
-            <form onSubmit={handleCreateSubmit}>
-              <div className="modal-body">
-                <div className="form-group">
-                  <label>Nama Lengkap Staf *</label>
-                  <input type="text" className="form-control" placeholder="Nama lengkap..." value={createName} onChange={(e) => setCreateName(e.target.value)} required />
+            <form onSubmit={handleCreateSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', margin: 0 }}>
+              <div className="modal-body" style={{ padding: '0.85rem 1rem', overflowY: 'auto', flex: 1 }}>
+                <div className="form-group" style={{ marginBottom: '0.55rem' }}>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#475569', marginBottom: '0.15rem', display: 'block' }}>Nama Lengkap Staf *</label>
+                  <input type="text" className="form-control" placeholder="Nama lengkap..." value={createName} onChange={(e) => setCreateName(e.target.value)} required style={{ height: '32px', fontSize: '0.78rem', padding: '0 0.6rem' }} />
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                  <div className="form-group">
-                    <label>Username *</label>
-                    <input type="text" className="form-control" placeholder="Username..." value={createUsername} onChange={(e) => setCreateUsername(e.target.value.replace(/\s+/g, ''))} required />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '0.55rem' }}>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#475569', marginBottom: '0.15rem', display: 'block' }}>Username *</label>
+                    <input type="text" className="form-control" placeholder="Username..." value={createUsername} onChange={(e) => setCreateUsername(e.target.value.replace(/\s+/g, ''))} required style={{ height: '32px', fontSize: '0.78rem', padding: '0 0.6rem' }} />
                   </div>
-                  <div className="form-group">
-                    <label>Email *</label>
-                    <input type="email" className="form-control" placeholder="Email aktif..." value={createEmail} onChange={(e) => setCreateEmail(e.target.value)} required />
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#475569', marginBottom: '0.15rem', display: 'block' }}>Email *</label>
+                    <input type="email" className="form-control" placeholder="Email aktif..." value={createEmail} onChange={(e) => setCreateEmail(e.target.value)} required style={{ height: '32px', fontSize: '0.78rem', padding: '0 0.6rem' }} />
                   </div>
                 </div>
 
-                <div className="form-group" style={{ position: 'relative' }}>
-                  <label>Kata Sandi Awal *</label>
-                  <input type={showCreatePass ? 'text' : 'password'} className="form-control" placeholder="Set kata sandi aman..." value={createPass} onChange={(e) => setCreatePass(e.target.value)} required />
+                <div className="form-group" style={{ position: 'relative', marginBottom: '0.55rem' }}>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#475569', marginBottom: '0.15rem', display: 'block' }}>Kata Sandi Awal *</label>
+                  <input type={showCreatePass ? 'text' : 'password'} className="form-control" placeholder="Set kata sandi aman..." value={createPass} onChange={(e) => setCreatePass(e.target.value)} required style={{ height: '32px', fontSize: '0.78rem', padding: '0 0.6rem' }} />
                 </div>
 
                 <PasswordStrengthChecker password={createPass} />
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '0.75rem' }}>
-                  <div className="form-group">
-                    <label>Penugasan Role / Divisi *</label>
-                    <select className="select-input" value={createRole} onChange={(e) => setCreateRole(e.target.value)} style={{ width: '100%' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '0.55rem' }}>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#475569', marginBottom: '0.15rem', display: 'block' }}>Penugasan Role / Divisi *</label>
+                    <select value={createRole} onChange={(e) => setCreateRole(e.target.value)} style={{ height: '34px', fontSize: '0.74rem', fontWeight: 700, width: '100%', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '0 0.5rem', background: '#ffffff', color: '#0f172a', outline: 'none', lineHeight: 'normal' }}>
                       <option value="BAHAN_BAKU">🏭 Tim Produksi (Bahan Baku)</option>
                       <option value="PEMBELIAN">🛒 Tim Pembelian (Bahan Baku)</option>
                       <option value="TIM_PENJUALAN">🛍️ Tim Penjualan (Produk)</option>
@@ -315,43 +373,65 @@ export default function UserApprovalTab({ users, onApproveUser, onRejectUser, on
                       <option value="ADMIN_PRODUK">🔑 Super Admin Produk</option>
                     </select>
                   </div>
-                  <div className="form-group">
-                    <label>Status Verifikasi *</label>
-                    <select className="select-input" value={createStatus} onChange={(e) => setCreateStatus(e.target.value)} style={{ width: '100%' }}>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#475569', marginBottom: '0.15rem', display: 'block' }}>Status Verifikasi *</label>
+                    <select value={createStatus} onChange={(e) => setCreateStatus(e.target.value)} style={{ height: '34px', fontSize: '0.74rem', fontWeight: 700, width: '100%', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '0 0.5rem', background: '#ffffff', color: '#0f172a', outline: 'none', lineHeight: 'normal' }}>
                       <option value="VERIFIED">✅ Terverifikasi (Langsung Aktif)</option>
                       <option value="PENDING">⏳ Pending ACC</option>
                     </select>
                   </div>
                 </div>
               </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setIsModalCreateOpen(false)}>Batal</button>
-                <button type="submit" className="btn btn-emerald"><Check size={16} /> Buat Akun Staf</button>
+              <div className="modal-footer" style={{ padding: '0.65rem 1rem', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '0.4rem', background: '#f8fafc', flexShrink: 0 }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setIsModalCreateOpen(false)} style={{ height: '32px', fontSize: '0.78rem', fontWeight: 800, padding: '0 0.75rem' }}>Batal</button>
+                <button type="submit" className="btn btn-emerald" style={{ height: '32px', fontSize: '0.78rem', fontWeight: 800, padding: '0 0.85rem', borderRadius: '6px', boxShadow: '0 3px 10px rgba(16, 185, 129, 0.3)', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}><Check size={14} /> Buat Akun Staf</button>
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Modal 2: Modal Ubah Role Pengguna */}
-      {isModalEditOpen && selectedUser && (
-        <div className="modal-overlay" onClick={() => setIsModalEditOpen(false)}>
-          <div className="modal-card" style={{ maxWidth: '440px' }} onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3><Edit size={20} style={{ color: 'var(--cyan)' }} /> Ubah Role Pengguna</h3>
-              <button className="btn btn-outline btn-sm" onClick={() => setIsModalEditOpen(false)}><X size={16} /></button>
+      {isModalEditOpen && selectedUser && createPortal(
+        <div className="modal-overlay" onClick={() => setIsModalEditOpen(false)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(6px)', padding: '1rem', boxSizing: 'border-box' }}>
+          <div className="modal-card" style={{ maxWidth: '440px', width: '100%', maxHeight: '85vh', display: 'flex', flexDirection: 'column', background: '#ffffff', borderRadius: '12px', border: '1px solid #cbd5e1', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.3)', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header" style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc', flexShrink: 0 }}>
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <Edit size={16} style={{ color: '#0284c7' }} /> Ubah Role Pengguna
+              </h3>
+              <button type="button" className="btn btn-outline btn-sm" onClick={() => setIsModalEditOpen(false)} style={{ height: '24px', width: '24px', padding: 0, borderRadius: '5px' }}>
+                <X size={14} />
+              </button>
             </div>
-            <form onSubmit={handleEditSubmit}>
-              <div className="modal-body">
-                <div style={{ background: 'var(--bg-secondary)', padding: '0.85rem', borderRadius: 'var(--radius-sm)', marginBottom: '1.25rem', border: '1px solid var(--border-color)' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Akun Target:</div>
-                  <div style={{ fontWeight: 700, fontSize: '1rem', color: '#fff' }}>{selectedUser.name}</div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>@{selectedUser.username} • {selectedUser.email || '-'}</div>
+            <form onSubmit={handleEditSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', margin: 0 }}>
+              <div className="modal-body" style={{ padding: '0.85rem 1rem', overflowY: 'auto', flex: 1 }}>
+                <div style={{ background: '#f8fafc', padding: '0.65rem 0.85rem', borderRadius: '8px', marginBottom: '0.85rem', border: '1px solid #e2e8f0' }}>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b' }}>Akun Target:</div>
+                  <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#0f172a', margin: '0.15rem 0' }}>{selectedUser.name}</div>
+                  <div style={{ fontSize: '0.74rem', color: '#475569', fontWeight: 600 }}>@{selectedUser.username} • {selectedUser.email || '-'}</div>
                 </div>
 
-                <div className="form-group">
-                  <label style={{ fontWeight: 700, marginBottom: '0.5rem', display: 'block' }}>Pilih Peran / Role Baru *</label>
-                  <select className="select-input" value={editRole} onChange={(e) => setEditRole(e.target.value)} style={{ width: '100%', padding: '0.75rem', fontSize: '0.9rem' }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#475569', marginBottom: '0.25rem', display: 'block' }}>Pilih Peran / Role Baru *</label>
+                  <select
+                    value={editRole}
+                    onChange={(e) => setEditRole(e.target.value)}
+                    style={{
+                      height: '34px',
+                      padding: '0 0.6rem',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      width: '100%',
+                      color: '#0f172a',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '6px',
+                      background: '#ffffff',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                      lineHeight: 'normal'
+                    }}
+                  >
                     <option value="BAHAN_BAKU">🏭 Tim Produksi (Bahan Baku)</option>
                     <option value="PEMBELIAN">🛒 Tim Pembelian (Bahan Baku)</option>
                     <option value="TIM_PENJUALAN">🛍️ Tim Penjualan (Produk)</option>
@@ -362,13 +442,14 @@ export default function UserApprovalTab({ users, onApproveUser, onRejectUser, on
                   </select>
                 </div>
               </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setIsModalEditOpen(false)}>Batal</button>
-                <button type="submit" className="btn btn-primary"><Check size={16} /> Simpan Role Baru</button>
+              <div className="modal-footer" style={{ padding: '0.65rem 1rem', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '0.4rem', background: '#f8fafc', flexShrink: 0 }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setIsModalEditOpen(false)} style={{ height: '32px', fontSize: '0.78rem', fontWeight: 800, padding: '0 0.75rem', borderRadius: '6px', background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1' }}>Batal</button>
+                <button type="submit" className="btn btn-primary" style={{ height: '32px', fontSize: '0.78rem', fontWeight: 800, padding: '0 0.85rem', borderRadius: '6px', background: '#0284c7', color: '#ffffff', border: 'none', boxShadow: '0 3px 10px rgba(2, 132, 199, 0.3)', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}><Check size={14} /> Simpan Role Baru</button>
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

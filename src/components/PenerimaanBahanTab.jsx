@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { PackageCheck, Truck, Search, Calendar, History, CheckCircle, Clock, Plus, Inbox, ShieldCheck } from 'lucide-react';
+import { PackageCheck, Truck, Search, Calendar, History, CheckCircle, Clock, Plus, Inbox, ShieldCheck, Edit3, Trash2 } from 'lucide-react';
 import { formatNumber } from '../data/initialData';
-import { ModalTerimaBahanSupplier, ModalRiwayatTerimaSupplier } from './Modals';
+import { ModalTerimaBahanSupplier, ModalRiwayatTerimaSupplier, ModalTambahUtangSupplier } from './Modals';
+import { ModernMonthPicker } from './ModernDatePicker';
 
 // Robust date parser to YYYY-MM format
 const parseYYYYMM = (dateStr) => {
@@ -28,6 +29,9 @@ export default function PenerimaanBahanTab({
   bahanBaku = [],
   activeRoleView,
   onReceiveBahan,
+  onCreateUtang,
+  onUpdateUtang,
+  onDeleteUtang,
   showAlert
 }) {
   const now = new Date();
@@ -39,7 +43,25 @@ export default function PenerimaanBahanTab({
   const [selectedUtangForReceive, setSelectedUtangForReceive] = useState(null);
   const [selectedUtangForHistory, setSelectedUtangForHistory] = useState(null);
 
-  const canReceive = (activeRoleView === 'ADMIN' || activeRoleView === 'BAHAN_BAKU' || activeRoleView === 'PEMBELIAN');
+  const [isTambahOpen, setIsTambahOpen] = useState(false);
+  const [editingUtang, setEditingUtang] = useState(null);
+
+  const isSuperAdmin = activeRoleView === 'ADMIN';
+
+  const handleOpenEdit = (item) => {
+    setEditingUtang(item);
+    setIsTambahOpen(true);
+  };
+
+  const handleSubmitUtangModal = async (formData) => {
+    if (editingUtang && onUpdateUtang) {
+      const targetId = editingUtang.id || editingUtang._id || editingUtang.noFaktur;
+      await onUpdateUtang(targetId, formData);
+    } else if (onCreateUtang) {
+      await onCreateUtang(formData);
+    }
+    setIsTambahOpen(false);
+  };
 
   // Filtered List
   const filteredList = utangList.filter(item => {
@@ -55,12 +77,10 @@ export default function PenerimaanBahanTab({
 
     const poMonth = parseYYYYMM(item.tanggalBeli);
     const hasReceiptInMonth = (item.riwayatPenerimaan || []).some(r => parseYYYYMM(r.tanggal) === selectedMonth);
-
-    // Barang yang belum selesai diterima (pending) dari bulan sebelumnya tetap ditampilkan pada bulan berjalan agar tim Gudang dapat melakukan verifikasi & restock
     const isPendingForRunningMonth = (statusPeng !== 'SUDAH DITERIMA' || sisaPending > 0) && selectedMonth === currentYM;
     const matchMonth = selectedMonth === 'semua' || poMonth === selectedMonth || hasReceiptInMonth || isPendingForRunningMonth;
 
-    const matchStatus = statusFilter === 'semua' ||
+    const matchStatus = statusFilter === 'semua' || 
                         (statusFilter === 'pending' && statusPeng !== 'SUDAH DITERIMA') ||
                         (statusFilter === 'diterima' && statusPeng === 'SUDAH DITERIMA');
     return matchSearch && matchMonth && matchStatus;
@@ -68,57 +88,27 @@ export default function PenerimaanBahanTab({
 
   return (
     <div className="tab-pane active">
-      {/* ===== PERIODE BULAN FILTER BAR ===== */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '1.25rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <Calendar size={15} style={{ color: 'var(--emerald)' }} /> Periode Bulan:
-          </span>
-          <input
-            type="month"
-            style={{
-              background: 'rgba(15, 23, 42, 0.85)',
-              border: '1px solid var(--emerald)',
-              color: '#f8fafc',
-              borderRadius: 'var(--radius-sm)',
-              padding: '0.45rem 0.75rem',
-              fontSize: '0.85rem',
-              fontWeight: '700',
-              outline: 'none',
-              cursor: 'pointer'
-            }}
-            value={selectedMonth === 'semua' ? currentYM : selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
-          />
-
-          <button
-            className={`btn btn-sm ${selectedMonth === currentYM ? 'btn-emerald' : 'btn-outline'}`}
-            onClick={() => setSelectedMonth(currentYM)}
-          >
-            Bulan Berjalan
-          </button>
-
-          <button
-            className={`btn btn-sm ${selectedMonth === 'semua' ? 'btn-emerald' : 'btn-outline'}`}
-            onClick={() => setSelectedMonth('semua')}
-          >
-            Semua Periode
-          </button>
-        </div>
+      {/* ===== PERIODE BULAN FILTER BAR (FAR LEFT / KIRI POSISI START) ===== */}
+      <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', marginBottom: '0.75rem' }}>
+        <ModernMonthPicker
+          value={selectedMonth}
+          onChange={(val) => setSelectedMonth(val)}
+          allowAll={true}
+        />
       </div>
 
       {/* Main Table Container */}
       <div className="table-container">
-        <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+        <div style={{ padding: '0.45rem 0.75rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
           <div>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 700 }}>Jurnal Penerimaan &amp; Pengiriman Bahan Baku</h3>
-            <span className="text-muted" style={{ fontSize: '0.78rem' }}>Klik "Restock / Terima" saat supplier mengirimkan barang mentah ke gudang. Periode: <strong>{selectedMonth === 'semua' ? 'Semua Bulan' : selectedMonth}</strong>.</span>
+            <h3 style={{ fontSize: '0.85rem', fontWeight: 800, margin: 0, lineHeight: 1.2 }}>Jurnal Penerimaan &amp; Pengiriman Bahan Baku</h3>
+            <span className="text-muted" style={{ fontSize: '0.68rem', display: 'block', marginTop: '0.1rem' }}>Klik "Restock / Terima" saat supplier mengirimkan barang mentah ke gudang. Periode: <strong>{selectedMonth === 'semua' ? 'Semua Bulan' : selectedMonth}</strong>.</span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
             <select
               className="select-input"
-              style={{ width: '175px', padding: '0.35rem 0.65rem', fontSize: '0.85rem' }}
+              style={{ width: '160px', padding: '0.25rem 0.55rem', fontSize: '0.78rem' }}
               value={statusFilter}
               onChange={e => setStatusFilter(e.target.value)}
             >
@@ -127,13 +117,14 @@ export default function PenerimaanBahanTab({
               <option value="diterima">Sudah Diterima Full</option>
             </select>
 
-            <div className="search-box" style={{ maxWidth: '280px' }}>
-              <Search size={16} />
+            <div className="search-box" style={{ maxWidth: '220px', padding: '0.25rem 0.55rem' }}>
+              <Search size={13} style={{ color: '#94a3b8' }} />
               <input
                 type="text"
-                placeholder="Cari Supplier, Faktur, Bahan..."
+                placeholder="Cari Supplier, Faktur..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
+                style={{ fontSize: '0.74rem' }}
               />
             </div>
           </div>
@@ -141,19 +132,19 @@ export default function PenerimaanBahanTab({
 
         <table className="custom-table">
           <thead>
-            <tr>
-              <th>FAKTUR &amp; SUPPLIER</th>
-              <th>BAHAN BAKU DIBELI</th>
-              <th>DITERIMA (FISIK)</th>
-              <th>SISA PENDING</th>
-              <th>STATUS PENGIRIMAN</th>
-              <th style={{ textAlign: 'center' }}>AKSI VERIFIKASI</th>
+            <tr style={{ background: '#f8fafc' }}>
+              <th style={{ padding: '0.45rem 0.95rem', whiteSpace: 'nowrap', fontSize: '0.72rem', letterSpacing: '0.03em' }}>NO FAKTUR &amp; SUPPLIER</th>
+              <th style={{ padding: '0.45rem 0.95rem', whiteSpace: 'nowrap', fontSize: '0.72rem', letterSpacing: '0.03em' }}>BAHAN BAKU DIBELI</th>
+              <th style={{ padding: '0.45rem 0.95rem', whiteSpace: 'nowrap', fontSize: '0.72rem', letterSpacing: '0.03em' }}>DITERIMA (FISIK)</th>
+              <th style={{ padding: '0.45rem 0.95rem', whiteSpace: 'nowrap', fontSize: '0.72rem', letterSpacing: '0.03em' }}>SISA PENDING</th>
+              <th style={{ padding: '0.45rem 0.95rem', whiteSpace: 'nowrap', fontSize: '0.72rem', letterSpacing: '0.03em' }}>STATUS PENGIRIMAN</th>
+              <th style={{ padding: '0.45rem 0.95rem', whiteSpace: 'nowrap', fontSize: '0.72rem', textAlign: 'center' }}>AKSI VERIFIKASI</th>
             </tr>
           </thead>
           <tbody>
             {filteredList.length === 0 ? (
               <tr>
-                <td colSpan={6} style={{ textAlign: 'center', padding: '2.5rem' }} className="text-muted">
+                <td colSpan={6} style={{ textAlign: 'center', padding: '2rem' }} className="text-muted">
                   Belum ada faktur pengiriman bahan baku yang tercatat pada periode {selectedMonth}.
                 </td>
               </tr>
@@ -176,60 +167,141 @@ export default function PenerimaanBahanTab({
                 }
 
                 return (
-                  <tr key={item.id}>
-                    <td>
-                      <div style={{ fontWeight: 700, color: 'var(--primary)' }}>{item.noFaktur}</div>
-                      <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1f2d3d' }}>{item.supplier}</div>
-                      <div className="text-muted" style={{ fontSize: '0.72rem' }}>Tgl Order: {item.tanggalBeli}</div>
-                      <div style={{ fontSize: '0.72rem', fontWeight: 600, color: diterimQty > 0 ? 'var(--emerald)' : 'var(--amber)', marginTop: '0.15rem' }}>
-                        📥 Tgl Terima: {diterimQty > 0 ? (tglTerimaTerakhir || item.tanggalBeli) : 'Belum Diterima'}
+                  <tr key={item.id || item._id || item.noFaktur} style={{ fontSize: '0.74rem' }}>
+                    <td style={{ padding: '0.35rem 0.95rem', whiteSpace: 'nowrap' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontWeight: 700, color: 'var(--primary)', fontSize: '0.74rem' }}>{item.noFaktur}</span>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748b' }}>• {item.supplier}</span>
                       </div>
                     </td>
-                    <td>
-                      <div style={{ fontWeight: 600 }}>{item.bahanNama}</div>
-                      <div className="text-muted" style={{ fontSize: '0.78rem' }}>
-                        Order Pembelian: <strong>{formatNumber(totalBeli)} {item.satuan}</strong>
+                    <td style={{ padding: '0.35rem 0.95rem', whiteSpace: 'nowrap' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontWeight: 700, fontSize: '0.74rem', color: '#0f172a' }}>{item.bahanNama}</span>
+                        <span style={{ fontSize: '0.7rem', color: '#64748b' }}>({formatNumber(totalBeli)} {item.satuan})</span>
                       </div>
                     </td>
-                    <td>
-                      <div style={{ fontSize: '1rem', fontWeight: 800, color: diterimQty > 0 ? 'var(--emerald)' : 'var(--text-muted)' }}>
-                        {formatNumber(diterimQty)} <span style={{ fontSize: '0.78rem', fontWeight: 600 }}>{item.satuan}</span>
-                      </div>
+                    <td style={{ padding: '0.35rem 0.95rem', whiteSpace: 'nowrap' }}>
+                      <strong style={{ fontSize: '0.74rem', color: diterimQty > 0 ? 'var(--emerald)' : 'var(--text-muted)' }}>
+                        {formatNumber(diterimQty)} {item.satuan}
+                      </strong>
                     </td>
-                    <td>
-                      <div style={{ fontSize: '1rem', fontWeight: 800, color: sisaPending > 0 ? 'var(--amber)' : 'var(--emerald)' }}>
-                        {formatNumber(sisaPending)} <span style={{ fontSize: '0.78rem', fontWeight: 600 }}>{item.satuan}</span>
-                      </div>
+                    <td style={{ padding: '0.35rem 0.95rem', whiteSpace: 'nowrap' }}>
+                      <strong style={{ fontSize: '0.74rem', color: sisaPending > 0 ? 'var(--rose)' : 'var(--emerald)' }}>
+                        {formatNumber(sisaPending)} {item.satuan}
+                      </strong>
                     </td>
-                    <td>
+                    <td style={{ padding: '0.35rem 0.95rem', whiteSpace: 'nowrap' }}>
                       {isFullReceived ? (
-                        <span className="badge badge-emerald">✓ SUDAH DITERIMA FULL</span>
+                        <span className="badge badge-emerald" style={{ padding: '0.15rem 0.45rem', fontSize: '0.68rem', whiteSpace: 'nowrap' }}>✓ SUDAH DITERIMA FULL</span>
                       ) : diterimQty > 0 ? (
-                        <span className="badge badge-cyan">SEBAGIAN ({formatNumber(diterimQty)} {item.satuan})</span>
+                        <span className="badge badge-amber" style={{ padding: '0.15rem 0.45rem', fontSize: '0.68rem', whiteSpace: 'nowrap' }}>⏳ SEBAGIAN ({formatNumber(diterimQty)} {item.satuan})</span>
                       ) : (
-                        <span className="badge badge-amber">⏳ BELUM DITERIMA</span>
+                        <span className="badge badge-rose" style={{ padding: '0.15rem 0.45rem', fontSize: '0.68rem', whiteSpace: 'nowrap' }}>📦 BELUM DITERIMA</span>
                       )}
                     </td>
-                    <td style={{ textAlign: 'center' }}>
-                      <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'center' }}>
+                    <td style={{ padding: '0.3rem 0.75rem', whiteSpace: 'nowrap', textAlign: 'center' }}>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', justifyContent: 'center' }}>
                         {!isFullReceived && (
                           <button
+                            type="button"
                             className="btn btn-emerald btn-sm"
-                            style={{ padding: '0.35rem 0.75rem', fontSize: '0.78rem' }}
+                            style={{ padding: '0.22rem 0.55rem', fontSize: '0.72rem', height: '26px' }}
                             onClick={() => setSelectedUtangForReceive(item)}
                             title="Restock &amp; Verifikasi Penerimaan Fisik Barang Baku"
                           >
-                            <PackageCheck size={14} /> Restock / Terima
+                            <PackageCheck size={12} /> Restock / Terima
                           </button>
                         )}
                         <button
+                          type="button"
                           className="btn btn-outline btn-sm"
-                          style={{ padding: '0.35rem 0.6rem', fontSize: '0.75rem' }}
+                          style={{ padding: '0.22rem 0.55rem', fontSize: '0.72rem', height: '26px' }}
                           onClick={() => setSelectedUtangForHistory(item)}
                           title="Lihat Riwayat Penerimaan Barang"
                         >
-                          <History size={13} /> Riwayat
+                          <History size={12} />
                         </button>
+
+                        {/* SUPER ADMIN EDIT & HAPUS ACTION BUTTONS */}
+                        {isSuperAdmin && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEdit(item)}
+                              title="Edit Faktur Pembelian / Penerimaan"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: '26px',
+                                height: '26px',
+                                borderRadius: '6px',
+                                background: 'rgba(2, 132, 199, 0.08)',
+                                border: '1px solid rgba(2, 132, 199, 0.28)',
+                                color: '#0284c7',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease',
+                                outline: 'none'
+                              }}
+                              onMouseEnter={e => {
+                                e.currentTarget.style.background = 'linear-gradient(135deg, #0284c7 0%, #2563eb 100%)';
+                                e.currentTarget.style.color = '#ffffff';
+                                e.currentTarget.style.borderColor = '#0284c7';
+                                e.currentTarget.style.transform = 'scale(1.06)';
+                              }}
+                              onMouseLeave={e => {
+                                e.currentTarget.style.background = 'rgba(2, 132, 199, 0.08)';
+                                e.currentTarget.style.color = '#0284c7';
+                                e.currentTarget.style.borderColor = 'rgba(2, 132, 199, 0.28)';
+                                e.currentTarget.style.transform = 'scale(1)';
+                              }}
+                            >
+                              <Edit3 size={12} />
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const targetId = item.id || item._id || item.noFaktur;
+                                showAlert(
+                                  `Apakah Anda yakin ingin menghapus faktur ${item.noFaktur} (${item.supplier})?`,
+                                  'confirm',
+                                  'Konfirmasi Hapus Faktur',
+                                  () => onDeleteUtang && onDeleteUtang(targetId)
+                                );
+                              }}
+                              title="Hapus Faktur Pembelian / Penerimaan"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: '26px',
+                                height: '26px',
+                                borderRadius: '6px',
+                                background: 'rgba(244, 63, 94, 0.08)',
+                                border: '1px solid rgba(244, 63, 94, 0.28)',
+                                color: '#e11d48',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease',
+                                outline: 'none'
+                              }}
+                              onMouseEnter={e => {
+                                e.currentTarget.style.background = 'linear-gradient(135deg, #f43f5e 0%, #e11d48 100%)';
+                                e.currentTarget.style.color = '#ffffff';
+                                e.currentTarget.style.borderColor = '#e11d48';
+                                e.currentTarget.style.transform = 'scale(1.06)';
+                              }}
+                              onMouseLeave={e => {
+                                e.currentTarget.style.background = 'rgba(244, 63, 94, 0.08)';
+                                e.currentTarget.style.color = '#e11d48';
+                                e.currentTarget.style.borderColor = 'rgba(244, 63, 94, 0.28)';
+                                e.currentTarget.style.transform = 'scale(1)';
+                              }}
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -253,6 +325,14 @@ export default function PenerimaanBahanTab({
         isOpen={!!selectedUtangForHistory}
         onClose={() => setSelectedUtangForHistory(null)}
         utangRecord={selectedUtangForHistory}
+      />
+
+      <ModalTambahUtangSupplier
+        isOpen={isTambahOpen}
+        onClose={() => setIsTambahOpen(false)}
+        onSubmit={handleSubmitUtangModal}
+        bahanList={bahanBaku}
+        editingItem={editingUtang}
       />
     </div>
   );

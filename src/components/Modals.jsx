@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Save, ArrowDownLeft, Play, Plus, Edit3, Upload, Download, FileSpreadsheet, MinusCircle, Package, Calendar } from 'lucide-react';
+import { X, Save, ArrowDownLeft, Play, Plus, Edit3, Upload, Download, FileSpreadsheet, MinusCircle, Package, Calendar, ChevronDown, Check, Search } from 'lucide-react';
 import * as XLSX from 'xlsx';
-import { formatNumber, STOCK_AWAL_JULI, HARGA_AWAL_JULI, getSkuSortIndex, getBahanSatuan, INITIAL_PRODUK_MASTER } from '../data/initialData';
+import { formatNumber, STOCK_AWAL_JULI, HARGA_AWAL_JULI, getSkuSortIndex, getBahanSatuan, INITIAL_PRODUK_MASTER, DEFAULT_PRODUK_KEMASAN_MAP, getDefaultPackagingForProduct } from '../data/initialData';
 
 export function ModalBahan({ isOpen, onClose, onSave, editingItem, kategoriList = [], bahanList = [] }) {
   const [sku, setSku] = useState('');
@@ -536,10 +536,33 @@ export function ModalResepItem({ isOpen, onClose, onSave, bahanList, editingItem
   );
 }
 
-export function ModalImportBahanExcel({ isOpen, onClose, onImport, showAlert }) {
+export function ModalImportBahanExcel({ isOpen, onClose, onImport, onImportStokAwal, bahanBaku = [], showAlert }) {
+  const [importMode, setImportMode] = useState('master'); // 'master' or 'stok_awal'
   const [file, setFile] = useState(null);
   const [parsedData, setParsedData] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
+
+  const currentYearNum = new Date().getFullYear();
+  const currentMonthNum = new Date().getMonth() + 1;
+  const [selectedBulan, setSelectedBulan] = useState(String(currentMonthNum).padStart(2, '0'));
+  const [selectedTahun, setSelectedTahun] = useState(String(currentYearNum));
+
+  const bulanList = [
+    { code: '01', name: 'Januari' },
+    { code: '02', name: 'Februari' },
+    { code: '03', name: 'Maret' },
+    { code: '04', name: 'April' },
+    { code: '05', name: 'Mei' },
+    { code: '06', name: 'Juni' },
+    { code: '07', name: 'Juli' },
+    { code: '08', name: 'Agustus' },
+    { code: '09', name: 'September' },
+    { code: '10', name: 'Oktober' },
+    { code: '11', name: 'November' },
+    { code: '12', name: 'Desember' }
+  ];
+
+  const periodeKey = `${selectedTahun}-${selectedBulan}`;
 
   useEffect(() => {
     if (!isOpen) {
@@ -552,14 +575,48 @@ export function ModalImportBahanExcel({ isOpen, onClose, onImport, showAlert }) 
   if (!isOpen) return null;
 
   const handleDownloadTemplate = () => {
-    const templateData = [
-      { 'SKU': 'BB1', 'NAMA BAHAN BAKU': 'Daging Ayam', 'KATEGORI': 'Bahan Utama', 'HARGA (RP)': 45000, 'STOK': 50, 'STOK MINIMAL': 10, 'SATUAN': 'kg' },
-      { 'SKU': 'BB2', 'NAMA BAHAN BAKU': 'Daging Sapi', 'KATEGORI': 'Bahan Utama', 'HARGA (RP)': 110000, 'STOK': 25, 'STOK MINIMAL': 5, 'SATUAN': 'kg' }
-    ];
-    const ws = XLSX.utils.json_to_sheet(templateData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Template_Bahan_Baku');
-    XLSX.writeFile(wb, 'Template_Import_Bahan_Baku.xlsx');
+    if (importMode === 'master') {
+      const sortedBahan = [...(bahanBaku && bahanBaku.length > 0 ? bahanBaku : [])].sort((a, b) => getSkuSortIndex(a.sku) - getSkuSortIndex(b.sku));
+      let templateData = sortedBahan.map((b, idx) => ({
+        'SKU': b.sku || `BB${idx + 1}`,
+        'NAMA BAHAN BAKU': b.nama || '',
+        'KATEGORI': getBahanKategori(b),
+        'SATUAN': getBahanSatuan(b)
+      }));
+
+      if (templateData.length === 0) {
+        templateData = [
+          { 'SKU': 'BB1', 'NAMA BAHAN BAKU': 'Daging Ayam', 'KATEGORI': 'Daging & Protein', 'SATUAN': 'kg' },
+          { 'SKU': 'BB2', 'NAMA BAHAN BAKU': 'Tepung Tapioka', 'KATEGORI': 'Tepung & Pati', 'SATUAN': 'kg' },
+          { 'SKU': 'BB3', 'NAMA BAHAN BAKU': 'Garam', 'KATEGORI': 'Bumbu & Rempah', 'SATUAN': 'kg' },
+          { 'SKU': 'BB4', 'NAMA BAHAN BAKU': 'Vacumbag 20*25', 'KATEGORI': 'Kemasan & Plastik', 'SATUAN': 'pcs' }
+        ];
+      }
+
+      const ws = XLSX.utils.json_to_sheet(templateData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Template_Master_Bahan');
+      XLSX.writeFile(wb, 'Template_Import_Master_Bahan.xlsx');
+    } else {
+      const sortedBahan = [...(bahanBaku && bahanBaku.length > 0 ? bahanBaku : [])].sort((a, b) => getSkuSortIndex(a.sku) - getSkuSortIndex(b.sku));
+      const templateData = sortedBahan.map((b, idx) => {
+        const bSku = b.sku || `BB${idx + 1}`;
+        const hargaAwalVal = b.hargaAwal !== undefined && b.hargaAwal !== null ? b.hargaAwal : (HARGA_AWAL_JULI[bSku] !== undefined ? HARGA_AWAL_JULI[bSku] : b.harga || 0);
+
+        return {
+          'SKU': bSku,
+          'NAMA BAHAN BAKU': b.nama || '',
+          'SATUAN': getBahanSatuan(b),
+          'STOK AWAL BULAN': '',
+          'HARGA AWAL (RP)': hargaAwalVal
+        };
+      });
+
+      const ws = XLSX.utils.json_to_sheet(templateData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Template_Stok_Awal');
+      XLSX.writeFile(wb, `Template_Import_Stok_Awal_${periodeKey}.xlsx`);
+    }
   };
 
   const handleFileChange = (e) => {
@@ -576,34 +633,56 @@ export function ModalImportBahanExcel({ isOpen, onClose, onImport, showAlert }) 
         const ws = wb.Sheets[wsName];
         const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
 
-        const mapped = json.map((row, index) => {
-          const skuKey = Object.keys(row).find(k => k.toLowerCase().includes('sku') || k.toLowerCase().includes('kode')) || '';
-          const namaKey = Object.keys(row).find(k => k.toLowerCase().includes('nama') || k.toLowerCase().includes('bahan')) || '';
-          const katKey = Object.keys(row).find(k => k.toLowerCase().includes('kategori')) || '';
-          const hargaKey = Object.keys(row).find(k => k.toLowerCase().includes('harga') || k.toLowerCase().includes('price') || k.toLowerCase().includes('hpp')) || '';
-          const stokKey = Object.keys(row).find(k => k.toLowerCase() === 'stok' || k.toLowerCase().includes('stok saat ini')) || '';
-          const minKey = Object.keys(row).find(k => k.toLowerCase().includes('min') || k.toLowerCase().includes('batas')) || '';
-          const satKey = Object.keys(row).find(k => k.toLowerCase().includes('satuan')) || '';
+        if (importMode === 'master') {
+          const mapped = json.map((row, index) => {
+            const skuKey = Object.keys(row).find(k => k.toLowerCase().includes('sku') || k.toLowerCase().includes('kode')) || '';
+            const namaKey = Object.keys(row).find(k => k.toLowerCase().includes('nama') || k.toLowerCase().includes('bahan')) || '';
+            const katKey = Object.keys(row).find(k => k.toLowerCase().includes('kategori')) || '';
+            const satKey = Object.keys(row).find(k => k.toLowerCase().includes('satuan')) || '';
 
-          return {
-            id: index + 1,
-            sku: String(row[skuKey] || `BHN-${Math.floor(100 + Math.random() * 900)}`).trim(),
-            nama: String(row[namaKey] || '').trim(),
-            kategori: String(row[katKey] || 'Bahan Utama').trim(),
-            harga: parseFloat(row[hargaKey]) || 0,
-            stok: parseFloat(row[stokKey]) || 0,
-            minStok: parseFloat(row[minKey]) || 0,
-            satuan: String(row[satKey] || 'kg').trim()
-          };
-        }).filter(item => item.nama.length > 0 || item.sku.length > 0);
+            return {
+              id: index + 1,
+              sku: String(row[skuKey] || `BHN-${Math.floor(100 + Math.random() * 900)}`).trim(),
+              nama: String(row[namaKey] || '').trim(),
+              kategori: String(row[katKey] || 'Bahan Baku').trim(),
+              satuan: String(row[satKey] || 'kg').trim()
+            };
+          }).filter(item => item.nama.length > 0 || item.sku.length > 0);
 
-        if (mapped.length === 0) {
-          if (showAlert) showAlert('File Excel kosong atau format kolom tidak dikenali!', 'error', 'Format File Salah');
-          setParsedData([]);
-          return;
+          if (mapped.length === 0) {
+            if (showAlert) showAlert('File Excel kosong atau format kolom tidak dikenali!', 'error', 'Format File Salah');
+            setParsedData([]);
+            return;
+          }
+          setParsedData(mapped);
+        } else {
+          const mapped = json.map((row, index) => {
+            const skuKey = Object.keys(row).find(k => k.toLowerCase().includes('sku') || k.toLowerCase().includes('kode')) || '';
+            const namaKey = Object.keys(row).find(k => k.toLowerCase().includes('nama') || k.toLowerCase().includes('bahan')) || '';
+            const stokAwalKey = Object.keys(row).find(k => k.toLowerCase().includes('stok awal') || k.toLowerCase().includes('stok') || k.toLowerCase().includes('saldo awal')) || '';
+            const hargaAwalKey = Object.keys(row).find(k => k.toLowerCase().includes('harga awal') || k.toLowerCase().includes('harga') || k.toLowerCase().includes('hpp')) || '';
+            const satKey = Object.keys(row).find(k => k.toLowerCase().includes('satuan')) || '';
+
+            const rawStok = row[stokAwalKey];
+            const hasStok = rawStok !== undefined && rawStok !== null && String(rawStok).trim() !== '';
+
+            return {
+              id: index + 1,
+              sku: String(row[skuKey] || '').trim(),
+              nama: String(row[namaKey] || '').trim(),
+              stokAwal: hasStok ? parseFloat(rawStok) : null,
+              hargaAwal: row[hargaAwalKey] !== undefined && row[hargaAwalKey] !== '' ? parseFloat(row[hargaAwalKey]) : null,
+              satuan: String(row[satKey] || 'kg').trim()
+            };
+          }).filter(item => item.sku.length > 0 || item.nama.length > 0);
+
+          if (mapped.length === 0) {
+            if (showAlert) showAlert('File Excel kosong atau format kolom tidak dikenali!', 'error', 'Format File Salah');
+            setParsedData([]);
+            return;
+          }
+          setParsedData(mapped);
         }
-
-        setParsedData(mapped);
       } catch (err) {
         if (showAlert) showAlert('Gagal membaca file Excel: ' + err.message, 'error', 'Error File');
       }
@@ -614,7 +693,11 @@ export function ModalImportBahanExcel({ isOpen, onClose, onImport, showAlert }) 
   const handleCommitImport = async () => {
     if (parsedData.length === 0) return;
     setIsProcessing(true);
-    await onImport(parsedData);
+    if (importMode === 'master') {
+      await onImport(parsedData);
+    } else if (onImportStokAwal) {
+      await onImportStokAwal(parsedData, periodeKey);
+    }
     setIsProcessing(false);
     onClose();
   };
@@ -623,29 +706,70 @@ export function ModalImportBahanExcel({ isOpen, onClose, onImport, showAlert }) 
     <div className="modal-overlay">
       <div className="modal-card" style={{ maxWidth: '720px' }}>
         <div className="modal-header" style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #dee2e6', background: '#ffffff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: '#1f2d3d', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <FileSpreadsheet size={22} style={{ color: '#28a745' }} /> Import Bahan Baku dari Excel / CSV
+          <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <FileSpreadsheet size={20} style={{ color: '#059669' }} /> Import Data Excel (Master &amp; Stok Awal)
           </h3>
           <button className="btn btn-outline btn-sm" onClick={onClose}><X size={16} /></button>
         </div>
+
         <div className="modal-body" style={{ padding: '1.25rem', background: '#ffffff', color: '#212529' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.1rem', flexWrap: 'wrap', gap: '0.75rem', background: '#f8f9fa', padding: '0.85rem 1rem', borderRadius: '6px', border: '1px solid #e9ecef' }}>
+          {/* TAB MODE SELECTOR */}
+          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', borderBottom: '2px solid #e2e8f0', paddingBottom: '0.5rem' }}>
+            <button
+              type="button"
+              className={`btn btn-sm ${importMode === 'master' ? 'btn-emerald' : 'btn-outline'}`}
+              style={{ fontWeight: 700, fontSize: '0.78rem' }}
+              onClick={() => { setImportMode('master'); setFile(null); setParsedData([]); }}
+            >
+              📋 Import Master Bahan Baku
+            </button>
+            <button
+              type="button"
+              className={`btn btn-sm ${importMode === 'stok_awal' ? 'btn-emerald' : 'btn-outline'}`}
+              style={{ fontWeight: 700, fontSize: '0.78rem' }}
+              onClick={() => { setImportMode('stok_awal'); setFile(null); setParsedData([]); }}
+            >
+              📊 Import Stok Awal Periode
+            </button>
+          </div>
+
+          {importMode === 'stok_awal' && (
+            <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '8px', padding: '0.75rem 1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#047857' }}>Pilih Periode Bulan &amp; Tahun:</span>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <select className="select-input" value={selectedBulan} onChange={e => setSelectedBulan(e.target.value)} style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem', fontWeight: 700 }}>
+                  {bulanList.map(b => (
+                    <option key={b.code} value={b.code}>{b.name}</option>
+                  ))}
+                </select>
+                <select className="select-input" value={selectedTahun} onChange={e => setSelectedTahun(e.target.value)} style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem', fontWeight: 700 }}>
+                  <option value="2025">2025</option>
+                  <option value="2026">2026</option>
+                  <option value="2027">2027</option>
+                </select>
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.1rem', flexWrap: 'wrap', gap: '0.75rem', background: '#f8fafc', padding: '0.85rem 1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
             <div>
-              <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#1f2d3d' }}>Petunjuk Format File</div>
-              <p className="text-muted" style={{ fontSize: '0.8rem', margin: 0, color: '#6c757d' }}>
-                Gunakan template spreadsheet resmi agar kolom SKU, Nama, Kategori, Harga, &amp; Stok terbaca otomatis.
+              <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#0f172a' }}>Petunjuk Template Spreadsheet</div>
+              <p className="text-muted" style={{ fontSize: '0.78rem', margin: 0, color: '#64748b' }}>
+                {importMode === 'master'
+                  ? 'Gunakan template master 4 Kolom (SKU, NAMA BAHAN BAKU, KATEGORI, & SATUAN).'
+                  : `Unduh template stok awal pre-populated 56 SKU untuk periode ${periodeKey}.`}
               </p>
             </div>
-            <button className="btn btn-sm btn-emerald" onClick={handleDownloadTemplate} title="Unduh Contoh Format Excel" style={{ whiteSpace: 'nowrap' }}>
+            <button className="btn btn-sm btn-emerald" onClick={handleDownloadTemplate} title="Unduh Contoh Format Excel" style={{ whiteSpace: 'nowrap', fontSize: '0.78rem', fontWeight: 700 }}>
               <Download size={14} /> Unduh Template Excel
             </button>
           </div>
 
           {/* DYNAMIC DROPZONE FILE UPLOADER */}
           <div style={{
-            border: file ? '2px solid #28a745' : '2px dashed #007bff',
-            background: file ? '#f4fbf7' : '#f8f9fa',
-            borderRadius: '8px',
+            border: file ? '2px solid #059669' : '2px dashed #0284c7',
+            background: file ? '#ecfdf5' : '#f8fafc',
+            borderRadius: '10px',
             padding: '1.5rem 1rem',
             textAlign: 'center',
             cursor: 'pointer',
@@ -666,18 +790,18 @@ export function ModalImportBahanExcel({ isOpen, onClose, onImport, showAlert }) 
                 cursor: 'pointer'
               }}
             />
-            <Upload size={32} style={{ color: file ? '#28a745' : '#007bff', marginBottom: '0.5rem' }} />
+            <Upload size={32} style={{ color: file ? '#059669' : '#0284c7', marginBottom: '0.5rem' }} />
             {file ? (
               <div>
-                <div style={{ fontWeight: 700, color: '#155724', fontSize: '0.95rem' }}>✓ {file.name}</div>
-                <div style={{ fontSize: '0.78rem', color: '#6c757d', marginTop: '0.2rem' }}>
+                <div style={{ fontWeight: 700, color: '#047857', fontSize: '0.95rem' }}>✓ {file.name}</div>
+                <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '0.2rem' }}>
                   ({(file.size / 1024).toFixed(1)} KB) • <strong>{parsedData.length} baris data</strong> berhasil terbaca!
                 </div>
               </div>
             ) : (
               <div>
-                <div style={{ fontWeight: 700, color: '#1f2d3d', fontSize: '0.95rem' }}>Klik atau Seret File Excel (.xlsx / .csv) Ke Sini</div>
-                <div style={{ fontSize: '0.78rem', color: '#6c757d', marginTop: '0.2rem' }}>
+                <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.95rem' }}>Klik atau Seret File Excel (.xlsx / .csv) Ke Sini</div>
+                <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '0.2rem' }}>
                   Mendukung file spreadsheet format Microsoft Excel &amp; CSV
                 </div>
               </div>
@@ -686,34 +810,50 @@ export function ModalImportBahanExcel({ isOpen, onClose, onImport, showAlert }) 
 
           {parsedData.length > 0 && (
             <div className="mt-3">
-              <h4 style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: '#28a745', fontWeight: 700 }}>
-                ✓ Pratinjau Data ({parsedData.length} Baris Bahan Baku Ditemukan):
+              <h4 style={{ fontSize: '0.85rem', marginBottom: '0.5rem', color: '#059669', fontWeight: 800 }}>
+                ✓ Pratinjau Data ({parsedData.length} Baris Ditemukan):
               </h4>
-              <div className="table-container" style={{ maxHeight: '220px', overflowY: 'auto', border: '1px solid #dee2e6', borderRadius: '6px' }}>
+              <div className="table-container" style={{ maxHeight: '220px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
                 <table className="custom-table">
                   <thead>
-                    <tr>
-                      <th>#</th>
-                      <th>SKU</th>
-                      <th>NAMA BAHAN</th>
-                      <th>KATEGORI</th>
-                      <th>HARGA (RP)</th>
-                      <th>STOK</th>
-                      <th>MIN STOK</th>
-                      <th>SATUAN</th>
+                    <tr style={{ background: '#f8fafc' }}>
+                      <th style={{ padding: '0.4rem 0.65rem', fontSize: '0.72rem' }}>#</th>
+                      <th style={{ padding: '0.4rem 0.65rem', fontSize: '0.72rem' }}>SKU</th>
+                      <th style={{ padding: '0.4rem 0.65rem', fontSize: '0.72rem' }}>NAMA BAHAN</th>
+                      {importMode === 'master' ? (
+                        <>
+                          <th style={{ padding: '0.4rem 0.65rem', fontSize: '0.72rem' }}>KATEGORI</th>
+                        </>
+                      ) : (
+                        <>
+                          <th style={{ padding: '0.4rem 0.65rem', fontSize: '0.72rem' }}>STOK AWAL</th>
+                          <th style={{ padding: '0.4rem 0.65rem', fontSize: '0.72rem' }}>HARGA AWAL</th>
+                        </>
+                      )}
+                      <th style={{ padding: '0.4rem 0.65rem', fontSize: '0.72rem' }}>SATUAN</th>
                     </tr>
                   </thead>
                   <tbody>
                     {parsedData.map((row, idx) => (
-                      <tr key={idx}>
-                        <td>{idx + 1}</td>
-                        <td><span className="badge badge-cyan">{row.sku}</span></td>
-                        <td style={{ fontWeight: 600, color: '#1f2d3d' }}>{row.nama}</td>
-                        <td>{row.kategori}</td>
-                        <td style={{ fontWeight: 700, color: '#28a745' }}>Rp {formatNumber(row.harga)}</td>
-                        <td style={{ fontWeight: 700, color: '#007bff' }}>{row.stok}</td>
-                        <td className="text-muted">{row.minStok}</td>
-                        <td>{row.satuan}</td>
+                      <tr key={idx} style={{ fontSize: '0.74rem' }}>
+                        <td style={{ padding: '0.35rem 0.65rem' }}>{idx + 1}</td>
+                        <td style={{ padding: '0.35rem 0.65rem', fontWeight: 800, color: '#0f172a' }}>{row.sku}</td>
+                        <td style={{ padding: '0.35rem 0.65rem', fontWeight: 700, color: '#0f172a' }}>{row.nama}</td>
+                        {importMode === 'master' ? (
+                          <>
+                            <td style={{ padding: '0.35rem 0.65rem' }}>{row.kategori}</td>
+                          </>
+                        ) : (
+                          <>
+                            <td style={{ padding: '0.35rem 0.65rem', fontWeight: 800, color: '#059669' }}>
+                              {row.stokAwal !== null ? row.stokAwal : '-'}
+                            </td>
+                            <td style={{ padding: '0.35rem 0.65rem', fontWeight: 700, color: '#0f172a' }}>
+                              {row.hargaAwal !== null ? `Rp ${formatNumber(row.hargaAwal)}` : '-'}
+                            </td>
+                          </>
+                        )}
+                        <td style={{ padding: '0.35rem 0.65rem' }}>{row.satuan}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -723,16 +863,16 @@ export function ModalImportBahanExcel({ isOpen, onClose, onImport, showAlert }) 
           )}
         </div>
 
-        <div className="modal-footer" style={{ padding: '0.85rem 1.25rem', borderTop: '1px solid #dee2e6', background: '#f4f6f9', display: 'flex', justifyContent: 'flex-end', gap: '0.65rem' }}>
+        <div className="modal-footer" style={{ padding: '0.85rem 1.25rem', borderTop: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', justifyContent: 'flex-end', gap: '0.65rem' }}>
           <button type="button" className="btn btn-secondary" onClick={onClose}>Batal</button>
           <button
             type="button"
             className="btn btn-emerald"
             disabled={parsedData.length === 0 || isProcessing}
             onClick={handleCommitImport}
-            style={{ fontWeight: 700 }}
+            style={{ fontWeight: 700, fontSize: '0.78rem' }}
           >
-            {isProcessing ? 'Memproses Import...' : `Import ${parsedData.length} Data Bahan`}
+            {isProcessing ? 'Memproses Import...' : `Simpan ${parsedData.length} Data Import`}
           </button>
         </div>
       </div>
@@ -1582,7 +1722,7 @@ export function ModalPemakaianKemasan({ isOpen, onClose, onUseKemasan, bahanList
 // ----------------------------------------------------
 // MODAL TAMBAH UTANG / FAKTUR SUPPLIER BARU
 // ----------------------------------------------------
-export function ModalTambahUtangSupplier({ isOpen, onClose, bahanList = [], suppliersList = [], utangList = [], onSubmit, onOpenKelolaSupplier, showAlert }) {
+export function ModalTambahUtangSupplier({ isOpen, onClose, editingItem, bahanList = [], suppliersList = [], utangList = [], onSubmit, onOpenKelolaSupplier, showAlert }) {
   const [noFaktur, setNoFaktur] = useState('');
   const [supplier, setSupplier] = useState('');
   const [bahanId, setBahanId] = useState('');
@@ -1595,10 +1735,10 @@ export function ModalTambahUtangSupplier({ isOpen, onClose, bahanList = [], supp
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isDuplicateNoFaktur = React.useMemo(() => {
-    if (!noFaktur || !noFaktur.trim()) return false;
+    if (!noFaktur || !noFaktur.trim() || editingItem) return false;
     const clean = noFaktur.trim().toLowerCase();
     return (utangList || []).some(x => String(x.noFaktur || '').trim().toLowerCase() === clean);
-  }, [noFaktur, utangList]);
+  }, [noFaktur, utangList, editingItem]);
 
   const sortedBahanList = React.useMemo(() => {
     return [...bahanList].sort((a, b) => {
@@ -1611,25 +1751,36 @@ export function ModalTambahUtangSupplier({ isOpen, onClose, bahanList = [], supp
 
   useEffect(() => {
     if (isOpen) {
-      setNoFaktur('');
-      setSupplier(suppliersList.length > 0 ? suppliersList[0].nama : '');
-      if (sortedBahanList.length > 0) {
-        const firstB = sortedBahanList[0];
-        setBahanId(firstB.id || firstB._id || firstB.sku);
-        if (firstB.harga) setHargaSatuan(firstB.harga);
+      if (editingItem) {
+        setNoFaktur(editingItem.noFaktur || '');
+        setSupplier(editingItem.supplier || (suppliersList[0]?.nama || ''));
+        setBahanId(editingItem.bahanId || editingItem.sku || (sortedBahanList[0]?.id || ''));
+        setJumlah(editingItem.jumlah || 0);
+        setHargaSatuan(editingItem.hargaSatuan || 0);
+        setDp(editingItem.jumlahDibayar || 0);
+        setTanggal(editingItem.tanggalBeli || editingItem.tanggal || new Date().toISOString().split('T')[0]);
+        setJatuhTempo(editingItem.jatuhTempo || '');
+        setCatatan(editingItem.catatan || '');
+      } else {
+        setNoFaktur('');
+        setSupplier(suppliersList.length > 0 ? suppliersList[0].nama : '');
+        if (sortedBahanList.length > 0) {
+          const firstB = sortedBahanList[0];
+          setBahanId(firstB.id || firstB._id || firstB.sku);
+          if (firstB.harga) setHargaSatuan(firstB.harga);
+        }
+        setJumlah(0);
+        setHargaSatuan(0);
+        setDp(0);
+        const today = new Date().toISOString().split('T')[0];
+        setTanggal(today);
+        const in1Month = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        setJatuhTempo(in1Month);
+        setCatatan('');
       }
-      setJumlah(0);
-      setHargaSatuan(0);
-      setDp(0);
-      const today = new Date().toISOString().split('T')[0];
-      setTanggal(today);
-      const in1Month = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-      setJatuhTempo(in1Month);
-      setCatatan('');
       setIsSubmitting(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]);
+  }, [isOpen, editingItem]);
 
   if (!isOpen) return null;
 
@@ -1667,6 +1818,7 @@ export function ModalTambahUtangSupplier({ isOpen, onClose, bahanList = [], supp
 
     setIsSubmitting(true);
     await onSubmit({
+      id: editingItem ? (editingItem.id || editingItem._id || editingItem.noFaktur) : undefined,
       noFaktur,
       supplier,
       bahanId: selectedBahan ? (selectedBahan.id || selectedBahan._id || selectedBahan.sku) : '',
@@ -1688,7 +1840,7 @@ export function ModalTambahUtangSupplier({ isOpen, onClose, bahanList = [], supp
     <div className="modal-overlay">
       <div className="modal-card" style={{ maxWidth: '620px' }}>
         <div className="modal-header">
-          <h3>💳 Catat Pembelian Bahan &amp; Utang Supplier Baru</h3>
+          <h3>💳 {editingItem ? 'Edit Faktur Pembelian Bahan' : 'Catat Pembelian Bahan & Utang Supplier Baru'}</h3>
           <button className="btn btn-outline btn-sm" onClick={onClose}><X size={16} /></button>
         </div>
         <form onSubmit={handleSubmit}>
@@ -1838,12 +1990,18 @@ export function ModalBayarUtangSupplier({ isOpen, onClose, utangRecord, onSubmit
   const [jumlahBayar, setJumlahBayar] = useState(0);
   const [metode, setMetode] = useState('Transfer Bank');
   const [tanggal, setTanggal] = useState('');
-  const [keterangan, setKeterangan] = useState('');
+  const [keterangan, setKeterangan] = useState('Pelunasan Utang Supplier');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (isOpen && utangRecord) {
-      setJumlahBayar(utangRecord.sisaUtang || 0);
+      const physicalQty = Number(utangRecord.jumlahDiterima || 0);
+      const unitHarga = Number(utangRecord.hargaSatuan || 0);
+      const physicalKredit = physicalQty > 0 ? (physicalQty * unitHarga) : (utangRecord.totalTagihan || 0);
+      const paidTotal = Number(utangRecord.jumlahDibayar || 0);
+      const physicalSisa = Math.max(0, physicalKredit - paidTotal);
+
+      setJumlahBayar(physicalSisa > 0 ? physicalSisa : (utangRecord.sisaUtang || 0));
       setMetode('Transfer Bank');
       setTanggal(new Date().toISOString().split('T')[0]);
       setKeterangan('Pelunasan Utang Supplier');
@@ -1853,15 +2011,21 @@ export function ModalBayarUtangSupplier({ isOpen, onClose, utangRecord, onSubmit
 
   if (!isOpen || !utangRecord) return null;
 
+  const physicalQty = Number(utangRecord.jumlahDiterima || 0);
+  const unitHarga = Number(utangRecord.hargaSatuan || 0);
+  const physicalKredit = physicalQty > 0 ? (physicalQty * unitHarga) : (utangRecord.totalTagihan || 0);
+  const paidTotal = Number(utangRecord.jumlahDibayar || 0);
+  const physicalSisaUtang = Math.max(0, physicalKredit - paidTotal);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const payVal = parseFloat(jumlahBayar) || 0;
     if (payVal <= 0) {
-      if (showAlert) showAlert('Masukkan jumlah pembayaran (>0).', 'error', 'Validasi Gagal');
+      if (showAlert) showAlert('Masukkan jumlah pembayaran yang valid.', 'error', 'Validasi Gagal');
       return;
     }
-    if (payVal > utangRecord.sisaUtang) {
-      if (showAlert) showAlert(`Jumlah bayar (Rp ${payVal.toLocaleString('id-ID')}) melebihi sisa utang (Rp ${utangRecord.sisaUtang.toLocaleString('id-ID')}).`, 'error', 'Pembayaran Melebihi Utang');
+    if (payVal > physicalSisaUtang && physicalSisaUtang > 0) {
+      if (showAlert) showAlert(`Jumlah bayar (Rp ${payVal.toLocaleString('id-ID')}) melebihi sisa utang fisik (Rp ${physicalSisaUtang.toLocaleString('id-ID')}).`, 'error', 'Pembayaran Melebihi Utang');
       return;
     }
 
@@ -1871,32 +2035,34 @@ export function ModalBayarUtangSupplier({ isOpen, onClose, utangRecord, onSubmit
       jumlahBayar: payVal,
       metode,
       tanggal,
-      keterangan
+      tanggalBayar: tanggal,
+      keterangan: keterangan || 'Pembayaran Utang Supplier',
+      catatan: keterangan || 'Pembayaran Utang Supplier',
+      metodePembayaran: metode
     });
     setIsSubmitting(false);
     onClose();
   };
 
-  const physicalKredit = (Number(utangRecord.jumlahDiterima || 0) * Number(utangRecord.hargaSatuan || 0));
-  const physicalSisaUtang = Math.max(0, physicalKredit - Number(utangRecord.jumlahDibayar || 0));
-
   return createPortal(
     <div className="modal-overlay">
       <div className="modal-card" style={{ maxWidth: '520px' }}>
         <div className="modal-header">
-          <h3>💸 Bayar / Cicil Utang Supplier</h3>
+          <h3>💳 Catat Pembayaran / Pelunasan Utang</h3>
           <button className="btn btn-outline btn-sm" onClick={onClose}><X size={16} /></button>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
-            <div style={{ background: 'var(--bg-darker)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '0.85rem 1rem', marginBottom: '1rem' }}>
-              <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Faktur Tagihan:</div>
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 'var(--radius-sm)', padding: '0.85rem 1rem', marginBottom: '1rem' }}>
+              <div style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600 }}>Faktur Tagihan:</div>
               <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--primary)' }}>{utangRecord.noFaktur}</div>
-              <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#fff', marginTop: '0.2rem' }}>{utangRecord.supplier} ({utangRecord.bahanNama})</div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0f172a', marginTop: '0.2rem' }}>
+                {utangRecord.supplier} {utangRecord.bahanNama ? `(${utangRecord.bahanNama})` : ''}
+              </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '0.75rem', fontSize: '0.82rem', borderTop: '1px border var(--border-color)', paddingTop: '0.5rem' }}>
-                <div>Faktur Fisik Diterima: <strong>Rp {physicalKredit.toLocaleString('id-ID')}</strong></div>
-                <div>Sudah Dibayar: <strong style={{ color: 'var(--emerald)' }}>Rp {(utangRecord.jumlahDibayar || 0).toLocaleString('id-ID')}</strong></div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '0.75rem', fontSize: '0.82rem', borderTop: '1px solid #e2e8f0', paddingTop: '0.5rem' }}>
+                <div>Utang Fisik Diterima: <strong>Rp {physicalKredit.toLocaleString('id-ID')}</strong></div>
+                <div>Sudah Dibayar: <strong style={{ color: 'var(--emerald)' }}>Rp {paidTotal.toLocaleString('id-ID')}</strong></div>
               </div>
               <div style={{ marginTop: '0.4rem', fontSize: '0.95rem', fontWeight: 800, color: 'var(--rose)' }}>
                 Sisa Utang Tempo Fisik: Rp {physicalSisaUtang.toLocaleString('id-ID')}
@@ -1905,7 +2071,7 @@ export function ModalBayarUtangSupplier({ isOpen, onClose, utangRecord, onSubmit
 
             <div className="form-group">
               <label>Jumlah Pembayaran Saat Ini (Rp) *</label>
-              <input type="number" step="any" min="1" max={physicalSisaUtang} className="form-control" value={jumlahBayar} onChange={e => setJumlahBayar(e.target.value)} required />
+              <input type="number" step="any" min="1" max={physicalSisaUtang > 0 ? physicalSisaUtang : undefined} className="form-control" value={jumlahBayar} onChange={e => setJumlahBayar(e.target.value)} required />
               <button
                 type="button"
                 className="btn btn-outline btn-emerald btn-sm"
@@ -1929,10 +2095,11 @@ export function ModalBayarUtangSupplier({ isOpen, onClose, utangRecord, onSubmit
                   <option value="Giro / Cek">Giro / Cek</option>
                 </select>
               </div>
+            </div>
+
             <div className="form-group">
               <label>Keterangan Pembayaran</label>
-              <input type="text" className="form-control" placeholder="Misal: Cicilan ke-2" value={keterangan} onChange={e => setCatatan ? setCatatan(e.target.value) : setKeterangan(e.target.value)} />
-            </div>
+              <input type="text" className="form-control" placeholder="Misal: Cicilan ke-2" value={keterangan} onChange={e => setKeterangan(e.target.value)} />
             </div>
           </div>
 
@@ -1952,26 +2119,45 @@ export function ModalBayarUtangSupplier({ isOpen, onClose, utangRecord, onSubmit
 // ----------------------------------------------------
 // MODAL RIWAYAT PEMBAYARAN SUPPLIER
 // ----------------------------------------------------
-export function ModalRiwayatBayarSupplier({ isOpen, onClose, utangRecord }) {
+export function ModalRiwayatBayarSupplier({ isOpen, onClose, utangRecord, onDeletePayment }) {
   if (!isOpen || !utangRecord) return null;
 
-  const riwayat = utangRecord.riwayatBayar || [];
+  let riwayat = utangRecord.riwayatBayar || utangRecord.riwayatPembayaran || [];
+  if (utangRecord.isManualAdjustment || (utangRecord.id && String(utangRecord.id).startsWith('SALDO_AWAL_'))) {
+    try {
+      const saPay = JSON.parse(localStorage.getItem('SAREN_SALDO_AWAL_PAYMENTS') || '[]');
+      const parts = (utangRecord.id || '').split('_');
+      const targetM = parts[2] || '';
+      const supNama = parts.slice(3).join('_') || utangRecord.supplier;
+      const matched = saPay.filter(p => p.supplier === supNama && (p.month === targetM || (p.tanggal && p.tanggal.startsWith(targetM))));
+      if (matched.length > 0) {
+        riwayat = matched.map((m, idx) => ({
+          paymentId: m.id || idx,
+          tanggal: m.tanggal,
+          jumlah: m.jumlah,
+          metode: m.metode,
+          keterangan: m.catatan || 'Pembayaran Penyesuaian Saldo Awal',
+          isSaPayment: true
+        }));
+      }
+    } catch (e) { /* ignore */ }
+  }
 
   return createPortal(
     <div className="modal-overlay">
-      <div className="modal-card" style={{ maxWidth: '600px' }}>
+      <div className="modal-card" style={{ maxWidth: '650px' }}>
         <div className="modal-header">
           <h3>📜 Riwayat Pembayaran Faktur {utangRecord.noFaktur}</h3>
           <button className="btn btn-outline btn-sm" onClick={onClose}><X size={16} /></button>
         </div>
         <div className="modal-body">
-          <div style={{ background: 'var(--bg-darker)', borderRadius: 'var(--radius-sm)', padding: '0.85rem', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 'var(--radius-sm)', padding: '0.85rem 1rem', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#fff' }}>{utangRecord.supplier}</div>
-              <div className="text-muted" style={{ fontSize: '0.78rem' }}>{utangRecord.bahanNama} ({utangRecord.jumlah} {utangRecord.satuan})</div>
+              <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a' }}>{utangRecord.supplier}</div>
+              <div style={{ fontSize: '0.78rem', color: '#475569', fontWeight: 600 }}>{utangRecord.bahanNama} ({utangRecord.jumlah} {utangRecord.satuan})</div>
             </div>
             <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Sisa Utang:</div>
+              <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>Sisa Utang:</div>
               <div style={{ fontSize: '1rem', fontWeight: 800, color: utangRecord.sisaUtang === 0 ? 'var(--emerald)' : 'var(--rose)' }}>
                 Rp {utangRecord.sisaUtang?.toLocaleString('id-ID')}
               </div>
@@ -1991,17 +2177,29 @@ export function ModalRiwayatBayarSupplier({ isOpen, onClose, utangRecord }) {
                     <th>JUMLAH DIBAYAR</th>
                     <th>METODE</th>
                     <th>KETERANGAN</th>
+                    {onDeletePayment && <th style={{ textAlign: 'center' }}>HAPUS</th>}
                   </tr>
                 </thead>
                 <tbody>
                   {riwayat.map((r, i) => (
-                    <tr key={i}>
+                    <tr key={r.paymentId || i}>
                       <td style={{ fontSize: '0.78rem', whiteSpace: 'nowrap' }}>{r.tanggal}</td>
                       <td style={{ color: 'var(--emerald)', fontWeight: 700 }}>
                         +Rp {r.jumlah?.toLocaleString('id-ID')}
                       </td>
                       <td style={{ fontSize: '0.8rem' }}>{r.metode}</td>
                       <td style={{ fontSize: '0.78rem' }} className="text-muted">{r.keterangan}</td>
+                      {onDeletePayment && (
+                        <td style={{ textAlign: 'center' }}>
+                          <button
+                            className="btn btn-outline-danger btn-xs"
+                            title="Hapus / Buka Kembali Pembayaran Ini"
+                            onClick={() => onDeletePayment(utangRecord, r, i)}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -2091,12 +2289,12 @@ export function ModalTerimaBahanSupplier({ isOpen, onClose, utangRecord, onSubmi
         </div>
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
-            <div style={{ background: 'var(--bg-darker)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '0.85rem 1rem', marginBottom: '1rem' }}>
-              <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>No. Faktur Pembelian:</div>
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 'var(--radius-sm)', padding: '0.85rem 1rem', marginBottom: '1rem' }}>
+              <div style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600 }}>No. Faktur Pembelian:</div>
               <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--primary)' }}>{utangRecord.noFaktur}</div>
-              <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#fff', marginTop: '0.2rem' }}>{utangRecord.supplier}</div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0f172a', marginTop: '0.2rem' }}>{utangRecord.supplier}</div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '0.75rem', fontSize: '0.82rem', borderTop: '1px border var(--border-color)', paddingTop: '0.5rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '0.75rem', fontSize: '0.82rem', borderTop: '1px solid #e2e8f0', paddingTop: '0.5rem' }}>
                 <div>Order Beli: <strong>{total} {utangRecord.satuan} {utangRecord.bahanNama}</strong></div>
                 <div>Sudah Diterima: <strong style={{ color: 'var(--emerald)' }}>{diterim} {utangRecord.satuan}</strong></div>
               </div>
@@ -2176,14 +2374,17 @@ export function ModalRiwayatTerimaSupplier({ isOpen, onClose, utangRecord }) {
           <button className="btn btn-outline btn-sm" onClick={onClose}><X size={16} /></button>
         </div>
         <div className="modal-body">
-          <div style={{ background: 'var(--bg-darker)', borderRadius: 'var(--radius-sm)', padding: '0.85rem', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 'var(--radius-sm)', padding: '0.85rem 1rem', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#fff' }}>{utangRecord.supplier}</div>
-              <div className="text-muted" style={{ fontSize: '0.78rem' }}>{utangRecord.bahanNama} (Total Order: {utangRecord.jumlah} {utangRecord.satuan})</div>
+              <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a' }}>{utangRecord.supplier}</div>
+              <div style={{ fontSize: '0.78rem', color: '#475569', fontWeight: 600 }}>{utangRecord.bahanNama} (Total Order: {utangRecord.jumlah} {utangRecord.satuan})</div>
+              <div style={{ fontSize: '0.74rem', color: '#0284c7', marginTop: '0.25rem', fontWeight: 700 }}>
+                📅 Tanggal Order / Pembelian: {utangRecord.tanggalBeli || '-'}
+              </div>
             </div>
             <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Jumlah Diterima:</div>
-              <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--emerald)' }}>
+              <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>Total Qty Diterima:</div>
+              <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--emerald)' }}>
                 {utangRecord.jumlahDiterima || 0} {utangRecord.satuan}
               </div>
             </div>
@@ -2377,7 +2578,205 @@ export function ModalKelolaSupplier({ isOpen, onClose, suppliersList = [], onCre
   );
 }
 
-export function ModalCatatHasilProduksi({ isOpen, onClose, onSave, produkList = [], showAlert }) {
+export function ModernSearchableSelect({
+  options = [],
+  value,
+  onChange,
+  placeholder = 'Pilih produk...',
+  labelKey = 'nama',
+  valueKey = 'id'
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const wrapperRef = React.useRef(null);
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const selectedItem = useMemo(() => {
+    return options.find(opt => {
+      const val = opt[valueKey] || opt.id || opt.kode || opt.sku;
+      return val === value;
+    }) || options[0];
+  }, [options, value, valueKey]);
+
+  const filteredOptions = useMemo(() => {
+    if (!searchQuery.trim()) return options;
+    const q = searchQuery.toLowerCase();
+    return options.filter(opt => {
+      const name = (opt.nama || opt[labelKey] || '').toLowerCase();
+      const alias = (opt.alias || '').toLowerCase();
+      const sku = (opt.sku || opt.kode || '').toLowerCase();
+      const brand = (opt.brand || '').toLowerCase();
+      return name.includes(q) || alias.includes(q) || sku.includes(q) || brand.includes(q);
+    });
+  }, [options, searchQuery, labelKey]);
+
+  return (
+    <div ref={wrapperRef} style={{ position: 'relative', width: '100%' }}>
+      {/* Trigger Button */}
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        style={{
+          width: '100%',
+          padding: '0.65rem 0.85rem',
+          background: '#ffffff',
+          border: isOpen ? '2px solid #0284c7' : '1px solid #cbd5e1',
+          borderRadius: '10px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          cursor: 'pointer',
+          boxShadow: isOpen ? '0 0 0 4px rgba(2, 132, 199, 0.15)' : '0 1px 3px rgba(0,0,0,0.05)',
+          transition: 'all 0.2s ease',
+          textAlign: 'left'
+        }}
+      >
+        {selectedItem ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', overflow: 'hidden' }}>
+            <span style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.88rem', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+              {selectedItem.nama || selectedItem[labelKey]}
+            </span>
+            {selectedItem.alias && (
+              <span style={{ background: '#e0f2fe', color: '#0369a1', fontSize: '0.72rem', fontWeight: 800, padding: '0.15rem 0.45rem', borderRadius: '6px', whiteSpace: 'nowrap' }}>
+                {selectedItem.alias}
+              </span>
+            )}
+            {selectedItem.brand && (
+              <span style={{ background: '#fef3c7', color: '#92400e', fontSize: '0.7rem', fontWeight: 800, padding: '0.15rem 0.45rem', borderRadius: '6px', whiteSpace: 'nowrap' }}>
+                {selectedItem.brand}
+              </span>
+            )}
+          </div>
+        ) : (
+          <span style={{ color: '#94a3b8', fontSize: '0.88rem' }}>{placeholder}</span>
+        )}
+        <ChevronDown size={18} style={{ color: '#64748b', transition: 'transform 0.2s', transform: isOpen ? 'rotate(180deg)' : 'none' }} />
+      </button>
+
+      {/* Popover Dropdown with Live Search Bar */}
+      {isOpen && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 'calc(100% + 6px)',
+            left: 0,
+            right: 0,
+            zIndex: 9999,
+            background: '#ffffff',
+            border: '1px solid #cbd5e1',
+            borderRadius: '12px',
+            boxShadow: '0 12px 32px rgba(0,0,0,0.18)',
+            overflow: 'hidden',
+            animation: 'fadeIn 0.15s ease'
+          }}
+        >
+          {/* Search Header Input */}
+          <div style={{ padding: '0.65rem 0.75rem', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Search size={16} style={{ color: '#0284c7', flexShrink: 0 }} />
+            <input
+              type="text"
+              autoFocus
+              placeholder="🔍 Ketik untuk cari nama produk (RCS, FS, BS, SCM, 500g)..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{
+                width: '100%',
+                border: 'none',
+                outline: 'none',
+                background: 'transparent',
+                fontSize: '0.85rem',
+                fontWeight: 700,
+                color: '#0f172a'
+              }}
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#94a3b8', padding: 0 }}
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+
+          {/* Options Scrollable Container */}
+          <div style={{ maxHeight: '250px', overflowY: 'auto', padding: '0.35rem 0' }}>
+            {filteredOptions.length === 0 ? (
+              <div style={{ padding: '1rem', textAlign: 'center', color: '#94a3b8', fontSize: '0.82rem', fontWeight: 600 }}>
+                🔍 Produk tidak ditemukan.
+              </div>
+            ) : (
+              filteredOptions.map((opt) => {
+                const optVal = opt[valueKey] || opt.id || opt.kode || opt.sku;
+                const isSelected = optVal === value;
+
+                return (
+                  <div
+                    key={optVal}
+                    onClick={() => {
+                      onChange(optVal);
+                      setIsOpen(false);
+                      setSearchQuery('');
+                    }}
+                    style={{
+                      padding: '0.65rem 0.85rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      cursor: 'pointer',
+                      background: isSelected ? '#f0f9ff' : 'transparent',
+                      borderLeft: isSelected ? '4px solid #0284c7' : '4px solid transparent',
+                      transition: 'background 0.15s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isSelected) e.currentTarget.style.background = '#f8fafc';
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isSelected) e.currentTarget.style.background = 'transparent';
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontWeight: 800, color: isSelected ? '#0284c7' : '#0f172a', fontSize: '0.86rem' }}>
+                        {opt.nama}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.15rem' }}>
+                        {opt.alias && (
+                          <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#0369a1', background: '#e0f2fe', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>
+                            {opt.alias}
+                          </span>
+                        )}
+                        {opt.brand && (
+                          <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#92400e', background: '#fef3c7', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>
+                            {opt.brand}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {isSelected && <Check size={16} style={{ color: '#0284c7', flexShrink: 0 }} />}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function ModalCatatHasilProduksi({ isOpen, onClose, onSave, editingItem, produkList = [], showAlert }) {
   const todayStr = new Date().toISOString().substring(0, 10);
   const [tanggal, setTanggal] = useState(todayStr);
   const [selectedProdukId, setSelectedProdukId] = useState('');
@@ -2385,17 +2784,30 @@ export function ModalCatatHasilProduksi({ isOpen, onClose, onSave, produkList = 
   const [catatan, setCatatan] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const allProducts = INITIAL_PRODUK_MASTER;
+  const allProducts = (produkList && produkList.length > 0) ? produkList : INITIAL_PRODUK_MASTER;
 
   useEffect(() => {
     if (isOpen) {
-      setTanggal(todayStr);
-      setSelectedProdukId(allProducts[0] ? (allProducts[0].id || allProducts[0].kode || allProducts[0].sku) : '');
-      setJumlahPcs('');
-      setCatatan('Hasil Produksi Harian');
+      if (editingItem) {
+        setTanggal(editingItem.tanggal || todayStr);
+        const matchedProd = allProducts.find(p => 
+          p.id === editingItem.produkId || 
+          p.alias === editingItem.alias || 
+          p.kode === editingItem.kode || 
+          p.nama === editingItem.produkNama
+        );
+        setSelectedProdukId(matchedProd ? (matchedProd.id || matchedProd.kode || matchedProd.alias) : (editingItem.produkId || editingItem.kode || editingItem.alias || ''));
+        setJumlahPcs(editingItem.jumlahPcs || '');
+        setCatatan(editingItem.catatan || 'Hasil Produksi Harian');
+      } else {
+        setTanggal(todayStr);
+        setSelectedProdukId(allProducts[0] ? (allProducts[0].id || allProducts[0].kode || allProducts[0].alias) : '');
+        setJumlahPcs('');
+        setCatatan('Hasil Produksi Harian');
+      }
       setIsSubmitting(false);
     }
-  }, [isOpen]);
+  }, [isOpen, editingItem, allProducts]);
 
   if (!isOpen) return null;
 
@@ -2406,20 +2818,28 @@ export function ModalCatatHasilProduksi({ isOpen, onClose, onSave, produkList = 
       return;
     }
 
-    const prod = allProducts.find(p => (p.id || p.kode || p.sku) === selectedProdukId) || allProducts[0];
+    const prod = allProducts.find(p => 
+      p.id === selectedProdukId || 
+      p.kode === selectedProdukId || 
+      p.alias === selectedProdukId || 
+      p.sku === selectedProdukId ||
+      p.nama === selectedProdukId
+    ) || allProducts[0];
+
     const newPayload = {
-      id: 'YIELD-' + Date.now() + Math.floor(Math.random() * 1000),
+      id: editingItem ? editingItem.id : ('YIELD-' + Date.now() + Math.floor(Math.random() * 1000)),
       tanggal: tanggal || todayStr,
-      produkId: prod.id || prod.kode || prod.sku,
-      kode: prod.kode || prod.sku || 'P1',
-      alias: prod.alias || prod.sku || prod.kode || 'RCS 250',
+      produkId: prod.id || prod.kode || prod.alias || 'P1',
+      kode: prod.kode || prod.sku || prod.alias || 'P1',
+      alias: prod.alias || prod.kode || prod.sku || 'RCS 250',
       produkNama: prod.nama || 'Red Cocktail Sausage 250g',
       brand: prod.brand || 'SAREN ONE',
       jumlahPcs: parseFloat(jumlahPcs),
       satuan: prod.satuan || 'pack',
       harga: prod.harga || 0,
+      hppPerPack: editingItem?.hppPerPack || prod.hppPerPack || 0,
       catatan: catatan || 'Catatan Manual Dapur',
-      timestamp: `${tanggal || todayStr} ${new Date().toTimeString().substring(0, 5)}`
+      timestamp: editingItem?.timestamp || `${tanggal || todayStr} ${new Date().toTimeString().substring(0, 5)}`
     };
 
     setIsSubmitting(true);
@@ -2434,10 +2854,10 @@ export function ModalCatatHasilProduksi({ isOpen, onClose, onSave, produkList = 
         <div className="modal-header" style={{ background: '#f8fafc', borderBottom: '1px solid #cbd5e1', padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <span className="badge badge-emerald" style={{ fontSize: '0.72rem', padding: '0.2rem 0.5rem', marginBottom: '0.2rem' }}>
-              📦 OUTPUT PRODUK JADI
+              {editingItem ? '✏️ EDIT HASIL PRODUKSI' : '📦 OUTPUT PRODUK JADI'}
             </span>
             <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Package size={20} style={{ color: '#0284c7' }} /> Catat Hasil Produksi Harian
+              <Package size={20} style={{ color: '#0284c7' }} /> {editingItem ? 'Edit Catatan Hasil Produksi' : 'Catat Hasil Produksi Harian'}
             </h3>
           </div>
           <button className="btn btn-outline btn-sm" onClick={onClose}><X size={16} /></button>
@@ -2463,22 +2883,12 @@ export function ModalCatatHasilProduksi({ isOpen, onClose, onSave, produkList = 
               <label style={{ display: 'block', fontWeight: 700, fontSize: '0.84rem', color: '#334155', marginBottom: '0.35rem' }}>
                 📦 Pilih Nama Item Produk Olahan Jadi:
               </label>
-              <select
-                className="select-input"
-                style={{ width: '100%', padding: '0.6rem 0.75rem', fontWeight: 700, fontSize: '0.88rem' }}
+              <ModernSearchableSelect
+                options={allProducts}
                 value={selectedProdukId}
-                onChange={(e) => setSelectedProdukId(e.target.value)}
-                required
-              >
-                {allProducts.map((p) => {
-                  const key = p.id || p.kode || p.sku;
-                  return (
-                    <option key={key} value={key}>
-                      {p.nama} ({p.alias || p.sku || p.kode} - {p.brand || 'SAREN ONE'})
-                    </option>
-                  );
-                })}
-              </select>
+                onChange={setSelectedProdukId}
+                placeholder="Cari nama produk (Red Cocktail, FS, BS, SCM)..."
+              />
             </div>
 
             <div>
@@ -2785,6 +3195,311 @@ export function ModalImportHasilProduksiExcel({ isOpen, onClose, onImport, produ
             onClick={handleCommitImport}
           >
             <CheckCircle2 size={16} /> {isProcessing ? 'Memproses...' : `Impor ${parsedData.length} Hasil Produksi`}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+export function ModalMappingKemasanProduk({ isOpen, onClose, onSaveMapping, bahanBaku = [], showAlert }) {
+  const [search, setSearch] = useState('');
+  const [mappingState, setMappingState] = useState({});
+
+  // List of packaging materials from master bahanBaku
+  const vacumbagOptions = useMemo(() => {
+    return bahanBaku.filter(b => {
+      const nm = (b.nama || '').toLowerCase();
+      const kt = (b.kategori || '').toLowerCase();
+      return kt.includes('kemasan') || nm.includes('vacum') || nm.includes('plastik') || nm.includes('pouch');
+    });
+  }, [bahanBaku]);
+
+  const stickerOptions = useMemo(() => {
+    return bahanBaku.filter(b => {
+      const nm = (b.nama || '').toLowerCase();
+      const kt = (b.kategori || '').toLowerCase();
+      return kt.includes('kemasan') || nm.includes('sticker') || nm.includes('stiker') || nm.includes('barcode') || nm.includes('label');
+    });
+  }, [bahanBaku]);
+
+  useEffect(() => {
+    if (isOpen) {
+      try {
+        const saved = localStorage.getItem('SAREN_PRODUK_KEMASAN_MAP');
+        const currentMap = saved ? JSON.parse(saved) : {};
+        const merged = {};
+
+        INITIAL_PRODUK_MASTER.forEach(p => {
+          const defaultRule = getDefaultPackagingForProduct(p);
+          const activeRule = currentMap[p.id] || currentMap[p.alias] || currentMap[p.sku] || defaultRule;
+
+          if (p.id) merged[p.id] = activeRule;
+          if (p.alias) merged[p.alias] = activeRule;
+          if (p.sku) merged[p.sku] = activeRule;
+          if (p.kode) merged[p.kode] = activeRule;
+        });
+
+        setMappingState(merged);
+      } catch (e) {}
+    }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  const handleVacumChange = (prodItem, newVacumSku) => {
+    const found = vacumbagOptions.find(b => (b.sku || b.kode) === newVacumSku);
+    const existingRule = mappingState[prodItem.id] || mappingState[prodItem.alias] || getDefaultPackagingForProduct(prodItem);
+
+    const updatedRule = {
+      ...existingRule,
+      vacumbagSku: newVacumSku,
+      vacumbagNama: found ? found.nama : newVacumSku
+    };
+
+    setMappingState(prev => {
+      const nextState = { ...prev };
+      if (prodItem.id) nextState[prodItem.id] = updatedRule;
+      if (prodItem.alias) nextState[prodItem.alias] = updatedRule;
+      if (prodItem.sku) nextState[prodItem.sku] = updatedRule;
+      if (prodItem.kode) nextState[prodItem.kode] = updatedRule;
+      return nextState;
+    });
+  };
+
+  const handleBarcodeChange = (prodItem, newStickerSku) => {
+    const found = stickerOptions.find(b => (b.sku || b.kode) === newStickerSku);
+    const existingRule = mappingState[prodItem.id] || mappingState[prodItem.alias] || getDefaultPackagingForProduct(prodItem);
+
+    const updatedRule = {
+      ...existingRule,
+      stickerBarcodeSku: newStickerSku,
+      stickerBarcodeNama: found ? found.nama : newStickerSku
+    };
+
+    setMappingState(prev => {
+      const nextState = { ...prev };
+      if (prodItem.id) nextState[prodItem.id] = updatedRule;
+      if (prodItem.alias) nextState[prodItem.alias] = updatedRule;
+      if (prodItem.sku) nextState[prodItem.sku] = updatedRule;
+      if (prodItem.kode) nextState[prodItem.kode] = updatedRule;
+      return nextState;
+    });
+  };
+
+  const handleProdukStickerChange = (prodItem, newStickerSku) => {
+    const found = stickerOptions.find(b => (b.sku || b.kode) === newStickerSku);
+    const existingRule = mappingState[prodItem.id] || mappingState[prodItem.alias] || getDefaultPackagingForProduct(prodItem);
+
+    const updatedRule = {
+      ...existingRule,
+      stickerProdukSku: newStickerSku,
+      stickerProdukNama: found ? found.nama : newStickerSku
+    };
+
+    setMappingState(prev => {
+      const nextState = { ...prev };
+      if (prodItem.id) nextState[prodItem.id] = updatedRule;
+      if (prodItem.alias) nextState[prodItem.alias] = updatedRule;
+      if (prodItem.sku) nextState[prodItem.sku] = updatedRule;
+      if (prodItem.kode) nextState[prodItem.kode] = updatedRule;
+      return nextState;
+    });
+  };
+
+  const handleSave = () => {
+    try {
+      const fullMap = { ...mappingState };
+      INITIAL_PRODUK_MASTER.forEach(p => {
+        const rule = mappingState[p.id] || mappingState[p.alias] || mappingState[p.sku] || getDefaultPackagingForProduct(p);
+        if (p.id) fullMap[p.id] = rule;
+        if (p.alias) fullMap[p.alias] = rule;
+        if (p.sku) fullMap[p.sku] = rule;
+        if (p.kode) fullMap[p.kode] = rule;
+      });
+
+      localStorage.setItem('SAREN_PRODUK_KEMASAN_MAP', JSON.stringify(fullMap));
+      if (onSaveMapping) {
+        onSaveMapping(fullMap);
+      }
+      if (showAlert) showAlert('Pemetaan kemasan produk berhasil disimpan & disinkronkan ke server! 🎉', 'success', 'Pemetaan Disimpan! 📦');
+      onClose();
+    } catch (e) {
+      if (showAlert) showAlert('Gagal menyimpan pemetaan kemasan: ' + e.message, 'error', 'Gagal Simpan');
+    }
+  };
+
+  const filteredProducts = INITIAL_PRODUK_MASTER.filter(p => {
+    const q = search.toLowerCase();
+    return p.nama.toLowerCase().includes(q) || (p.alias || '').toLowerCase().includes(q) || p.sku.toLowerCase().includes(q);
+  });
+
+  return createPortal(
+    <div className="modal-overlay">
+      <div className="modal-card" style={{ maxWidth: '880px', width: '95%', borderRadius: '12px', overflow: 'hidden' }}>
+        <div className="modal-header" style={{ padding: '0.65rem 0.85rem', background: '#f8fafc', borderBottom: '1px solid #cbd5e1', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <span style={{ fontSize: '0.68rem', fontWeight: 800, padding: '0.12rem 0.45rem', borderRadius: '5px', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', display: 'inline-block', marginBottom: '0.15rem' }}>
+              ⚙️ ATUR PEMAKAIAN KEMASAN PRODUK
+            </span>
+            <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <Package size={18} style={{ color: '#d97706' }} /> Pemetaan Jenis Vacumbag &amp; Sticker Per Produk
+            </h3>
+          </div>
+          <button type="button" className="btn btn-outline btn-sm" onClick={onClose} style={{ width: '28px', height: '28px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+            <X size={14} />
+          </button>
+        </div>
+
+        <div className="modal-body" style={{ padding: '0.75rem 0.85rem', background: '#ffffff', color: '#212529' }}>
+          <div style={{ background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e', borderRadius: '6px', padding: '0.45rem 0.65rem', marginBottom: '0.65rem', fontSize: '0.76rem', lineHeight: '1.4' }}>
+            💡 <strong>Panduan Sinkronisasi Kemasan:</strong> Tentukan jenis plastik vacuum dan stiker yang terpakai untuk setiap produk. Saat Anda menginput / mengimpor <strong>Hasil Produksi</strong>, sisa stok kemasan yang dipilih di bawah ini akan <strong>otomatis berkurang</strong> secara akurat!
+          </div>
+
+          <div style={{ marginBottom: '0.65rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div className="search-box" style={{ height: '32px', width: '300px' }}>
+              <Search size={14} />
+              <input
+                type="text"
+                placeholder="Cari nama produk atau kode alias (RCS, FS, BS)..."
+                style={{ fontSize: '0.78rem' }}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#64748b' }}>
+              Menampilkan {filteredProducts.length} SKU Produk
+            </span>
+          </div>
+
+          <div style={{ maxHeight: '420px', overflowY: 'auto', border: '1px solid #cbd5e1', borderRadius: '8px' }}>
+            <table className="custom-table" style={{ width: '100%', fontSize: '0.72rem', borderCollapse: 'separate', borderSpacing: 0 }}>
+              <thead style={{ position: 'sticky', top: 0, background: '#f8fafc', zIndex: 10 }}>
+                <tr>
+                  <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', whiteSpace: 'nowrap' }}>SKU / ALIAS</th>
+                  <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', whiteSpace: 'nowrap' }}>NAMA PRODUK OLAHAN</th>
+                  <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', whiteSpace: 'nowrap' }}>PLASTIK VACUMBAG</th>
+                  <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', whiteSpace: 'nowrap' }}>STICKER BARCODE</th>
+                  <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', whiteSpace: 'nowrap' }}>STICKER PRODUK</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredProducts.map(p => {
+                  const rule = mappingState[p.id] || mappingState[p.alias] || mappingState[p.sku] || getDefaultPackagingForProduct(p);
+
+                  return (
+                    <tr key={p.id || p.sku} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '0.32rem 0.55rem', whiteSpace: 'nowrap' }}>
+                        <span style={{ background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd', fontSize: '0.68rem', fontWeight: 800, padding: '0.12rem 0.45rem', borderRadius: '5px', display: 'inline-block' }}>
+                          {p.alias || p.sku}
+                        </span>
+                      </td>
+                      <td style={{ padding: '0.32rem 0.55rem', fontWeight: 800, color: '#0f172a', fontSize: '0.74rem', whiteSpace: 'nowrap' }}>
+                        {p.nama}
+                      </td>
+                      <td style={{ padding: '0.35rem 0.55rem' }}>
+                        <select
+                          style={{
+                            height: '32px',
+                            padding: '0 0.5rem',
+                            fontSize: '0.74rem',
+                            fontWeight: 700,
+                            width: '100%',
+                            color: '#0369a1',
+                            border: '1px solid #cbd5e1',
+                            borderRadius: '6px',
+                            background: '#ffffff',
+                            outline: 'none',
+                            boxSizing: 'border-box',
+                            lineHeight: 'normal'
+                          }}
+                          value={rule.vacumbagSku || 'BB30'}
+                          onChange={(e) => handleVacumChange(p, e.target.value)}
+                        >
+                          {vacumbagOptions.length > 0 ? (
+                            vacumbagOptions.map(v => (
+                              <option key={v.sku} value={v.sku}>[{v.sku}] {v.nama}</option>
+                            ))
+                          ) : (
+                            <>
+                              <option value="BB30">[BB30] Vacumbag 15*25</option>
+                              <option value="BB31">[BB31] Vacumbag 25*30</option>
+                              <option value="BB32">[BB32] Vacumbag 20*25</option>
+                              <option value="BB33">[BB33] Vacumbag 20*30</option>
+                              <option value="BB34">[BB34] Vacumbag 23*34</option>
+                            </>
+                          )}
+                        </select>
+                      </td>
+                      <td style={{ padding: '0.35rem 0.55rem' }}>
+                        <select
+                          style={{
+                            height: '32px',
+                            padding: '0 0.5rem',
+                            fontSize: '0.74rem',
+                            fontWeight: 700,
+                            width: '100%',
+                            color: '#047857',
+                            border: '1px solid #cbd5e1',
+                            borderRadius: '6px',
+                            background: '#ffffff',
+                            outline: 'none',
+                            boxSizing: 'border-box',
+                            lineHeight: 'normal'
+                          }}
+                          value={rule.stickerBarcodeSku || 'BB60'}
+                          onChange={(e) => handleBarcodeChange(p, e.target.value)}
+                        >
+                          {stickerOptions.length > 0 ? (
+                            stickerOptions.map(s => (
+                              <option key={s.sku} value={s.sku}>[{s.sku}] {s.nama}</option>
+                            ))
+                          ) : (
+                            <option value="BB60">[BB60] Sticker Barcode</option>
+                          )}
+                        </select>
+                      </td>
+                      <td style={{ padding: '0.35rem 0.55rem' }}>
+                        <select
+                          style={{
+                            height: '32px',
+                            padding: '0 0.5rem',
+                            fontSize: '0.74rem',
+                            fontWeight: 700,
+                            width: '100%',
+                            color: '#6d28d9',
+                            border: '1px solid #cbd5e1',
+                            borderRadius: '6px',
+                            background: '#ffffff',
+                            outline: 'none',
+                            boxSizing: 'border-box',
+                            lineHeight: 'normal'
+                          }}
+                          value={rule.stickerProdukSku || 'BB61'}
+                          onChange={(e) => handleProdukStickerChange(p, e.target.value)}
+                        >
+                          {stickerOptions.length > 0 ? (
+                            stickerOptions.map(s => (
+                              <option key={s.sku} value={s.sku}>[{s.sku}] {s.nama}</option>
+                            ))
+                          ) : (
+                            <option value="BB61">[BB61] Sticker Produk</option>
+                          )}
+                        </select>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="modal-footer" style={{ padding: '0.65rem 0.85rem', background: '#f8fafc', borderTop: '1px solid #cbd5e1', display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+          <button type="button" className="btn btn-secondary" onClick={onClose} style={{ height: '32px', fontSize: '0.78rem', fontWeight: 800, padding: '0 0.75rem' }}>Batal</button>
+          <button type="button" className="btn btn-emerald" onClick={handleSave} style={{ height: '32px', fontSize: '0.78rem', fontWeight: 800, padding: '0 0.85rem', borderRadius: '6px', boxShadow: '0 3px 10px rgba(16, 185, 129, 0.3)', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+            <Save size={14} /> Simpan Pemetaan Kemasan
           </button>
         </div>
       </div>

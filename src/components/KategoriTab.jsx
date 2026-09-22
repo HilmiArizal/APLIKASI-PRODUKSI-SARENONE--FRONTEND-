@@ -70,84 +70,85 @@ export default function KategoriTab({
   };
 
   return (
-    <div className="tab-pane active">
+    <div className="tab-pane active" style={{ maxWidth: '100%', overflowX: 'hidden', color: '#1e293b' }}>
       {/* Header Banner */}
-      <div style={{ paddingBottom: '1.5rem'}}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-          {/* <div>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Layers size={22} style={{ color: 'var(--amber)' }} /> Manajemen Brand Produk &amp; Kategori Bahan Baku
-            </h3>
-            <p className="text-muted" style={{ fontSize: '0.82rem', marginTop: '0.2rem' }}>
-              Kelola pengelompokan brand merk produk jadi dan kategori stok bahan baku dapur secara terpusat di Cloud MongoDB Atlas.
-            </p>
-          </div> */}
-
+      <div style={{ marginBottom: '0.65rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <div></div>
           {canEdit && (
-            <button className="btn btn-primary" onClick={handleStartAdd}>
-              <Plus size={16} /> Tambah {subTab === 'produk' ? 'Brand Produk' : 'Kategori Bahan'} Baru
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={handleStartAdd}
+              style={{ height: '32px', fontSize: '0.78rem', fontWeight: 800, padding: '0 0.75rem', borderRadius: '6px', boxShadow: '0 3px 10px rgba(2, 132, 199, 0.3)', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+            >
+              <Plus size={14} /> Tambah {subTab === 'produk' ? 'Brand Produk' : 'Kategori Bahan'} Baru
             </button>
           )}
         </div>
       </div>
 
       {/* Sub Tab Navigation */}
-      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem' }}>
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
         <button
+          type="button"
           onClick={() => { setSubTab('produk'); handleCancel(); }}
           style={{
             flex: 1,
-            padding: '0.85rem 1.25rem',
-            borderRadius: 'var(--radius-md)',
-            border: subTab === 'produk' ? '1px solid var(--primary)' : '1px solid var(--border-color)',
-            background: subTab === 'produk' ? 'linear-gradient(135deg, rgba(249, 115, 22, 0.15), rgba(249, 115, 22, 0.05))' : 'var(--bg-card)',
-            color: subTab === 'produk' ? 'var(--primary)' : 'var(--text-muted)',
-            fontWeight: 700,
-            fontSize: '0.9rem',
+            height: '36px',
+            padding: '0 0.85rem',
+            borderRadius: '8px',
+            border: subTab === 'produk' ? '1px solid #0284c7' : '1px solid #cbd5e1',
+            background: subTab === 'produk' ? '#e0f2fe' : '#ffffff',
+            color: subTab === 'produk' ? '#0369a1' : '#64748b',
+            fontWeight: 800,
+            fontSize: '0.78rem',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '0.5rem',
-            transition: 'all 0.2s ease'
+            gap: '0.4rem',
+            transition: 'all 0.15s ease'
           }}
         >
-          <Tag size={18} /> Brand / Merk Produk Jadi ({kategoriProduk.length})
+          <Tag size={15} /> Brand / Merk Produk Jadi ({kategoriProduk.length})
         </button>
 
         <button
+          type="button"
           onClick={() => { setSubTab('bahan'); handleCancel(); }}
           style={{
             flex: 1,
-            padding: '0.85rem 1.25rem',
-            borderRadius: 'var(--radius-md)',
-            border: subTab === 'bahan' ? '1px solid var(--amber)' : '1px solid var(--border-color)',
-            background: subTab === 'bahan' ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(245, 158, 11, 0.05))' : 'var(--bg-card)',
-            color: subTab === 'bahan' ? 'var(--amber)' : 'var(--text-muted)',
-            fontWeight: 700,
-            fontSize: '0.9rem',
+            height: '36px',
+            padding: '0 0.85rem',
+            borderRadius: '8px',
+            border: subTab === 'bahan' ? '1px solid #f59e0b' : '1px solid #cbd5e1',
+            background: subTab === 'bahan' ? '#fef3c7' : '#ffffff',
+            color: subTab === 'bahan' ? '#b45309' : '#64748b',
+            fontWeight: 800,
+            fontSize: '0.78rem',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '0.5rem',
-            transition: 'all 0.2s ease'
+            gap: '0.4rem',
+            transition: 'all 0.15s ease'
           }}
         >
-          <Boxes size={18} /> Kategori Bahan Baku ({kategoriBahanBaku.length})
+          <Boxes size={15} /> Kategori Bahan Baku ({kategoriBahanBaku.length})
         </button>
       </div>
 
       {/* Inline Form Add / Edit */}
       {isEditing && (
-        <form onSubmit={handleSubmitForm} style={{ background: 'var(--bg-card)', border: '1px solid var(--primary)', borderRadius: 'var(--radius-md)', padding: '1.25rem', marginBottom: '1.5rem' }}>
-          <h4 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--primary)' }}>
+        <form onSubmit={handleSubmitForm} style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderLeft: '4px solid #10b981', borderRadius: '10px', padding: '0.65rem 0.85rem', marginBottom: '0.75rem', boxShadow: '0 3px 10px rgba(0,0,0,0.03)' }}>
+          <h4 style={{ fontSize: '0.92rem', fontWeight: 800, marginBottom: '0.55rem', color: '#059669', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
             {editingId === 'NEW' ? `+ Tambah Kategori ${subTab === 'produk' ? 'Produk' : 'Bahan Baku'} Baru` : `✏️ Edit Kategori ${subTab === 'produk' ? 'Produk' : 'Bahan Baku'}`}
           </h4>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1rem', marginBottom: '1rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '0.5rem', marginBottom: '0.55rem' }}>
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <label>Nama Kategori *</label>
+              <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#475569', marginBottom: '0.15rem', display: 'block' }}>Nama Kategori *</label>
               <input
                 type="text"
                 className="form-control"
@@ -155,57 +156,60 @@ export default function KategoriTab({
                 value={namaInput}
                 onChange={(e) => setNamaInput(e.target.value)}
                 required
+                style={{ height: '32px', fontSize: '0.78rem', padding: '0 0.6rem' }}
               />
             </div>
 
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <label>Deskripsi & Keterangan</label>
+              <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#475569', marginBottom: '0.15rem', display: 'block' }}>Deskripsi &amp; Keterangan</label>
               <input
                 type="text"
                 className="form-control"
                 placeholder="Penjelasan ringkas pengelompokan jenis ini..."
                 value={deskripsiInput}
                 onChange={(e) => setDeskripsiInput(e.target.value)}
+                style={{ height: '32px', fontSize: '0.78rem', padding: '0 0.6rem' }}
               />
             </div>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-            <button type="button" className="btn btn-secondary" onClick={handleCancel}>Batal</button>
-            <button type="submit" className="btn btn-primary">Simpan Kategori ke MongoDB</button>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem' }}>
+            <button type="button" className="btn btn-secondary" onClick={handleCancel} style={{ height: '32px', fontSize: '0.78rem', fontWeight: 800, padding: '0 0.75rem' }}>Batal</button>
+            <button type="submit" className="btn btn-emerald" style={{ height: '32px', fontSize: '0.78rem', fontWeight: 800, padding: '0 0.85rem', borderRadius: '6px', boxShadow: '0 3px 10px rgba(16, 185, 129, 0.3)' }}>Simpan Kategori</button>
           </div>
         </form>
       )}
 
       {/* Toolbar Search */}
-      <div className="toolbar" style={{ marginBottom: '1rem' }}>
-        <div className="search-box">
-          <Search size={16} />
+      <div className="toolbar" style={{ marginBottom: '0.65rem' }}>
+        <div className="search-box" style={{ height: '32px', width: '100%' }}>
+          <Search size={14} />
           <input
             type="text"
             placeholder={`Cari kategori ${subTab === 'produk' ? 'produk' : 'bahan baku'}...`}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            style={{ fontSize: '0.78rem' }}
           />
         </div>
       </div>
 
       {/* Category List Table */}
-      <div className="table-container">
-        <table className="custom-table">
+      <div className="table-container" style={{ background: '#ffffff', borderRadius: '10px', border: '1px solid #cbd5e1', boxShadow: '0 3px 10px rgba(0,0,0,0.03)' }}>
+        <table className="custom-table" style={{ width: '100%', fontSize: '0.72rem', borderCollapse: 'separate', borderSpacing: 0 }}>
           <thead>
-            <tr>
-              <th>NO</th>
-              <th>NAMA KATEGORI</th>
-              <th>DESKRIPSI & KETERANGAN</th>
-              <th>TOTAL TERIKAT</th>
-              {canEdit && <th style={{ textAlign: 'right' }}>AKSI MANAJEMEN</th>}
+            <tr style={{ background: '#f8fafc' }}>
+              <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', whiteSpace: 'nowrap' }}>NO</th>
+              <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', whiteSpace: 'nowrap' }}>NAMA KATEGORI</th>
+              <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', whiteSpace: 'nowrap' }}>DESKRIPSI &amp; KETERANGAN</th>
+              <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', whiteSpace: 'nowrap' }}>TOTAL TERIKAT</th>
+              {canEdit && <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', textAlign: 'right', whiteSpace: 'nowrap' }}>AKSI MANAJEMEN</th>}
             </tr>
           </thead>
           <tbody>
             {filteredList.length === 0 ? (
               <tr>
-                <td colSpan={canEdit ? 5 : 4} style={{ textAlign: 'center', padding: '2rem' }} className="text-muted">
+                <td colSpan={canEdit ? 5 : 4} style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>
                   Belum ada kategori {subTab === 'produk' ? 'produk' : 'bahan baku'} yang terdaftar.
                 </td>
               </tr>
@@ -216,24 +220,59 @@ export default function KategoriTab({
                   : bahanBaku.filter(b => b.kategori === kat.nama).length;
 
                 return (
-                  <tr key={kat.id}>
-                    <td style={{ fontWeight: 700, color: 'var(--text-muted)' }}>{idx + 1}</td>
-                    <td style={{ fontWeight: 700, color: subTab === 'produk' ? 'var(--primary)' : 'var(--amber)' }}>{kat.nama}</td>
-                    <td className="text-muted">{kat.deskripsi || '-'}</td>
-                    <td>
-                      <span className="badge badge-cyan">{countTerikat} {subTab === 'produk' ? 'Varian Produk' : 'Item Bahan'}</span>
+                  <tr key={kat.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '0.32rem 0.55rem', fontWeight: 700, color: '#64748b', fontSize: '0.72rem', whiteSpace: 'nowrap' }}>{idx + 1}</td>
+                    <td style={{ padding: '0.32rem 0.55rem', fontWeight: 800, color: subTab === 'produk' ? '#0284c7' : '#d97706', fontSize: '0.74rem', whiteSpace: 'nowrap' }}>{kat.nama}</td>
+                    <td style={{ padding: '0.32rem 0.55rem', fontSize: '0.72rem', color: '#64748b', whiteSpace: 'nowrap' }}>{kat.deskripsi || '-'}</td>
+                    <td style={{ padding: '0.32rem 0.55rem', whiteSpace: 'nowrap' }}>
+                      <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#0f172a', background: '#f1f5f9', border: '1px solid #e2e8f0', padding: '0.12rem 0.45rem', borderRadius: '5px', display: 'inline-block' }}>
+                        {countTerikat} {subTab === 'produk' ? 'Varian Produk' : 'Item Bahan'}
+                      </span>
                     </td>
                     {canEdit && (
-                      <td style={{ textAlign: 'right' }}>
-                        <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'flex-end' }}>
-                          <button className="btn btn-sm btn-outline" onClick={() => handleStartEdit(kat)}>
-                            <Edit3 size={14} /> Edit
+                      <td style={{ padding: '0.32rem 0.55rem', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                        <div style={{ display: 'flex', gap: '0.3rem', justifyContent: 'flex-end' }}>
+                          <button
+                            type="button"
+                            style={{
+                              background: '#f0f9ff',
+                              color: '#0284c7',
+                              border: '1px solid #bae6fd',
+                              borderRadius: '5px',
+                              fontWeight: 700,
+                              fontSize: '0.68rem',
+                              padding: '0 0.45rem',
+                              height: '24px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.25rem',
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease'
+                            }}
+                            onClick={() => handleStartEdit(kat)}
+                          >
+                            <Edit3 size={12} /> Edit
                           </button>
                           <button
-                            className="btn btn-sm btn-outline btn-danger"
+                            type="button"
+                            style={{
+                              background: '#fef2f2',
+                              color: '#ef4444',
+                              border: '1px solid #fecaca',
+                              borderRadius: '5px',
+                              fontWeight: 700,
+                              fontSize: '0.68rem',
+                              padding: '0 0.45rem',
+                              height: '24px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.25rem',
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease'
+                            }}
                             onClick={() => subTab === 'produk' ? onDeleteKategoriProduk(kat.id) : onDeleteKategoriBahan(kat.id)}
                           >
-                            <Trash2 size={14} /> Hapus
+                            <Trash2 size={12} /> Hapus
                           </button>
                         </div>
                       </td>

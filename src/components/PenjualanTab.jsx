@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { ShoppingBag, Plus, Trash2, Edit3, Search, X, Eye, TrendingUp, DollarSign, Package, Users, Megaphone } from 'lucide-react';
+import { ModernMonthPicker, ModernSearchableSelect } from './ModernDatePicker';
 
 const METODE_PEMBAYARAN = ['Tunai', 'Transfer Bank', 'QRIS', 'Kartu Debit', 'Kartu Kredit', 'COD'];
 const STATUS_PEMBAYARAN = ['Lunas', 'Cicilan', 'Pending', 'Dibatalkan'];
@@ -27,9 +28,39 @@ export default function PenjualanTab({
   const currentMonthKey = new Date().toISOString().slice(0, 7);
   const [filterMonth, setFilterMonth] = useState(currentMonthKey);
 
+  const [selectedIds, setSelectedIds] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [showDetail, setShowDetail] = useState(null);
   const [editData, setEditData] = useState(null);
+
+  // Checkbox Selection Handlers
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      const allIds = filtered.map(p => p.id || p._id).filter(Boolean);
+      setSelectedIds(allIds);
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleToggleSelect = (id) => {
+    setSelectedIds(prev =>
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkDeleteSelected = async () => {
+    if (!selectedIds.length) return;
+    if (!window.confirm(`⚠️ PERINGATAN: Apakah Anda yakin ingin menghapus (${selectedIds.length}) transaksi penjualan terpilih? Tindakan ini tidak dapat dibatalkan!`)) return;
+
+    if (onDeletePenjualan) {
+      for (const id of selectedIds) {
+        await onDeletePenjualan(id, true);
+      }
+      setSelectedIds([]);
+      if (showAlert) showAlert(`(${selectedIds.length}) transaksi penjualan terpilih berhasil dihapus! 🗑️`, 'info', 'Hapus Terpilih');
+    }
+  };
 
   const canEdit = ['ADMIN_PRODUK', 'TIM_PENJUALAN', 'SALES'].includes(activeRoleView);
 
@@ -61,7 +92,10 @@ export default function PenjualanTab({
     }
   };
 
+  const todayStr = new Date().toISOString().substring(0, 10);
   const emptyForm = {
+    tanggal: todayStr,
+    noFaktur: '',
     pelangganId: '',
     namaPelanggan: '',
     teleponPelanggan: '',
@@ -101,10 +135,12 @@ export default function PenjualanTab({
   const totalHarga = form.items.reduce((s, it) => s + (Number(it.subtotal) || 0), 0);
   const totalBersih = Math.max(0, totalHarga - (Number(form.diskon) || 0));
 
-  const openAdd = () => { setEditData(null); setForm(emptyForm); setShowModal(true); };
+  const openAdd = () => { setEditData(null); setForm({ ...emptyForm, tanggal: new Date().toISOString().substring(0, 10) }); setShowModal(true); };
   const openEdit = (p) => {
     setEditData(p);
     setForm({
+      tanggal: p.tanggal ? new Date(p.tanggal).toISOString().substring(0, 10) : todayStr,
+      noFaktur: p.noFaktur || '',
       pelangganId: p.pelangganId || '',
       namaPelanggan: p.namaPelanggan || '',
       teleponPelanggan: p.teleponPelanggan || '',
@@ -117,6 +153,66 @@ export default function PenjualanTab({
     });
     setShowModal(true);
   };
+
+  // Urutkan Pelanggan dari Kode Terkecil (C1 -> C82) untuk Dropdown Options
+  const sortedPelangganOptions = useMemo(() => {
+    const list = [...(pelangganList || [])];
+    list.sort((a, b) => {
+      const getNum = (str) => {
+        if (!str) return 999999;
+        const match = String(str).match(/\d+/);
+        return match ? parseInt(match[0], 10) : 999999;
+      };
+      const numA = getNum(a.kode);
+      const numB = getNum(b.kode);
+      if (numA !== numB) return numA - numB;
+      return String(a.kode || '').localeCompare(String(b.kode || ''));
+    });
+
+    return list.map(c => {
+      const cId = c.id || c._id;
+      const katTag = c.kategoriCustomer === 'Top Market' || c.kategoriCustomer === 'TM' ? '⭐ TM' : 'Umum';
+      return {
+        id: cId,
+        value: cId,
+        kode: c.kode,
+        nama: c.nama,
+        label: `👤 [${c.kode || 'C'}] ${c.nama} (${katTag}) ${c.noHp ? `- ${c.noHp}` : ''}`,
+        raw: c
+      };
+    });
+  }, [pelangganList]);
+
+  // Urutkan Produk dari SKU / Kode / Nama Terkecil untuk Dropdown Options
+  const sortedProdukOptions = useMemo(() => {
+    const list = [...(produkSalesList || [])];
+    list.sort((a, b) => {
+      const getNum = (str) => {
+        if (!str) return 999999;
+        const match = String(str).match(/\d+/);
+        return match ? parseInt(match[0], 10) : 999999;
+      };
+      const codeA = a.sku || a.kodeProduk || a.namaProduk;
+      const codeB = b.sku || b.kodeProduk || b.namaProduk;
+      const numA = getNum(codeA);
+      const numB = getNum(codeB);
+      if (numA !== numB) return numA - numB;
+      return String(codeA || '').localeCompare(String(codeB || ''));
+    });
+
+    return list.map(p => {
+      const pId = p.id || p._id;
+      const codeStr = p.sku ? `[${p.sku}] ` : '';
+      return {
+        id: pId,
+        value: pId,
+        kode: p.sku || p.kodeProduk || '',
+        nama: p.namaProduk,
+        label: `📦 ${codeStr}${p.namaProduk} [${p.brand || 'SAREN ONE'}] (Stok: ${p.stokReady || 0} Pcs)`,
+        raw: p
+      };
+    });
+  }, [produkSalesList]);
 
   const selectedCustomerValue = useMemo(() => {
     if (!form.pelangganId && !form.namaPelanggan) return '';
@@ -245,9 +341,7 @@ export default function PenjualanTab({
 
       let hModal = Number(it.hargaModal) || 0;
       if (prod) {
-        hModal = isTopMarket
-          ? (Number(prod.hargaTopMarket) || Number(prod.hargaPabrik) || 0)
-          : (Number(prod.hargaUmum) || Number(prod.hargaPabrik) || 0);
+        hModal = Number(prod.hargaModal || prod.hargaUmum || prod.hargaTopMarket || prod.hargaPabrik || 0);
       }
 
       const feeItem = Math.max(0, (hJual - hModal) * qty);
@@ -269,8 +363,49 @@ export default function PenjualanTab({
   }, [form.items, form.pelangganId, form.namaPelanggan, produkSalesList, pelangganList]);
 
   const handleSubmit = async () => {
-    if (!form.namaPelanggan.trim()) { showAlert('Nama pelanggan wajib diisi/dipilih!', 'error'); return; }
-    if (!form.items.some(it => it.namaProduk)) { showAlert('Minimal 1 produk wajib diisi/dipilih!', 'error'); return; }
+    if (!form.noFaktur || !form.noFaktur.trim()) {
+      if (showAlert) showAlert('No. Faktur / Nota Transaksi tidak boleh kosong!', 'error', 'Peringatan');
+      return;
+    }
+
+    // Cek Duplikasi No. Faktur
+    const cleanedFaktur = form.noFaktur.trim().toLowerCase();
+    const isDuplicateFaktur = (penjualanList || []).some(pj => {
+      const currentId = editData ? (editData.id || editData._id) : null;
+      const pjId = pj.id || pj._id;
+      if (currentId && String(currentId) === String(pjId)) return false;
+      return (pj.noFaktur || '').trim().toLowerCase() === cleanedFaktur;
+    });
+
+    if (isDuplicateFaktur) {
+      if (showAlert) showAlert(`No. Faktur "${form.noFaktur}" sudah pernah digunakan! Nomor Invoice tidak boleh sama. Silakan gunakan nomor invoice unik lain.`, 'error', 'Invoice Duplikat');
+      return;
+    }
+    if (!form.namaPelanggan || !form.namaPelanggan.trim()) {
+      if (showAlert) showAlert('Pelanggan wajib dipilih atau diisi!', 'error', 'Peringatan');
+      return;
+    }
+    if (!form.items || form.items.length === 0) {
+      if (showAlert) showAlert('Minimal 1 item produk wajib ditambahkan!', 'error', 'Peringatan');
+      return;
+    }
+
+    // Validasi per item produk
+    for (let i = 0; i < form.items.length; i++) {
+      const it = form.items[i];
+      if (!it.namaProduk && !it.produkId) {
+        if (showAlert) showAlert(`Item ke-${i + 1}: Silakan pilih produk terlebih dahulu!`, 'error', 'Peringatan');
+        return;
+      }
+      if (!it.qty || Number(it.qty) <= 0) {
+        if (showAlert) showAlert(`Item ke-${i + 1}: Qty harus lebih dari 0!`, 'error', 'Peringatan');
+        return;
+      }
+      if (it.hargaSatuan === '' || it.hargaSatuan === null || it.hargaSatuan === undefined || Number(it.hargaSatuan) < 0) {
+        if (showAlert) showAlert(`Item ke-${i + 1}: Harga Jual tidak boleh kosong!`, 'error', 'Peringatan');
+        return;
+      }
+    }
 
     const matchedCust = (pelangganList || []).find(c => {
       const cId = c.id || c._id;
@@ -326,149 +461,261 @@ export default function PenjualanTab({
 
   return (
     <div className="tab-container">
-      {/* HEADER */}
-      <div className="tab-header">
-        <div>
-          <h2 className="tab-title"><ShoppingBag size={24} /> Data Penjualan Produk</h2>
-          <p className="tab-subtitle">Catat transaksi penjualan, pilih dari pelanggan &amp; stok produk, serta kelola tagihan</p>
+      {/* KPI SUMMARY CARDS (SUPER COMPACT & RAMPING) */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '0.6rem', marginBottom: '0.75rem' }}>
+        <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderTop: '3px solid #0284c7', borderRadius: '10px', padding: '0.5rem 0.85rem', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.02em' }}>TOTAL OMZET</span>
+            <div style={{ width: '26px', height: '26px', borderRadius: '6px', background: '#f0f9ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <DollarSign size={14} style={{ color: '#0284c7' }} />
+            </div>
+          </div>
+          <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#0f172a', marginTop: '0.15rem', lineHeight: 1.2 }}>
+            {formatRp(totalPenjualan)}
+          </div>
         </div>
+
+        <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderTop: '3px solid #db2777', borderRadius: '10px', padding: '0.5rem 0.85rem', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.02em' }}>FEE / MARGIN MKT</span>
+            <div style={{ width: '26px', height: '26px', borderRadius: '6px', background: '#fdf2f8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Megaphone size={14} style={{ color: '#db2777' }} />
+            </div>
+          </div>
+          <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#0f172a', marginTop: '0.15rem', lineHeight: 1.2 }}>
+            {formatRp(totalFeeMarketingSemua)}
+          </div>
+        </div>
+
+        <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderTop: '3px solid #059669', borderRadius: '10px', padding: '0.5rem 0.85rem', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.02em' }}>TOTAL TRANSAKSI</span>
+            <div style={{ width: '26px', height: '26px', borderRadius: '6px', background: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <TrendingUp size={14} style={{ color: '#059669' }} />
+            </div>
+          </div>
+          <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#0f172a', marginTop: '0.15rem', lineHeight: 1.2 }}>
+            {totalTransaksi} <span style={{ fontSize: '0.72rem', color: '#059669', fontWeight: 700 }}>Invoice</span>
+          </div>
+        </div>
+
+        <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderTop: '3px solid #d97706', borderRadius: '10px', padding: '0.5rem 0.85rem', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.02em' }}>TRANSAKSI LUNAS</span>
+            <div style={{ width: '26px', height: '26px', borderRadius: '6px', background: '#fffbeb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Package size={14} style={{ color: '#d97706' }} />
+            </div>
+          </div>
+          <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#0f172a', marginTop: '0.15rem', lineHeight: 1.2 }}>
+            {lunas} <span style={{ fontSize: '0.72rem', color: '#d97706', fontWeight: 700 }}>Lunas</span>
+          </div>
+        </div>
+
+        <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderTop: '3px solid #0284c7', borderRadius: '10px', padding: '0.5rem 0.85rem', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.02em' }}>TOTAL PELANGGAN</span>
+            <div style={{ width: '26px', height: '26px', borderRadius: '6px', background: '#f0f9ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Users size={14} style={{ color: '#0284c7' }} />
+            </div>
+          </div>
+          <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#0f172a', marginTop: '0.15rem', lineHeight: 1.2 }}>
+            {pelangganUnik} <span style={{ fontSize: '0.72rem', color: '#0284c7', fontWeight: 700 }}>Mitra</span>
+          </div>
+        </div>
+      </div>
+
+      {/* TOOLBAR & FILTER ROW */}
+      <div style={{ background: '#ffffff', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid #cbd5e1', boxShadow: '0 2px 8px rgba(0,0,0,0.03)', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', flex: 1, minWidth: '280px' }}>
+          <div className="search-box" style={{ flex: 1, minWidth: '200px', height: '36px' }}>
+            <Search size={15} />
+            <input className="search-input" placeholder="Cari pelanggan / no. faktur..." value={searchQ} onChange={e => setSearchQ(e.target.value)} style={{ fontSize: '0.8rem' }} />
+          </div>
+
+          <ModernMonthPicker
+            value={filterMonth}
+            onChange={setFilterMonth}
+            allowAll={true}
+            variant="primary"
+          />
+
+
+        </div>
+
         {canEdit && (
-          <button className="btn btn-primary" onClick={openAdd}>
-            <Plus size={16} /> Catat Penjualan
-          </button>
+          <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+            {selectedIds.length > 0 && (
+              <button
+                className="btn btn-outline-danger"
+                onClick={handleBulkDeleteSelected}
+                style={{
+                  height: '36px',
+                  fontSize: '0.78rem',
+                  fontWeight: 800,
+                  padding: '0 0.85rem',
+                  borderRadius: '8px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  background: '#fef2f2',
+                  border: '1px solid #fca5a5',
+                  color: '#dc2626'
+                }}
+              >
+                <Trash2 size={15} /> Hapus Terpilih ({selectedIds.length})
+              </button>
+            )}
+
+            <button className="btn btn-emerald" onClick={openAdd} style={{ height: '36px', fontSize: '0.78rem', fontWeight: 800, padding: '0 0.95rem', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+              <Plus size={15} /> + Catat Penjualan
+            </button>
+          </div>
         )}
       </div>
 
-      {/* SUMMARY CARDS */}
-      <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', marginBottom: '1.5rem' }}>
-        <div className="stat-card">
-          <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}><DollarSign size={20} /></div>
-          <div className="stat-info"><p className="stat-label">Total Omzet</p><h3 className="stat-value" style={{ fontSize: '1.05rem' }}>{formatRp(totalPenjualan)}</h3></div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#ec4899,#be185d)' }}><Megaphone size={20} /></div>
-          <div className="stat-info"><p className="stat-label">Fee / Margin Mkt</p><h3 className="stat-value" style={{ fontSize: '1.05rem', color: '#ec4899' }}>{formatRp(totalFeeMarketingSemua)}</h3></div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#10b981,#059669)' }}><TrendingUp size={20} /></div>
-          <div className="stat-info"><p className="stat-label">Total Transaksi</p><h3 className="stat-value">{totalTransaksi}</h3></div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#f59e0b,#d97706)' }}><Package size={20} /></div>
-          <div className="stat-info"><p className="stat-label">Transaksi Lunas</p><h3 className="stat-value">{lunas}</h3></div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#0ea5e9,#0284c7)' }}><Users size={20} /></div>
-          <div className="stat-info"><p className="stat-label">Total Pelanggan</p><h3 className="stat-value">{pelangganUnik}</h3></div>
-        </div>
-      </div>
-
-      {/* FILTER ROW */}
-      <div className="filter-row" style={{ marginBottom: '1rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-        <div className="search-box">
-          <Search size={16} className="search-icon" />
-          <input className="search-input" placeholder="Cari pelanggan / no. faktur..." value={searchQ} onChange={e => setSearchQ(e.target.value)} />
-        </div>
-
-        <select className="form-select" value={filterMonth} onChange={e => setFilterMonth(e.target.value)} style={{ maxWidth: 190, fontWeight: 600 }}>
-          <option value="Semua">🗓️ Semua Bulan</option>
-          {availableMonths.map(m => (
-            <option key={m} value={m}>🗓️ {formatMonthName(m)}</option>
-          ))}
-        </select>
-
-        <select className="form-select" value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ maxWidth: 150 }}>
-          <option value="Semua">Semua Status</option>
-          {STATUS_PEMBAYARAN.map(s => <option key={s} value={s}>{s}</option>)}
-        </select>
-      </div>
-
       {/* TABLE */}
-      <div className="table-container">
-        <table className="data-table">
+      <div className="table-responsive" style={{ borderRadius: '10px', border: '1px solid #e2e8f0', background: '#ffffff' }}>
+        <table className="custom-table" style={{ width: '100%', fontSize: '0.8rem' }}>
           <thead>
-            <tr>
-              <th>No. Faktur</th>
-              <th>Tanggal</th>
-              <th>Pelanggan</th>
-              <th>Total Item</th>
-              <th>Total Bersih</th>
-              <th>Metode</th>
-              <th>Status</th>
-              <th>Aksi</th>
+            <tr style={{ background: '#f8fafc', color: '#475569' }}>
+              {canEdit && (
+                <th style={{ padding: '0.45rem 0.65rem', textAlign: 'center', width: '40px' }}>
+                  <input
+                    type="checkbox"
+                    checked={filtered.length > 0 && selectedIds.length === filtered.length}
+                    onChange={handleSelectAll}
+                    style={{ cursor: 'pointer', width: '15px', height: '15px' }}
+                    title="Pilih Semua"
+                  />
+                </th>
+              )}
+              <th style={{ padding: '0.45rem 0.65rem', whiteSpace: 'nowrap' }}>No. Faktur</th>
+              <th style={{ padding: '0.45rem 0.65rem', whiteSpace: 'nowrap' }}>Tanggal</th>
+              <th style={{ padding: '0.45rem 0.65rem', whiteSpace: 'nowrap' }}>Pelanggan</th>
+              <th style={{ padding: '0.45rem 0.65rem', whiteSpace: 'nowrap' }}>Total Item</th>
+              <th style={{ padding: '0.45rem 0.65rem', textAlign: 'right', whiteSpace: 'nowrap' }}>Total Bersih</th>
+              <th style={{ padding: '0.45rem 0.65rem', whiteSpace: 'nowrap' }}>Metode</th>
+              <th style={{ padding: '0.45rem 0.65rem', whiteSpace: 'nowrap' }}>Status</th>
+              <th style={{ padding: '0.45rem 0.65rem', textAlign: 'center', whiteSpace: 'nowrap' }}>Aksi</th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={8} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+                <td colSpan={canEdit ? 9 : 8} style={{ textAlign: 'center', padding: '2.5rem', color: '#94a3b8' }}>
                   Belum ada transaksi penjualan. Klik "+ Catat Penjualan" untuk mencatat.
                 </td>
               </tr>
             ) : (
-              filtered.map(p => (
-                <tr key={p.id || p._id}>
-                  <td style={{ fontFamily: 'monospace', fontWeight: 600, color: 'var(--accent-primary)' }}>{p.noFaktur || '-'}</td>
-                  <td style={{ fontSize: '0.85rem' }}>{formatDate(p.tanggal || p.createdAt)}</td>
-                  <td><strong>{p.namaPelanggan}</strong></td>
-                  <td>{p.items?.length || 0} Item</td>
-                  <td><strong style={{ color: '#10b981' }}>{formatRp(p.totalBersih)}</strong></td>
-                  <td><span className="badge" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>{p.metodePembayaran || 'Tunai'}</span></td>
-                  <td><span className="badge" style={{ background: `${statusColor[p.statusPembayaran] || '#10b981'}20`, color: statusColor[p.statusPembayaran] || '#10b981', border: `1px solid ${statusColor[p.statusPembayaran] || '#10b981'}` }}>{p.statusPembayaran}</span></td>
-                  <td>
-                    <div style={{ display: 'flex', gap: '0.35rem' }}>
-                      <button className="btn btn-sm btn-secondary" onClick={() => setShowDetail(p)}><Eye size={14} /></button>
+              filtered.map(p => {
+                const pId = p.id || p._id;
+                const isSelected = selectedIds.includes(pId);
+
+                return (
+                  <tr key={pId} style={{ borderBottom: '1px solid #f1f5f9', background: isSelected ? '#f0f9ff' : 'transparent' }}>
+                    {canEdit && (
+                      <td style={{ padding: '0.4rem 0.65rem', textAlign: 'center' }}>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => handleToggleSelect(pId)}
+                          style={{ cursor: 'pointer', width: '15px', height: '15px' }}
+                        />
+                      </td>
+                    )}
+                  <td style={{ padding: '0.4rem 0.65rem', fontFamily: 'monospace', fontWeight: 800, color: '#0284c7', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>{p.noFaktur || '-'}</td>
+                  <td style={{ padding: '0.4rem 0.65rem', fontWeight: 700, color: '#475569', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>{formatDate(p.tanggal || p.createdAt)}</td>
+                  <td style={{ padding: '0.4rem 0.65rem', fontWeight: 800, color: '#0f172a', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>{p.namaPelanggan}</td>
+                  <td style={{ padding: '0.4rem 0.65rem', color: '#64748b', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>{p.items?.length || 0} Item</td>
+                  <td style={{ padding: '0.4rem 0.65rem', textAlign: 'right', fontWeight: 900, color: '#059669', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>{formatRp(p.totalBersih)}</td>
+                  <td style={{ padding: '0.4rem 0.65rem', whiteSpace: 'nowrap' }}>
+                    <span style={{ background: '#f1f5f9', color: '#334155', border: '1px solid #cbd5e1', fontSize: '0.68rem', fontWeight: 700, padding: '0.08rem 0.45rem', borderRadius: '4px' }}>
+                      {p.metodePembayaran || 'Tunai'}
+                    </span>
+                  </td>
+                  <td style={{ padding: '0.4rem 0.65rem', whiteSpace: 'nowrap' }}>
+                    <span style={{
+                      background: `${statusColor[p.statusPembayaran] || '#10b981'}15`,
+                      color: statusColor[p.statusPembayaran] || '#10b981',
+                      border: `1px solid ${statusColor[p.statusPembayaran] || '#10b981'}40`,
+                      fontSize: '0.68rem',
+                      fontWeight: 800,
+                      padding: '0.08rem 0.45rem',
+                      borderRadius: '4px'
+                    }}>
+                      {p.statusPembayaran}
+                    </span>
+                  </td>
+                  <td style={{ padding: '0.4rem 0.65rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                    <div style={{ display: 'inline-flex', gap: '0.25rem' }}>
+                      <button className="btn btn-sm" onClick={() => setShowDetail(p)} style={{ padding: '0.2rem 0.45rem', background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', borderRadius: '5px' }} title="Lihat Detail"><Eye size={13} /></button>
                       {canEdit && (
                         <>
-                          <button className="btn btn-sm btn-secondary" onClick={() => openEdit(p)}><Edit3 size={14} /></button>
-                          <button className="btn btn-sm btn-danger" onClick={() => handleDelete(p)}><Trash2 size={14} /></button>
+                          <button className="btn btn-sm" onClick={() => openEdit(p)} style={{ padding: '0.2rem 0.45rem', background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', borderRadius: '5px' }} title="Edit"><Edit3 size={13} /></button>
+                          <button className="btn btn-sm" onClick={() => handleDelete(p)} style={{ padding: '0.2rem 0.45rem', background: '#fef2f2', color: '#dc2626', border: '1px solid #fca5a5', borderRadius: '5px' }} title="Hapus"><Trash2 size={13} /></button>
                         </>
                       )}
                     </div>
                   </td>
                 </tr>
-              ))
-            )}
+              );
+            })
+          )}
           </tbody>
         </table>
       </div>
 
-      {/* MODAL CATAT PENJUALAN */}
+      {/* MODAL CATAT PENJUALAN - LEBAR RAPI LEGA */}
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal-container" style={{ maxWidth: 680 }} onClick={e => e.stopPropagation()}>
+          <div className="modal-container" style={{ maxWidth: 880, width: '92%' }} onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h3><ShoppingBag size={20} style={{ color: 'var(--accent-primary)' }} /> {editData ? 'Edit Catatan Penjualan' : 'Catat Transaksi Penjualan Baru'}</h3>
               <button className="modal-close" onClick={() => setShowModal(false)}><X size={18} /></button>
             </div>
             <div className="modal-body">
-              {/* PELANGGAN SELECTION */}
-              <div className="form-grid">
-                <div className="form-group" style={{ gridColumn: '1/-1' }}>
+              {/* FORM UTAMA (4 FIELD PAS 2X2 SEJAJAR): NO FAKTUR, TANGGAL, PILIH PELANGGAN, NAMA PELANGGAN */}
+              <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem', marginBottom: '0.85rem' }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <label className="form-label">No. Faktur / Nota Transaksi *</label>
+                    <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#dc2626' }}>
+                      ⚠️ Invoice Tidak Boleh Sama
+                    </span>
+                  </div>
+                  <input
+                    className="form-input"
+                    value={form.noFaktur}
+                    onChange={e => setForm(f => ({ ...f, noFaktur: e.target.value }))}
+                    placeholder="Wajib diisi! (Contoh: INV-202608001)"
+                    style={{ fontWeight: 700, height: '34px', fontSize: '0.78rem' }}
+                    required
+                  />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Tanggal Transaksi *</label>
+                  <input
+                    className="form-input"
+                    type="date"
+                    value={form.tanggal}
+                    onChange={e => setForm(f => ({ ...f, tanggal: e.target.value }))}
+                    style={{ height: '34px', fontSize: '0.78rem', fontWeight: 600 }}
+                    required
+                  />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Pilih Pelanggan / Customer *</label>
-                  <select className="form-select" value={selectedCustomerValue} onChange={handleSelectCustomer}>
-                    <option value="">-- Pilih Pelanggan Terdaftar --</option>
-                    {pelangganList.map(c => {
-                      const cId = c.id || c._id;
-                      return (
-                        <option key={cId} value={cId}>
-                          👤 [{c.kode || 'C'}] {c.nama} ({c.kategoriCustomer === 'Top Market' ? '⭐ Top Market' : 'Umum'}) {c.noHp ? `- ${c.noHp}` : ''}
-                        </option>
-                      );
-                    })}
-                  </select>
+                  <ModernSearchableSelect
+                    value={selectedCustomerValue}
+                    onChange={(val) => handleSelectCustomer({ target: { value: val } })}
+                    options={sortedPelangganOptions}
+                    placeholder="-- Pilih Pelanggan Terdaftar --"
+                    icon={Users}
+                  />
                 </div>
-                <div className="form-group">
+                <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Nama Pelanggan (Manual / Edit) *</label>
-                  <input className="form-input" value={form.namaPelanggan} onChange={e => setForm(f => ({ ...f, namaPelanggan: e.target.value }))} placeholder="Nama Pelanggan / Toko..." required />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">No. Telepon / WA</label>
-                  <input className="form-input" value={form.teleponPelanggan} onChange={e => setForm(f => ({ ...f, teleponPelanggan: e.target.value }))} placeholder="08xx-xxxx-xxxx" />
-                </div>
-                <div className="form-group" style={{ gridColumn: '1/-1' }}>
-                  <label className="form-label">Alamat Pengiriman</label>
-                  <input className="form-input" value={form.alamatPelanggan} onChange={e => setForm(f => ({ ...f, alamatPelanggan: e.target.value }))} placeholder="Alamat pengiriman..." />
+                  <input className="form-input" value={form.namaPelanggan} onChange={e => setForm(f => ({ ...f, namaPelanggan: e.target.value }))} placeholder="Nama Pelanggan / Toko..." style={{ height: '34px', fontSize: '0.78rem' }} required />
                 </div>
               </div>
 
@@ -486,30 +733,28 @@ export default function PenjualanTab({
                     <div style={{ display: 'grid', gridTemplateColumns: '2.5fr 1fr 1.5fr auto', gap: '0.5rem', alignItems: 'flex-start' }}>
                       <div>
                         <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Nama Produk *</label>
-                        <select className="form-select" value={it.produkId || ''} onChange={e => handleSelectProduct(idx, e.target.value)}>
-                          <option value="">-- Pilih dari Stok Produk --</option>
-                          {produkSalesList.map(p => (
-                            <option key={p.id || p._id} value={p.id || p._id}>
-                              📦 {p.namaProduk} [{p.brand || 'SAREN ONE'}] (Stok: {p.stokReady || 0} Pcs)
-                            </option>
-                          ))}
-                        </select>
+                        <ModernSearchableSelect
+                          value={it.produkId || ''}
+                          onChange={(val) => handleSelectProduct(idx, val)}
+                          options={sortedProdukOptions}
+                          placeholder="-- Pilih dari Stok Produk --"
+                          icon={Package}
+                        />
                         {currentProd && (
-                          <div style={{ fontSize: '0.73rem', marginTop: '4px', display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
-                            <span style={{ color: '#f59e0b', fontWeight: 600 }}>⭐ Modal Top Market: {formatRp(currentProd.hargaTopMarket || currentProd.hargaPabrik)}</span>
-                            <span style={{ color: '#0ea5e9', fontWeight: 600 }}>🏷️ Modal Umum: {formatRp(currentProd.hargaUmum || currentProd.hargaPabrik)}</span>
+                          <div style={{ fontSize: '0.73rem', marginTop: '4px', color: '#64748b', fontWeight: 600 }}>
+                            🔒 HPP / Modal Dasar: <strong style={{ color: '#0369a1' }}>{formatRp(currentProd.hargaModal || currentProd.hargaUmum || currentProd.hargaTopMarket || currentProd.hargaPabrik)}</strong>
                           </div>
                         )}
                       </div>
 
                       <div>
                         <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Qty (Pcs) *</label>
-                        <input className="form-input" type="number" min={1} value={it.qty} onChange={e => handleItemChange(idx, 'qty', e.target.value)} placeholder="Qty" />
+                        <input className="form-input" type="number" min={1} value={it.qty} onChange={e => handleItemChange(idx, 'qty', e.target.value)} placeholder="Qty" style={{ height: '34px', fontSize: '0.78rem' }} />
                       </div>
 
                       <div>
                         <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Harga Jual / Pcs (Rp) *</label>
-                        <input className="form-input" type="number" min={0} value={it.hargaSatuan} onChange={e => handleItemChange(idx, 'hargaSatuan', e.target.value)} placeholder="Harga jual" />
+                        <input className="form-input" type="number" min={0} value={it.hargaSatuan} onChange={e => handleItemChange(idx, 'hargaSatuan', e.target.value)} placeholder="Harga jual" style={{ height: '34px', fontSize: '0.78rem' }} />
                       </div>
 
                       <div style={{ paddingTop: '1.4rem' }}>
@@ -527,26 +772,34 @@ export default function PenjualanTab({
 
               <button className="btn btn-secondary btn-sm" style={{ marginBottom: '1rem' }} onClick={addItem}><Plus size={14} /> Tambah Baris Produk</button>
 
-              <div className="form-grid">
-                <div className="form-group">
+              <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.2fr', gap: '0.85rem' }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Diskon Potongan (Rp)</label>
-                  <input className="form-input" type="number" min={0} value={form.diskon} onChange={e => setForm(f => ({ ...f, diskon: e.target.value }))} />
+                  <input className="form-input" type="number" min={0} value={form.diskon} onChange={e => setForm(f => ({ ...f, diskon: e.target.value }))} style={{ height: '34px', fontSize: '0.78rem' }} />
                 </div>
-                <div className="form-group">
-                  <label className="form-label">Metode Pembayaran</label>
-                  <select className="form-select" value={form.metodePembayaran} onChange={e => setForm(f => ({ ...f, metodePembayaran: e.target.value }))}>
-                    {METODE_PEMBAYARAN.map(m => <option key={m} value={m}>{m}</option>)}
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Status Pembayaran *</label>
+                  <select
+                    className="form-select"
+                    value={form.statusPembayaran}
+                    onChange={e => {
+                      const val = e.target.value;
+                      setForm(f => ({
+                        ...f,
+                        statusPembayaran: val,
+                        metodePembayaran: val === 'Tempo' ? 'Tempo' : (f.metodePembayaran === 'Tempo' ? 'Tunai' : f.metodePembayaran)
+                      }));
+                    }}
+                    style={{ height: '34px', fontSize: '0.78rem', fontWeight: 700, background: form.statusPembayaran === 'Tempo' ? '#fef2f2' : '#f0fdf4', color: form.statusPembayaran === 'Tempo' ? '#dc2626' : '#16a34a' }}
+                    required
+                  >
+                    <option value="Lunas">✓ Lunas (Cash / Transfer)</option>
+                    <option value="Tempo">⏳ Tempo / Kredit (Masuk Piutang)</option>
                   </select>
                 </div>
-                <div className="form-group">
-                  <label className="form-label">Status Pembayaran</label>
-                  <select className="form-select" value={form.statusPembayaran} onChange={e => setForm(f => ({ ...f, statusPembayaran: e.target.value }))}>
-                    {STATUS_PEMBAYARAN.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                </div>
-                <div className="form-group">
+                <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Catatan Transaksi</label>
-                  <input className="form-input" value={form.catatan} onChange={e => setForm(f => ({ ...f, catatan: e.target.value }))} placeholder="Catatan tambahan (opsional)" />
+                  <input className="form-input" value={form.catatan} onChange={e => setForm(f => ({ ...f, catatan: e.target.value }))} placeholder="Catatan tambahan (opsional)" style={{ height: '34px', fontSize: '0.78rem' }} />
                 </div>
               </div>
 
@@ -564,43 +817,59 @@ export default function PenjualanTab({
         </div>
       )}
 
-      {/* MODAL DETAIL */}
+      {/* MODAL DETAIL - LEBAR RAPI LEGA */}
       {showDetail && (
         <div className="modal-overlay" onClick={() => setShowDetail(null)}>
-          <div className="modal-container" style={{ maxWidth: 560 }} onClick={e => e.stopPropagation()}>
+          <div className="modal-container" style={{ maxWidth: 760, width: '90%' }} onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h3>Detail Penjualan — {showDetail.noFaktur}</h3>
               <button className="modal-close" onClick={() => setShowDetail(null)}><X size={20} /></button>
             </div>
             <div className="modal-body">
-              <div style={{ display: 'grid', gap: '0.5rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem 1.5rem', background: '#f8fafc', padding: '0.85rem', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '1rem' }}>
                 {[
-                  ['Pelanggan', showDetail.namaPelanggan],
-                  ['Telepon', showDetail.teleponPelanggan || '-'],
-                  ['Alamat', showDetail.alamatPelanggan || '-'],
-                  ['Tanggal', formatDate(showDetail.tanggal || showDetail.createdAt)],
-                  ['Metode Bayar', showDetail.metodePembayaran],
-                  ['Status', showDetail.statusPembayaran],
+                  ['No. Faktur / Nota', showDetail.noFaktur || '-'],
+                  ['Nama Pelanggan', showDetail.namaPelanggan],
+                  ['Tanggal Transaksi', formatDate(showDetail.tanggal || showDetail.createdAt)],
                   ['Dicatat oleh', showDetail.createdBy || '-']
                 ].map(([k, v]) => (
-                  <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.4rem 0', borderBottom: '1px solid var(--border-color)' }}>
-                    <span style={{ color: 'var(--text-muted)' }}>{k}</span><span style={{ fontWeight: 600 }}>{v}</span>
+                  <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.2rem 0', borderBottom: '1px dashed #cbd5e1', fontSize: '0.78rem' }}>
+                    <span style={{ color: '#64748b', fontWeight: 600 }}>{k}:</span>
+                    <strong style={{ color: '#0f172a' }}>{v}</strong>
                   </div>
                 ))}
               </div>
-              <div style={{ marginTop: '1rem', fontWeight: 600 }}>Item Produk:</div>
-              <table className="data-table" style={{ marginTop: '0.5rem' }}>
-                <thead><tr><th>Produk</th><th>Qty</th><th>Harga Jual</th><th>Subtotal</th></tr></thead>
-                <tbody>
-                  {(showDetail.items || []).map((it, i) => (
-                    <tr key={i}><td>{it.namaProduk}</td><td>{it.qty} Pcs</td><td>{formatRp(it.hargaSatuan)}</td><td>{formatRp(it.subtotal)}</td></tr>
-                  ))}
-                </tbody>
-              </table>
-              <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Subtotal:</span><span>{formatRp(showDetail.totalHarga)}</span></div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ef4444' }}><span>Diskon:</span><span>- {formatRp(showDetail.diskon)}</span></div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: '1.1rem', color: '#10b981' }}><span>Total Bersih:</span><span>{formatRp(showDetail.totalBersih)}</span></div>
+
+              <div style={{ fontWeight: 800, fontSize: '0.82rem', color: '#0f172a', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                📦 Rincian Item Produk Penjualan:
+              </div>
+              <div className="table-responsive" style={{ borderRadius: '8px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+                <table className="data-table" style={{ width: '100%', fontSize: '0.78rem', margin: 0 }}>
+                  <thead>
+                    <tr style={{ background: '#f1f5f9', color: '#475569' }}>
+                      <th style={{ padding: '0.45rem 0.65rem' }}>Produk</th>
+                      <th style={{ padding: '0.45rem 0.65rem', textAlign: 'center' }}>Qty</th>
+                      <th style={{ padding: '0.45rem 0.65rem', textAlign: 'right' }}>Harga Jual</th>
+                      <th style={{ padding: '0.45rem 0.65rem', textAlign: 'right' }}>Subtotal</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(showDetail.items || []).map((it, i) => (
+                      <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '0.45rem 0.65rem', fontWeight: 700, color: '#0f172a' }}>{it.namaProduk}</td>
+                        <td style={{ padding: '0.45rem 0.65rem', textAlign: 'center', fontWeight: 800, color: '#0284c7' }}>{it.qty} Pcs</td>
+                        <td style={{ padding: '0.45rem 0.65rem', textAlign: 'right' }}>{formatRp(it.hargaSatuan)}</td>
+                        <td style={{ padding: '0.45rem 0.65rem', textAlign: 'right', fontWeight: 800, color: '#059669' }}>{formatRp(it.subtotal)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div style={{ marginTop: '1rem', background: '#f8fafc', padding: '0.85rem', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.35rem', fontSize: '0.82rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}><span>Subtotal Harga:</span><strong style={{ color: '#0f172a' }}>{formatRp(showDetail.totalHarga)}</strong></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ef4444' }}><span>Diskon Potongan:</span><strong>- {formatRp(showDetail.diskon)}</strong></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 900, fontSize: '1.05rem', color: '#059669', borderTop: '1px solid #cbd5e1', paddingTop: '0.45rem', marginTop: '0.2rem' }}><span>Total Penjualan Bersih:</span><span>{formatRp(showDetail.totalBersih)}</span></div>
               </div>
               {showDetail.catatan && <div style={{ marginTop: '0.8rem', padding: '0.7rem', background: 'var(--bg-secondary)', borderRadius: 8 }}>📝 {showDetail.catatan}</div>}
             </div>

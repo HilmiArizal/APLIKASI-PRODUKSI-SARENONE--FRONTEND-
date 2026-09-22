@@ -66,97 +66,190 @@ export default function ProdukTab({
   };
 
   return (
-    <div className="tab-pane active">
-      <div className="toolbar">
-        <div className="search-box">
-          <Search size={16} />
-          <input
-            type="text"
-            placeholder="Cari produk (misal: RCS, SCM, BS)..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+    <div className="tab-pane active" style={{ maxWidth: '100%', overflowX: 'hidden', color: '#1e293b' }}>
+      {/* ===== TOOLBAR ===== */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', marginBottom: '0.85rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', flex: 1 }}>
+          <div className="search-box" style={{ height: '32px', maxWidth: '300px' }}>
+            <Search size={14} />
+            <input
+              type="text"
+              placeholder="Cari produk (misal: RCS, SCM, BS)..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{ fontSize: '0.78rem' }}
+            />
+          </div>
+
+          <select
+            value={kategoriFilter}
+            onChange={(e) => setKategoriFilter(e.target.value)}
+            className="select-input"
+            style={{
+              height: '32px',
+              fontSize: '0.78rem',
+              fontWeight: 700,
+              border: '1px solid #cbd5e1',
+              borderRadius: '6px',
+              padding: '0 0.6rem',
+              background: '#ffffff',
+              color: '#0f172a',
+              outline: 'none',
+              maxWidth: '180px'
+            }}
+          >
+            <option value="">Semua Kategori</option>
+            {kategoriList.map(k => (
+              <option key={k.id} value={k.nama}>{k.nama}</option>
+            ))}
+          </select>
         </div>
 
-        <select
-          value={kategoriFilter}
-          onChange={(e) => setKategoriFilter(e.target.value)}
-          className="select-input"
-          style={{ maxWidth: '190px' }}
-        >
-          <option value="">Semua Kategori</option>
-          {kategoriList.map(k => (
-            <option key={k.id} value={k.nama}>{k.nama}</option>
-          ))}
-        </select>
-
-        <div className="toolbar-actions" style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-          {/* Kategori button removed */}
-
-          {/* <button className="btn btn-outline" onClick={handleExportExcel} title="Export Data ke Excel (.csv)">
-            <FileSpreadsheet size={16} style={{ color: 'var(--emerald)' }} /> Excel
-          </button>
-
-          <button className="btn btn-outline" onClick={handleExportPDF} title="Cetak / Simpan Laporan PDF">
-            <FileText size={16} style={{ color: 'var(--amber)' }} /> Cetak PDF
-          </button> */}
-
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginLeft: 'auto' }}>
           {canEdit && (
             <>
               {!isProdukDomain && (
-                <button className="btn btn-emerald" onClick={() => onOpenProduksiSpesifik(null)}>
-                  <Play size={16} /> Mulai Produksi Batch
+                <button
+                  type="button"
+                  className="btn btn-emerald"
+                  onClick={() => onOpenProduksiSpesifik(null)}
+                  style={{ height: '32px', fontSize: '0.78rem', fontWeight: 800, padding: '0 0.75rem', borderRadius: '6px', boxShadow: '0 3px 10px rgba(16, 185, 129, 0.3)', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                >
+                  <Play size={14} /> Mulai Produksi Batch
                 </button>
               )}
-              <button className="btn btn-primary" onClick={onOpenTambahProduk}>
-                <Plus size={16} /> Tambah Produk Baru
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={onOpenTambahProduk}
+                style={{ height: '32px', fontSize: '0.78rem', fontWeight: 800, padding: '0 0.75rem', borderRadius: '6px', boxShadow: '0 3px 10px rgba(14, 165, 233, 0.3)', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+              >
+                <Plus size={14} /> + Tambah Produk Baru
               </button>
             </>
           )}
         </div>
       </div>
 
-      <div className="produk-grid mt-4">
-        {filtered.map(p => {
-          const formulaList = resep[p.id] || [];
+      {/* ===== PRODUK CARDS GRID ===== */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.75rem' }}>
+        {filtered.length === 0 ? (
+          <div style={{ gridColumn: '1 / -1', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '10px', padding: '2.5rem', textAlign: 'center', color: '#64748b', fontSize: '0.85rem' }}>
+            Tidak ada produk yang sesuai dengan kriteria pencarian.
+          </div>
+        ) : (
+          filtered.map(p => {
+            const formulaList = resep[p.id] || [];
 
-          return (
-            <div key={p.id} className="produk-card">
-              <div className="produk-card-header">
-                <div>
-                  <div className="produk-sku">{p.sku} • {p.kategori}</div>
-                  <h4 className="produk-title">{p.nama}</h4>
-                </div>
-                {canEdit && (
-                  <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
-                    <button className="btn btn-sm btn-outline" title="Edit Data Produk" onClick={() => onOpenEditProduk(p)}>
-                      <Edit3 size={14} />
-                    </button>
-                    <button className="btn btn-sm btn-outline btn-danger" title="Hapus Produk" onClick={() => onDeleteProduk && onDeleteProduk(p.id)}>
-                      <Trash2 size={14} />
-                    </button>
+            return (
+              <div
+                key={p.id}
+                style={{
+                  background: '#ffffff',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '10px',
+                  padding: '0.75rem 0.85rem',
+                  boxShadow: '0 3px 10px rgba(0,0,0,0.03)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  gap: '0.65rem',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                {/* Header Row */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
+                  <div style={{ flex: 1 }}>
+                    <span style={{ background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd', fontSize: '0.68rem', fontWeight: 800, padding: '0.12rem 0.45rem', borderRadius: '5px', display: 'inline-block' }}>
+                      {p.sku} • {p.kategori || 'Sosis Olahan'}
+                    </span>
+                    <h4 style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a', margin: '0.3rem 0 0 0', lineHeight: 1.3 }}>
+                      {p.nama}
+                    </h4>
                   </div>
-                )}
-              </div>
 
-              <div className="produk-stok-box">
-                <div>
-                  <span className="text-muted" style={{ fontSize: '0.75rem', display: 'block' }}>Ready, now?</span>
-                  {/* <strong style={{ fontSize: '1.2rem', color: '#fff' }}>{p.stok} Batch</strong> */}
+                  {canEdit && (
+                    <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center', flexShrink: 0 }}>
+                      <button
+                        type="button"
+                        style={{
+                          background: '#f0f9ff',
+                          color: '#0284c7',
+                          border: '1px solid #bae6fd',
+                          borderRadius: '5px',
+                          width: '24px',
+                          height: '24px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                        onClick={() => onOpenEditProduk(p)}
+                        title="Edit Data Produk"
+                      >
+                        <Edit3 size={12} />
+                      </button>
+                      <button
+                        type="button"
+                        style={{
+                          background: '#fef2f2',
+                          color: '#ef4444',
+                          border: '1px solid #fecaca',
+                          borderRadius: '5px',
+                          width: '24px',
+                          height: '24px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                        onClick={() => onDeleteProduk && onDeleteProduk(p.id)}
+                        title="Hapus Produk"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  )}
                 </div>
-                {canEdit && (
-                  <button className="btn btn-sm btn-emerald" onClick={() => onOpenProduksiSpesifik(p.id || p._id || p.sku)}>
-                    <Play size={14} /> Produksi
-                  </button>
-                )}
-              </div>
 
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', borderTop: '1px dashed var(--border-color)', paddingTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                <List size={12} /> Formulasi Resep: <strong>{formulaList.length} Bahan</strong>
+                {/* Footer Row: Formulasi Resep & Action Button */}
+                <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '0.55rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                  <div style={{ fontSize: '0.72rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.3rem', fontWeight: 600 }}>
+                    <List size={13} style={{ color: '#0284c7' }} />
+                    <span>Formulasi: <strong style={{ color: '#0f172a', fontWeight: 800 }}>{formulaList.length} Bahan</strong></span>
+                  </div>
+
+                  {canEdit && (
+                    <button
+                      type="button"
+                      onClick={() => onOpenProduksiSpesifik(p.id || p._id || p.sku)}
+                      style={{
+                        background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        height: '28px',
+                        padding: '0 0.65rem',
+                        fontSize: '0.74rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.3rem',
+                        boxShadow: '0 2px 6px rgba(16, 185, 129, 0.25)',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <Play size={12} /> Produksi
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
     </div>
   );

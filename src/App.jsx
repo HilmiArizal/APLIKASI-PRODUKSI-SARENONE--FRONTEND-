@@ -31,6 +31,9 @@ import AbsensiTab from './components/AbsensiTab';
 import EstimasiPOTab from './components/EstimasiPOTab';
 import HppKalkulatorTab from './components/HppKalkulatorTab';
 import AuditStokTab from './components/AuditStokTab';
+import DashboardProdukTab from './components/DashboardProdukTab';
+import PembelianProdukTab from './components/PembelianProdukTab';
+import ReturTab from './components/ReturTab';
 import { Smartphone, LogOut } from 'lucide-react';
 
 import {
@@ -56,7 +59,10 @@ import {
   INITIAL_PRODUK,
   INITIAL_RESEP,
   INITIAL_AUDIT_LOG,
-  INITIAL_RIWAYAT_PRODUKSI
+  INITIAL_RIWAYAT_PRODUKSI,
+  INITIAL_HASIL_PRODUKSI,
+  INITIAL_ABSENSI,
+  getProdukKemasanMap
 } from './data/initialData';
 
 import {
@@ -103,6 +109,7 @@ import {
   rollbackEmulsiApi,
   getUtangSupplierApi,
   createUtangSupplierApi,
+  updateUtangSupplierApi,
   payUtangSupplierApi,
   receiveUtangSupplierApi,
   deleteUtangSupplierApi,
@@ -144,7 +151,13 @@ import {
   getEstimasiPOApi,
   createEstimasiPOApi,
   updateEstimasiPOStatusApi,
-  deleteEstimasiPOApi
+  deleteEstimasiPOApi,
+  fetchProdukKemasanMapApi,
+  saveProdukKemasanMapApi,
+  getHppListApi,
+  getHasilProduksiApi,
+  saveHasilProduksiApi,
+  deleteHasilProduksiApi
 } from './services/api';
 
 const STORAGE_KEYS = {
@@ -175,7 +188,21 @@ function safeGetStorage(key, fallback) {
 export default function App() {
   const [activeUser, setActiveUser] = useState(() => safeGetStorage(STORAGE_KEYS.ACTIVE_USER, null));
 
-  const [activeRoleView, setActiveRoleView] = useState(() => activeUser?.role || 'ADMIN');
+  const [activeRoleView, setActiveRoleView] = useState(() => {
+    try {
+      const saved = localStorage.getItem('saren_one_role_view_v2');
+      if (saved && saved !== 'null' && saved !== 'undefined') return saved;
+    } catch { /* ignore */ }
+    return activeUser?.role || 'ADMIN';
+  });
+
+  const handleRoleViewChange = (newRole) => {
+    setActiveRoleView(newRole);
+    try {
+      localStorage.setItem('saren_one_role_view_v2', newRole);
+    } catch { /* ignore */ }
+  };
+
   const [activeTab, setActiveTab] = useState(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.ACTIVE_TAB);
@@ -206,13 +233,15 @@ export default function App() {
   const [utangList, setUtangList] = useState([]);
   const [suppliersList, setSuppliersList] = useState([]);
   const [penjualanList, setPenjualanList] = useState([]);
+  const [returList, setReturList] = useState(() => safeGetStorage('SAREN_RETUR_LIST', []));
   const [pelangganList, setPelangganList] = useState(() => safeGetStorage(STORAGE_KEYS.PELANGGAN, []));
   const [pembayaranMasukList, setPembayaranMasukList] = useState([]);
-  const [absensiList, setAbsensiList] = useState([]);
+  const [absensiList, setAbsensiList] = useState(() => safeGetStorage('SAREN_ABSENSI_LIST', []));
   const [estimasiPOList, setEstimasiPOList] = useState([]);
   const [marketingList, setMarketingList] = useState([]);
   const [produkSalesList, setProdukSalesList] = useState([]);
-  const [hasilProduksi, setHasilProduksi] = useState(() => safeGetStorage('SAREN_HASIL_PRODUKSI', []));
+  const [hasilProduksi, setHasilProduksi] = useState(() => safeGetStorage('SAREN_HASIL_PRODUKSI', INITIAL_HASIL_PRODUKSI));
+  const [savedHppList, setSavedHppList] = useState(() => safeGetStorage('SAREN_SAVED_HPP_LIST', []));
   const [brandList, setBrandList] = useState([
     { id: 'brand_1', nama: 'SAREN ONE', deskripsi: 'Lini Brand Utama Saren One' },
     { id: 'brand_2', nama: 'EAT GOW', deskripsi: 'Lini Brand Produk Siap Saji Eat Gow' },
@@ -294,12 +323,12 @@ export default function App() {
         getAuditLogApi(), getUtangSupplierApi(), getSuppliersApi(),
         getPenjualanApi(), getMarketingApi(), getProdukSalesApi(),
         getBrandProdukApi(), getKategoriProdukSalesApi(), getPelangganApi(),
-        getPembayaranMasukApi(), getAbsensiApi(), getEstimasiPOApi()
+        getPembayaranMasukApi(), getAbsensiApi(), getEstimasiPOApi(), getHppListApi(), getHasilProduksiApi()
       ]);
 
       const [
         uRes, kpRes, kbRes, bRes, pRes, rRes, prodRes, logRes, utgRes, supRes,
-        pjRes, mktRes, psRes, brRes, kpsRes, pelRes, pmRes, absRes, estRes
+        pjRes, mktRes, psRes, brRes, kpsRes, pelRes, pmRes, absRes, estRes, hppRes, hasilRes
       ] = results.map(r => r.status === 'fulfilled' ? r.value : null);
 
       if (uRes?.success && Array.isArray(uRes.data) && uRes.data.length > 0) {
@@ -335,8 +364,31 @@ export default function App() {
       if (psRes?.success && Array.isArray(psRes.data)) setProdukSalesList(psRes.data);
       if (pelRes?.success && Array.isArray(pelRes.data)) setPelangganList(pelRes.data);
       if (pmRes?.success && Array.isArray(pmRes.data)) setPembayaranMasukList(pmRes.data);
-      if (absRes?.success && Array.isArray(absRes.data)) setAbsensiList(absRes.data);
+      if (absRes?.success && Array.isArray(absRes.data)) {
+        setAbsensiList(absRes.data);
+        try { localStorage.setItem('SAREN_ABSENSI_LIST', JSON.stringify(absRes.data)); } catch (e) {}
+      }
       if (estRes?.success && Array.isArray(estRes.data)) setEstimasiPOList(estRes.data);
+      if (hppRes?.success && Array.isArray(hppRes.data)) {
+        setSavedHppList(hppRes.data);
+        try {
+          localStorage.setItem('SAREN_SAVED_HPP_LIST', JSON.stringify(hppRes.data));
+        } catch (e) {}
+      }
+      if (hasilRes?.success && Array.isArray(hasilRes.data) && hasilRes.data.length > 0) {
+        setHasilProduksi(prev => {
+          const itemMap = new Map();
+          // 1. Add server items first
+          hasilRes.data.forEach(x => { if (x && x.id) itemMap.set(x.id, x); });
+          // 2. Preserve local items if not present on server
+          (prev || []).forEach(x => { if (x && x.id && !itemMap.has(x.id)) itemMap.set(x.id, x); });
+          const merged = Array.from(itemMap.values());
+          try {
+            localStorage.setItem('SAREN_HASIL_PRODUKSI', JSON.stringify(merged));
+          } catch (e) {}
+          return merged;
+        });
+      }
       if (brRes?.success && Array.isArray(brRes.data) && brRes.data.length > 0) {
         const cleanedBr = (brRes.data || []).filter(b => !['Saren Bakery', 'Saren Frozen', 'Dapur Saren', 'Saren One Original'].includes(b.nama));
         if (cleanedBr.length > 0) setBrandList(cleanedBr);
@@ -435,27 +487,32 @@ export default function App() {
 
   useEffect(() => {
     if (activeRoleView === 'PEMBELIAN') {
-      const allowed = ['dashboard', 'bahan-baku', 'pembelian-bahan', 'utang-supplier', 'penerimaan-bahan', 'supplier'];
+      const allowed = ['dashboard', 'bahan-baku', 'pembelian-bahan', 'utang-supplier', 'penerimaan-bahan', 'supplier', 'audit-stok'];
       if (!allowed.includes(activeTab)) {
         setActiveTab('pembelian-bahan');
       }
     } else if (activeRoleView === 'BAHAN_BAKU') {
-      const allowed = ['dashboard', 'bahan-baku', 'penerimaan-bahan', 'emulsi', 'produk', 'resep', 'pemakaian-kemasan', 'riwayat-produksi', 'hpp-kalkulator', 'estimasi-po'];
+      const allowed = ['dashboard', 'bahan-baku', 'penerimaan-bahan', 'emulsi', 'produk', 'resep', 'pemakaian-kemasan', 'hasil-produksi', 'riwayat-produksi', 'hpp-kalkulator', 'estimasi-po'];
       if (!allowed.includes(activeTab)) {
         setActiveTab('bahan-baku');
       }
+    } else if (activeRoleView === 'PRODUKSI') {
+      const allowed = ['dashboard', 'emulsi', 'produk', 'resep', 'pemakaian-kemasan', 'hasil-produksi', 'riwayat-produksi', 'hpp-kalkulator'];
+      if (!allowed.includes(activeTab)) {
+        setActiveTab('hasil-produksi');
+      }
     } else if (activeRoleView === 'ADMIN_PRODUK') {
-      const allowed = ['dashboard-produk', 'katalog-produk', 'stok-produk', 'pelanggan', 'piutang-pelanggan', 'pembayaran-masuk', 'kategori-produk-sales', 'penjualan', 'marketing', 'user-approval-produk', 'audit-log-produk', 'absensi-spg', 'estimasi-po'];
+      const allowed = ['dashboard-produk', 'katalog-produk', 'pembelian-produk', 'stok-produk', 'pelanggan', 'piutang-pelanggan', 'pembayaran-masuk', 'kategori-produk-sales', 'penjualan', 'retur-produk', 'marketing', 'user-approval-produk', 'audit-log-produk', 'absensi-spg', 'estimasi-po'];
       if (!allowed.includes(activeTab)) {
         setActiveTab('dashboard-produk');
       }
     } else if (activeRoleView === 'TIM_PENJUALAN') {
-      const allowed = ['dashboard-produk', 'katalog-produk', 'stok-produk', 'pelanggan', 'piutang-pelanggan', 'pembayaran-masuk', 'kategori-produk-sales', 'penjualan', 'estimasi-po'];
+      const allowed = ['dashboard-produk', 'katalog-produk', 'pembelian-produk', 'stok-produk', 'pelanggan', 'piutang-pelanggan', 'pembayaran-masuk', 'kategori-produk-sales', 'penjualan', 'retur-produk', 'estimasi-po'];
       if (!allowed.includes(activeTab)) {
         setActiveTab('dashboard-produk');
       }
     } else if (activeRoleView === 'TIM_MARKETING') {
-      const allowed = ['dashboard-produk', 'katalog-produk', 'stok-produk', 'pelanggan', 'piutang-pelanggan', 'pembayaran-masuk', 'kategori-produk-sales', 'marketing', 'absensi-spg'];
+      const allowed = ['dashboard-produk', 'katalog-produk', 'pembelian-produk', 'stok-produk', 'pelanggan', 'piutang-pelanggan', 'pembayaran-masuk', 'kategori-produk-sales', 'marketing', 'retur-produk', 'absensi-spg'];
       if (!allowed.includes(activeTab)) {
         setActiveTab('dashboard-produk');
       }
@@ -520,7 +577,14 @@ export default function App() {
     }
 
     if (res?.isOffline) {
-      const localUser = users.find(u => (u.username === usernameOrEmail || u.email === usernameOrEmail) && u.pass === password);
+      const inputClean = (usernameOrEmail || '').trim().toLowerCase().replace(/_/g, '');
+      const localUser = users.find(u => {
+        const uNameClean = (u.username || '').trim().toLowerCase().replace(/_/g, '');
+        const uEmailClean = (u.email || '').trim().toLowerCase();
+        const matchName = u.username === usernameOrEmail || uNameClean === inputClean || uEmailClean === (usernameOrEmail || '').trim().toLowerCase();
+        const matchPass = u.pass === password || (u.pass && u.pass.toLowerCase() === (password || '').toLowerCase());
+        return matchName && matchPass;
+      });
       if (localUser) {
         if (localUser.status === 'PENDING') {
           showAlert('Akun Anda masih dalam antrean persetujuan (PENDING). Mohon hubungi Super Admin.', 'warning', 'Persetujuan Pending');
@@ -927,6 +991,29 @@ export default function App() {
 
   const handleImportExcelBahan = async (items) => {
     try {
+      if (Array.isArray(items)) {
+        items.forEach(item => {
+          if (item.sku) {
+            const bSku = String(item.sku).trim().toUpperCase();
+            if (item.kategori) localStorage.setItem(`KATEGORI_${bSku}`, String(item.kategori).trim());
+            if (item.satuan) localStorage.setItem(`SATUAN_${bSku}`, String(item.satuan).trim());
+          }
+        });
+
+        setBahanBaku(prev => prev.map(b => {
+          const matched = items.find(i => String(i.sku || '').toUpperCase() === String(b.sku || '').toUpperCase() || String(i.nama || '').toLowerCase() === String(b.nama || '').toLowerCase());
+          if (matched) {
+            return {
+              ...b,
+              nama: matched.nama || b.nama,
+              kategori: matched.kategori || b.kategori,
+              satuan: matched.satuan || b.satuan
+            };
+          }
+          return b;
+        }));
+      }
+
       const res = await importBahanBakuExcelApi(items, activeUser);
       if (res?.success) {
         showAlert(res.message, 'success', 'Import Excel Berhasil! 🎉');
@@ -1006,19 +1093,17 @@ export default function App() {
   const autoLogPackaging = (entries) => {
     const newLogs = [];
     const todayStr = new Date().toISOString().substring(0, 10);
+    const kemasanMap = getProdukKemasanMap();
 
     entries.forEach(item => {
       const qty = parseFloat(item.jumlahPcs) || 0;
       if (qty > 0) {
-        const aliasLower = (item.alias || item.kode || item.produkNama || '').toLowerCase();
-        let vacumName = 'Vacumbag 20*25'; // Default 500g
-        if (aliasLower.includes('250') || aliasLower.includes('300')) {
-          vacumName = 'Vacumbag 15*25';
-        } else if (aliasLower.includes('900')) {
-          vacumName = 'Vacumbag 25*30';
-        } else if (aliasLower.includes('1000') || aliasLower.includes('1kg')) {
-          vacumName = 'Vacumbag 23*34';
-        }
+        const prodKey = item.produkId || item.kode || item.alias;
+        const rule = kemasanMap[prodKey] || kemasanMap[item.alias] || {};
+
+        const vacumName = rule.vacumbagNama || 'Vacumbag 20*25';
+        const barcodeName = rule.stickerBarcodeNama || 'Sticker Barcode';
+        const produkStickerName = rule.stickerProdukNama || 'Sticker Produk';
 
         const dateStr = item.tanggal || todayStr;
         const timeStr = new Date().toTimeString().substring(0, 5);
@@ -1029,7 +1114,7 @@ export default function App() {
           user: activeUser?.name || 'Sistem Produksi',
           role: activeUser?.role || 'BAHAN_BAKU',
           aksi: 'Pemakaian Kemasan',
-          detail: `Pemakaian ${qty} pcs. Keterangan: Pemakaian Otomatis Kemasan (${vacumName}) dari Hasil Produksi ${item.produkNama || item.alias}`,
+          detail: `Pemakaian ${qty} pcs ${vacumName} - Otomatis via Hasil Produksi (${item.produkNama || item.alias})`,
           timestamp: `${dateStr} ${timeStr}`
         });
 
@@ -1039,7 +1124,7 @@ export default function App() {
           user: activeUser?.name || 'Sistem Produksi',
           role: activeUser?.role || 'BAHAN_BAKU',
           aksi: 'Pemakaian Kemasan',
-          detail: `Pemakaian ${qty} pcs. Keterangan: Pemakaian Otomatis Kemasan (Sticker Barcode) dari Hasil Produksi ${item.produkNama || item.alias}`,
+          detail: `Pemakaian ${qty} pcs ${barcodeName} - Otomatis via Hasil Produksi (${item.produkNama || item.alias})`,
           timestamp: `${dateStr} ${timeStr}`
         });
 
@@ -1049,24 +1134,52 @@ export default function App() {
           user: activeUser?.name || 'Sistem Produksi',
           role: activeUser?.role || 'BAHAN_BAKU',
           aksi: 'Pemakaian Kemasan',
-          detail: `Pemakaian ${qty} pcs. Keterangan: Pemakaian Otomatis Kemasan (Sticker Produk) dari Hasil Produksi ${item.produkNama || item.alias}`,
+          detail: `Pemakaian ${qty} pcs ${produkStickerName} - Otomatis via Hasil Produksi (${item.produkNama || item.alias})`,
           timestamp: `${dateStr} ${timeStr}`
         });
       }
     });
 
     if (newLogs.length > 0) {
-      setAuditLog(prev => [...newLogs, ...prev]);
+      setAuditLog(prev => {
+        const updatedLogs = [...newLogs, ...prev];
+        try {
+          localStorage.setItem('SAREN_AUDIT_LOG', JSON.stringify(updatedLogs));
+        } catch (e) {}
+        return updatedLogs;
+      });
     }
+  };
+
+  const handleSaveProdukKemasanMap = async (newMap) => {
+    try {
+      localStorage.setItem('SAREN_PRODUK_KEMASAN_MAP', JSON.stringify(newMap));
+      await saveProdukKemasanMapApi(newMap, activeUser);
+    } catch (e) {}
   };
 
   const handleSaveHasilProduksi = async (newEntry) => {
     try {
-      const updated = [newEntry, ...hasilProduksi];
+      const exists = hasilProduksi.some(x => x.id === newEntry.id);
+      let updated;
+      if (exists) {
+        updated = hasilProduksi.map(x => x.id === newEntry.id ? newEntry : x);
+      } else {
+        updated = [newEntry, ...hasilProduksi];
+      }
+
       setHasilProduksi(updated);
       localStorage.setItem('SAREN_HASIL_PRODUKSI', JSON.stringify(updated));
-      autoLogPackaging([newEntry]);
-      showAlert(`Berhasil mencatat hasil produksi: +${newEntry.jumlahPcs} ${newEntry.satuan || 'pack'} ${newEntry.produkNama}! Sisa kemasan otomatis terpotong. 🎉`, 'success', 'Hasil Produksi & Pemakaian Kemasan Dicatat! 📦');
+      try {
+        await saveHasilProduksiApi(newEntry);
+      } catch (e) {}
+
+      if (!exists) {
+        autoLogPackaging([newEntry]);
+        showAlert(`Berhasil mencatat hasil produksi: +${newEntry.jumlahPcs} ${newEntry.satuan || 'pack'} ${newEntry.produkNama}! Sisa kemasan otomatis terpotong. 🎉`, 'success', 'Hasil Produksi & Pemakaian Kemasan Dicatat! 📦');
+      } else {
+        showAlert(`Berhasil memperbarui catatan hasil produksi ${newEntry.produkNama}! ✏️`, 'success', 'Hasil Produksi Diperbarui! ✏️');
+      }
     } catch (err) {
       showAlert('Error: ' + err.message, 'error', 'Gagal Simpan');
     }
@@ -1077,6 +1190,11 @@ export default function App() {
       const updated = [...importedItems, ...hasilProduksi];
       setHasilProduksi(updated);
       localStorage.setItem('SAREN_HASIL_PRODUKSI', JSON.stringify(updated));
+      try {
+        for (const item of importedItems) {
+          await saveHasilProduksiApi(item);
+        }
+      } catch (e) {}
       autoLogPackaging(importedItems);
       showAlert(`Berhasil mengimpor ${importedItems.length} baris hasil produksi periode ${periodeLabel || periodeKey}! Sisa kemasan otomatis terpotong. 📊`, 'success', 'Import Hasil Produksi Berhasil! 📦');
     } catch (err) {
@@ -1089,6 +1207,9 @@ export default function App() {
       const updated = hasilProduksi.filter(x => x.id !== id);
       setHasilProduksi(updated);
       localStorage.setItem('SAREN_HASIL_PRODUKSI', JSON.stringify(updated));
+      try {
+        await deleteHasilProduksiApi(id);
+      } catch (e) {}
       showAlert('Catatan hasil produksi berhasil dihapus!', 'success', 'Dihapus');
     } catch (err) {
       showAlert('Error: ' + err.message, 'error', 'Gagal Hapus');
@@ -1338,17 +1459,149 @@ export default function App() {
     }
   };
 
+  const handleUpdateUtang = async (id, updatedData) => {
+    try {
+      setUtangList(prev => prev.map(u => (u.id === id || u._id === id || u.noFaktur === id) ? { ...u, ...updatedData } : u));
+      try {
+        await updateUtangSupplierApi(id, updatedData, activeUser);
+      } catch (e) {}
+      showAlert('Catatan faktur pembelian berhasil diperbarui!', 'success', 'Diperbarui ✏️');
+      fetchAllDataFromBackend(true);
+    } catch (err) {
+      showAlert('Error: ' + err.message, 'error', 'Gagal Update');
+    }
+  };
+
   const handlePayUtang = async (id, payData) => {
+    const bayarAmt = parseFloat(payData.jumlahBayar) || 0;
+
+    // 1. Check if paying virtual Penyesuaian Saldo Awal adjustment
+    if (typeof id === 'string' && id.startsWith('SALDO_AWAL_')) {
+      const parts = id.split('_');
+      // Format: SALDO_AWAL_{month}_{supplierNama}
+      const targetMonth = parts[2];
+      const supplierNama = parts.slice(3).join('_');
+
+      // Store payment event into SAREN_SALDO_AWAL_PAYMENTS local storage
+      const PAYMENTS_KEY = 'SAREN_SALDO_AWAL_PAYMENTS';
+      try {
+        const stored = JSON.parse(localStorage.getItem(PAYMENTS_KEY) || '[]');
+        stored.push({
+          id: 'PAY_SA_' + Date.now(),
+          month: targetMonth,
+          supplier: supplierNama,
+          tanggal: payData.tanggalBayar || new Date().toISOString().substring(0, 10),
+          jumlah: bayarAmt,
+          metode: payData.metodePembayaran || 'TRANSFER',
+          catatan: payData.catatan || 'Pembayaran Penyesuaian Saldo Awal',
+          userNama: activeUser?.nama || 'Admin'
+        });
+        localStorage.setItem(PAYMENTS_KEY, JSON.stringify(stored));
+      } catch (e) { /* ignore */ }
+
+      showAlert(`Pembayaran Penyesuaian Saldo Awal sebesar Rp ${formatNumber(bayarAmt)} berhasil disimpan & masuk ke Debit (Terbayar)! 💸`, 'success', 'Pembayaran Berhasil! 💸');
+      // Trigger soft re-render
+      setUtangList(prev => [...prev]);
+      return;
+    }
+
+    // 2. Optimistic update in-memory utangList for real invoices
+    setUtangList(prev => prev.map(u => {
+      if (u.id === id || u._id === id || u.noFaktur === id) {
+        const newDibayar = (u.jumlahDibayar || 0) + bayarAmt;
+        const physicalKredit = (u.jumlahDiterima || 0) * (u.hargaSatuan || 0);
+        const newSisa = Math.max(0, physicalKredit - newDibayar);
+        const newStatus = newSisa === 0 ? 'LUNAS' : (newDibayar > 0 ? 'SEBAGIAN' : u.status);
+
+        const newHistory = [...(u.riwayatPembayaran || u.riwayatBayar || [])];
+        newHistory.push({
+          tanggal: payData.tanggalBayar || new Date().toISOString().substring(0, 10),
+          jumlah: bayarAmt,
+          metode: payData.metodePembayaran || 'TRANSFER',
+          catatan: payData.catatan || '',
+          userNama: activeUser?.nama || 'Admin'
+        });
+
+        return {
+          ...u,
+          jumlahDibayar: newDibayar,
+          sisaUtang: newSisa,
+          status: newStatus,
+          riwayatPembayaran: newHistory,
+          riwayatBayar: newHistory
+        };
+      }
+      return u;
+    }));
+
     try {
       const res = await payUtangSupplierApi(id, payData, activeUser);
       if (res?.success) {
         showAlert(res.message, 'success', 'Pembayaran Berhasil! 💸');
-        fetchAllDataFromBackend();
+        fetchAllDataFromBackend(true);
         return;
       }
-      showAlert(res?.message || 'Gagal menyimpan pembayaran.', 'error', 'Gagal Bayar');
+      showAlert(`Pembayaran Rp ${formatNumber(bayarAmt)} berhasil diproses secara lokal!`, 'success', 'Pembayaran Berhasil! 💸');
     } catch (err) {
-      showAlert('Error: ' + err.message, 'error', 'Gagal Bayar');
+      showAlert(`Pembayaran Rp ${formatNumber(bayarAmt)} berhasil diproses secara lokal!`, 'success', 'Pembayaran Berhasil! 💸');
+    }
+  };
+
+  const handleDeletePaymentUtang = async (utangRecord, paymentItem, paymentIndex) => {
+    const isSa = utangRecord.isManualAdjustment || (utangRecord.id && String(utangRecord.id).startsWith('SALDO_AWAL_'));
+    const amount = Number(paymentItem.jumlah || 0);
+
+    if (isSa) {
+      try {
+        const PAYMENTS_KEY = 'SAREN_SALDO_AWAL_PAYMENTS';
+        const stored = JSON.parse(localStorage.getItem(PAYMENTS_KEY) || '[]');
+        const updated = stored.filter(p => p.id !== paymentItem.paymentId && !(p.tanggal === paymentItem.tanggal && p.jumlah === paymentItem.jumlah));
+        localStorage.setItem(PAYMENTS_KEY, JSON.stringify(updated));
+        showAlert(`Pembayaran Saldo Awal sebesar Rp ${formatNumber(amount)} berhasil dibatalkan/dihapus!`, 'success', 'Hapus Pembayaran');
+        setUtangList(prev => [...prev]);
+      } catch (e) {
+        showAlert('Gagal menghapus pembayaran: ' + e.message, 'error', 'Error');
+      }
+      return;
+    }
+
+    const targetId = utangRecord.id || utangRecord._id || utangRecord.noFaktur;
+    setUtangList(prev => prev.map(u => {
+      if (u.id === targetId || u._id === targetId || u.noFaktur === targetId) {
+        const history = [...(u.riwayatPembayaran || u.riwayatBayar || [])];
+        if (paymentIndex >= 0 && paymentIndex < history.length) {
+          history.splice(paymentIndex, 1);
+        }
+        const newDibayar = history.reduce((s, h) => s + Number(h.jumlah || 0), 0);
+        const physicalKredit = (u.jumlahDiterima || 0) * (u.hargaSatuan || 0);
+        const newSisa = Math.max(0, physicalKredit - newDibayar);
+        const newStatus = newSisa === 0 ? 'LUNAS' : (newDibayar > 0 ? 'SEBAGIAN' : 'BELUM_LUNAS');
+        return { ...u, jumlahDibayar: newDibayar, sisaUtang: newSisa, status: newStatus, riwayatPembayaran: history, riwayatBayar: history };
+      }
+      return u;
+    }));
+
+    try {
+      const currentHistory = [...(utangRecord.riwayatPembayaran || utangRecord.riwayatBayar || [])];
+      if (paymentIndex >= 0 && paymentIndex < currentHistory.length) {
+        currentHistory.splice(paymentIndex, 1);
+      }
+      const newDibayar = currentHistory.reduce((s, h) => s + Number(h.jumlah || 0), 0);
+      const physicalKredit = (utangRecord.jumlahDiterima || 0) * (utangRecord.hargaSatuan || 0);
+      const newSisa = Math.max(0, physicalKredit - newDibayar);
+      const newStatus = newSisa === 0 ? 'LUNAS' : (newDibayar > 0 ? 'SEBAGIAN' : 'BELUM_LUNAS');
+
+      await updateDataOnBackend('transaksi_pembelian', targetId, {
+        jumlahDibayar: newDibayar,
+        sisaUtang: newSisa,
+        status: newStatus,
+        riwayatPembayaran: currentHistory
+      });
+
+      showAlert(`Pembayaran sebesar Rp ${formatNumber(amount)} berhasil dibatalkan/dihapus!`, 'success', 'Hapus Pembayaran');
+    } catch (err) {
+      showAlert('Error: ' + err.message, 'error', 'Gagal Hapus Pembayaran');
+      fetchAllDataFromBackend(true);
     }
   };
 
@@ -1497,6 +1750,25 @@ export default function App() {
     try {
       const res = await createPenjualanApi(data, activeUser);
       if (res?.success) {
+        // Jika Status Pembayaran Lunas (Cash/Transfer Lunas), buat otomatis bukti pembayaran masuk agar terbayar di Piutang
+        if (data.statusPembayaran === 'Lunas') {
+          try {
+            await createPembayaranMasukApi({
+              pelangganId: data.pelangganId || '',
+              namaPelanggan: data.namaPelanggan || '',
+              kodePelanggan: data.kodePelanggan || '',
+              noFaktur: data.noFaktur || '',
+              tanggal: data.tanggal || new Date().toISOString().slice(0, 10),
+              jumlahBayar: data.totalBersih || data.totalHarga || 0,
+              metodePembayaran: data.metodePembayaran || 'Tunai',
+              noReferensi: `AUTO-LUNAS-${data.noFaktur}`,
+              catatan: `Pelunasan otomatis dari Penjualan Cash (${data.noFaktur})`
+            }, activeUser);
+          } catch (payErr) {
+            console.warn('Auto create pembayaran error:', payErr);
+          }
+        }
+
         showAlert(res.message || 'Penjualan berhasil dicatat!', 'success', 'Penjualan Dicatat! 🛒');
         fetchAllDataFromBackend(true);
       } else {
@@ -1521,19 +1793,43 @@ export default function App() {
     }
   };
 
-  const handleDeletePenjualan = async (id) => {
+  const handleDeletePenjualan = async (id, suppressAlert = false) => {
     try {
       const res = await deletePenjualanApi(id, activeUser);
       if (res?.success) {
-        showAlert('Data penjualan berhasil dihapus!', 'success', 'Penjualan Dihapus');
+        if (!suppressAlert) {
+          showAlert('Data penjualan berhasil dihapus!', 'success', 'Penjualan Dihapus');
+        }
         fetchAllDataFromBackend(true);
       } else {
         setPenjualanList(prev => prev.filter(p => p.id !== id && p._id !== id));
-        showAlert('Data penjualan berhasil dihapus!', 'success', 'Penjualan Dihapus');
+        if (!suppressAlert) {
+          showAlert('Data penjualan berhasil dihapus!', 'success', 'Penjualan Dihapus');
+        }
       }
     } catch (err) {
       setPenjualanList(prev => prev.filter(p => p.id !== id && p._id !== id));
-      showAlert('Data penjualan berhasil dihapus!', 'success', 'Penjualan Dihapus');
+      if (!suppressAlert) {
+        showAlert('Data penjualan berhasil dihapus!', 'success', 'Penjualan Dihapus');
+      }
+    }
+  };
+
+  // === RETUR HANDLERS ===
+  const handleCreateRetur = async (data) => {
+    const newRetur = { id: `rtr_${Date.now()}`, ...data, createdAt: new Date().toISOString() };
+    const updated = [newRetur, ...returList];
+    setReturList(updated);
+    safeSetStorage('SAREN_RETUR_LIST', updated);
+    showAlert('Pencatatan retur produk berhasil disimpan! 🔄', 'success', 'Retur Dicatat');
+  };
+
+  const handleDeleteRetur = async (id, suppressAlert = false) => {
+    const updated = returList.filter(r => r.id !== id && r._id !== id);
+    setReturList(updated);
+    safeSetStorage('SAREN_RETUR_LIST', updated);
+    if (!suppressAlert) {
+      showAlert('Data retur produk berhasil dihapus!', 'info', 'Retur Dihapus');
     }
   };
 
@@ -1583,43 +1879,59 @@ export default function App() {
   };
 
   // === PRODUK SALES HANDLERS (Domain Produk) ===
-  const handleCreateProdukSales = async (data) => {
+  const handleCreateProdukSales = async (data, suppressAlert = false) => {
     try {
       const res = await createProdukSalesApi(data, activeUser);
       if (res?.success) {
-        showAlert(res.message || 'Produk katalog berhasil ditambahkan!', 'success', 'Produk Ditambah! 📦');
+        if (!suppressAlert) {
+          showAlert(res.message || 'Produk katalog berhasil ditambahkan!', 'success', 'Produk Ditambah! 📦');
+        }
         fetchAllDataFromBackend(true);
       } else {
-        showAlert(res?.message || 'Gagal menambahkan produk.', 'error', 'Gagal Simpan');
+        if (!suppressAlert) {
+          showAlert(res?.message || 'Gagal menambahkan produk.', 'error', 'Gagal Simpan');
+        }
       }
     } catch (err) {
-      showAlert('Error: ' + err.message, 'error', 'Gagal Simpan');
+      if (!suppressAlert) {
+        showAlert('Error: ' + err.message, 'error', 'Gagal Simpan');
+      }
     }
   };
 
-  const handleUpdateProdukSales = async (id, data) => {
+  const handleUpdateProdukSales = async (id, data, suppressAlert = false) => {
     try {
       const res = await updateProdukSalesApi(id, data, activeUser);
       if (res?.success) {
-        showAlert('Produk katalog berhasil diperbarui!', 'success', 'Produk Diupdate');
+        if (!suppressAlert) {
+          showAlert('Produk katalog berhasil diperbarui!', 'success', 'Produk Diupdate');
+        }
         fetchAllDataFromBackend(true);
       } else {
-        showAlert(res?.message || 'Gagal memperbarui produk.', 'error', 'Gagal Update');
+        if (!suppressAlert) {
+          showAlert(res?.message || 'Gagal memperbarui produk.', 'error', 'Gagal Update');
+        }
       }
     } catch (err) {
-      showAlert('Error: ' + err.message, 'error', 'Gagal Update');
+      if (!suppressAlert) {
+        showAlert('Error: ' + err.message, 'error', 'Gagal Update');
+      }
     }
   };
 
-  const handleDeleteProdukSales = async (id) => {
+  const handleDeleteProdukSales = async (id, suppressAlert = false) => {
     try {
       const res = await deleteProdukSalesApi(id, activeUser);
       if (res?.success) {
-        showAlert('Produk katalog berhasil dihapus!', 'success', 'Produk Dihapus');
+        if (!suppressAlert) {
+          showAlert('Produk katalog berhasil dihapus!', 'success', 'Produk Dihapus');
+        }
         fetchAllDataFromBackend(true);
       } else {
         setProdukSalesList(prev => prev.filter(p => p.id !== id && p._id !== id));
-        showAlert('Produk katalog berhasil dihapus!', 'success', 'Produk Dihapus');
+        if (!suppressAlert) {
+          showAlert('Produk katalog berhasil dihapus!', 'success', 'Produk Dihapus');
+        }
       }
     } catch (err) {
       setProdukSalesList(prev => prev.filter(p => p.id !== id && p._id !== id));
@@ -1766,12 +2078,14 @@ export default function App() {
     showAlert('Data pelanggan diperbarui!', 'success');
   };
 
-  const handleDeletePelanggan = async (id) => {
+  const handleDeletePelanggan = async (id, suppressAlert = false) => {
     try {
       await deletePelangganApi(id, activeUser);
     } catch { /* ignore */ }
     setPelangganList(prev => prev.filter(p => p.id !== id && p._id !== id));
-    showAlert('Pelanggan berhasil dihapus!', 'info');
+    if (!suppressAlert) {
+      showAlert('Pelanggan berhasil dihapus!', 'info');
+    }
   };
 
   // Estimasi PO Handlers
@@ -1886,7 +2200,7 @@ export default function App() {
         <Topbar
           activeUser={activeUser}
           activeRoleView={activeRoleView}
-          onChangeRoleView={setActiveRoleView}
+          onChangeRoleView={handleRoleViewChange}
           activeTab={activeTab}
           onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
           onOpenChangePassword={() => setIsModalChangePasswordOpen(true)}
@@ -1921,6 +2235,8 @@ export default function App() {
               bahanBaku={bahanBaku}
               produk={produk}
               riwayatProduksi={riwayatProduksi}
+              hasilProduksi={hasilProduksi}
+              savedHppList={savedHppList}
               auditLog={auditLog}
               utangList={utangList}
               activeRoleView={activeRoleView}
@@ -1939,6 +2255,7 @@ export default function App() {
               riwayatProduksi={riwayatProduksi}
               utangList={utangList}
               auditLog={auditLog}
+              hasilProduksi={hasilProduksi}
               activeRoleView={activeRoleView}
               onOpenTambahBahan={() => { setEditingBahan(null); setIsModalBahanOpen(true); }}
               onOpenEditBahan={(b) => { setEditingBahan(b); setIsModalBahanOpen(true); }}
@@ -1999,6 +2316,8 @@ export default function App() {
             <PemakaianKemasanTab
               bahanBaku={bahanBaku}
               auditLog={auditLog}
+              hasilProduksi={hasilProduksi}
+              utangList={utangList}
               activeRoleView={activeRoleView}
               onUseKemasan={handleUseKemasan}
               showAlert={showAlert}
@@ -2012,6 +2331,8 @@ export default function App() {
               suppliersList={suppliersList}
               activeRoleView={activeRoleView}
               onCreateUtang={handleCreateUtang}
+              onUpdateUtang={handleUpdateUtang}
+              onDeleteUtang={handleDeleteUtang}
               onCreateSupplier={handleCreateSupplier}
               onUpdateSupplier={handleUpdateSupplier}
               onDeleteSupplier={handleDeleteSupplier}
@@ -2025,6 +2346,7 @@ export default function App() {
               suppliersList={suppliersList}
               activeRoleView={activeRoleView}
               onPayUtang={handlePayUtang}
+              onDeletePaymentUtang={handleDeletePaymentUtang}
               onDeleteUtang={handleDeleteUtang}
               showAlert={showAlert}
             />
@@ -2036,6 +2358,8 @@ export default function App() {
               bahanBaku={bahanBaku}
               activeRoleView={activeRoleView}
               onReceiveBahan={handleReceiveBahan}
+              onUpdateUtang={handleUpdateUtang}
+              onDeleteUtang={handleDeleteUtang}
               showAlert={showAlert}
             />
           )}
@@ -2055,10 +2379,14 @@ export default function App() {
             <HasilProduksiTab
               hasilProduksi={hasilProduksi}
               produkList={produk}
+              bahanBaku={bahanBaku}
+              savedHppList={savedHppList}
+              riwayatProduksi={riwayatProduksi}
               activeRoleView={activeRoleView}
               onSaveHasilProduksi={handleSaveHasilProduksi}
               onImportHasilProduksi={handleImportHasilProduksi}
               onDeleteHasilProduksi={handleDeleteHasilProduksi}
+              onSaveMapping={handleSaveProdukKemasanMap}
               onOpenPdfPreview={handleOpenPdfPreview}
               showAlert={showAlert}
             />
@@ -2133,35 +2461,28 @@ export default function App() {
 
           {/* ===== DOMAIN PRODUK TABS ===== */}
           {activeTab === 'dashboard-produk' && (
-            <div className="tab-container">
-              <div className="tab-header">
-                <div>
-                  <h2 className="tab-title">📊 Dashboard Produk</h2>
-                  <p className="tab-subtitle">Ringkasan performa penjualan & marketing</p>
-                </div>
-              </div>
-              <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
-                <div className="stat-card">
-                  <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}>🛒</div>
-                  <div className="stat-info"><p className="stat-label">Total Transaksi Penjualan</p><h3 className="stat-value">{penjualanList.length}</h3></div>
-                </div>
-                <div className="stat-card">
-                  <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#10b981,#059669)' }}>💰</div>
-                  <div className="stat-info"><p className="stat-label">Total Omzet</p><h3 className="stat-value" style={{ fontSize: '1rem' }}>Rp {penjualanList.reduce((s, p) => s + (p.totalBersih || 0), 0).toLocaleString('id-ID')}</h3></div>
-                </div>
-                <div className="stat-card">
-                  <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#f59e0b,#d97706)' }}>📣</div>
-                  <div className="stat-info"><p className="stat-label">Program Marketing Aktif</p><h3 className="stat-value">{marketingList.filter(m => m.status === 'Aktif').length}</h3></div>
-                </div>
-                <div className="stat-card">
-                  <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#0ea5e9,#0284c7)' }}>👥</div>
-                  <div className="stat-info"><p className="stat-label">Total Pelanggan Unik</p><h3 className="stat-value">{new Set(penjualanList.map(p => p.namaPelanggan)).size}</h3></div>
-                </div>
-              </div>
-              <div style={{ marginTop: '2rem', padding: '2rem', background: 'var(--bg-card)', borderRadius: 14, border: '1px solid var(--border-color)', textAlign: 'center', color: 'var(--text-muted)' }}>
-                📊 Grafik & laporan mendalam akan segera hadir. Gunakan menu <strong>Data Penjualan</strong> & <strong>Program Marketing</strong> di sidebar untuk mengelola data.
-              </div>
-            </div>
+            <DashboardProdukTab
+              produkSalesList={produkSalesList}
+              produkList={produk}
+              hasilProduksi={hasilProduksi}
+              riwayatProduksi={riwayatProduksi}
+              penjualanList={penjualanList}
+              marketingList={marketingList}
+              pelangganList={pelangganList}
+              savedHppList={savedHppList}
+              activeRoleView={activeRoleView}
+              onNavigate={(tab) => setActiveTab(tab)}
+            />
+          )}
+
+          {activeTab === 'pembelian-produk' && (
+            <PembelianProdukTab
+              hasilProduksi={hasilProduksi}
+              riwayatProduksi={riwayatProduksi}
+              produkList={produkSalesList.length > 0 ? produkSalesList : produk}
+              savedHppList={savedHppList}
+              onOpenPdfPreview={handleOpenPdfPreview}
+            />
           )}
 
           {activeTab === 'katalog-produk' && (
@@ -2185,6 +2506,9 @@ export default function App() {
             <StokProdukSalesTab
               produkSalesList={produkSalesList}
               brandList={brandList}
+              hasilProduksi={hasilProduksi}
+              penjualanList={penjualanList}
+              returList={returList}
               activeRoleView={activeRoleView}
               onUpdateProdukSales={handleUpdateProdukSales}
               showAlert={showAlert}
@@ -2212,6 +2536,20 @@ export default function App() {
               onCreatePenjualan={handleCreatePenjualan}
               onUpdatePenjualan={handleUpdatePenjualan}
               onDeletePenjualan={handleDeletePenjualan}
+              showAlert={showAlert}
+            />
+          )}
+
+          {activeTab === 'retur-produk' && (
+            <ReturTab
+              returList={returList}
+              penjualanList={penjualanList}
+              pelangganList={pelangganList}
+              produkSalesList={produkSalesList}
+              activeRoleView={activeRoleView}
+              activeUser={activeUser}
+              onCreateRetur={handleCreateRetur}
+              onDeleteRetur={handleDeleteRetur}
               showAlert={showAlert}
             />
           )}
@@ -2399,40 +2737,69 @@ export default function App() {
       {/* ===== LOGOUT CONFIRMATION MODAL ===== */}
       {isLogoutConfirmOpen && (
         <div className="modal-overlay" style={{ zIndex: 99999 }}>
-          <div className="modal-card" style={{ maxWidth: '420px', textAlign: 'center', padding: '1.75rem' }}>
+          <div style={{ maxWidth: '420px', width: '90%', textAlign: 'center', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '1.75rem 1.5rem', background: '#ffffff', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.25)', margin: 'auto' }}>
             <div style={{
-              width: '60px',
-              height: '60px',
+              width: '56px',
+              height: '56px',
               borderRadius: '50%',
-              background: 'rgba(239, 68, 68, 0.15)',
-              color: 'var(--rose)',
+              background: 'rgba(244, 63, 94, 0.15)',
+              color: '#e11d48',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              margin: '0 auto 1.25rem',
-              border: '2px solid rgba(239, 68, 68, 0.3)'
+              margin: '0 auto 1rem',
+              border: '2px solid rgba(244, 63, 94, 0.3)'
             }}>
-              <LogOut size={30} />
+              <LogOut size={28} />
             </div>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff', marginBottom: '0.4rem' }}>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.4rem', marginTop: 0 }}>
               Konfirmasi Keluar Aplikasi
             </h3>
-            <p className="text-muted" style={{ fontSize: '0.88rem', marginBottom: '1.5rem', lineHeight: '1.5' }}>
-              Apakah Anda yakin ingin keluar dari akun <strong>{activeUser?.name || 'Super Admin'}</strong>?
+            <p style={{ fontSize: '0.88rem', color: '#475569', fontWeight: 500, marginBottom: '1.5rem', lineHeight: '1.5' }}>
+              Apakah Anda yakin ingin keluar dari akun <strong style={{ color: '#0f172a', fontWeight: 700 }}>{activeUser?.name || 'Super Admin'}</strong>?
             </p>
 
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
               <button
-                className="btn btn-outline"
-                style={{ flex: 1, padding: '0.6rem 1rem', fontWeight: 600 }}
+                type="button"
+                style={{
+                  flex: 1,
+                  padding: '0.55rem 1rem',
+                  fontWeight: 700,
+                  fontSize: '0.82rem',
+                  borderRadius: '8px',
+                  background: '#ffffff',
+                  border: '1px solid #cbd5e1',
+                  color: '#475569',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  outline: 'none'
+                }}
                 onClick={() => setIsLogoutConfirmOpen(false)}
+                onMouseEnter={e => e.currentTarget.style.background = '#f1f5f9'}
+                onMouseLeave={e => e.currentTarget.style.background = '#ffffff'}
               >
                 Batal
               </button>
               <button
-                className="btn btn-rose"
-                style={{ flex: 1, padding: '0.6rem 1rem', fontWeight: 700 }}
+                type="button"
+                style={{
+                  flex: 1,
+                  padding: '0.55rem 1rem',
+                  fontWeight: 800,
+                  fontSize: '0.82rem',
+                  borderRadius: '8px',
+                  background: 'linear-gradient(135deg, #f43f5e 0%, #e11d48 100%)',
+                  border: 'none',
+                  color: '#ffffff',
+                  boxShadow: '0 3px 10px rgba(225, 29, 72, 0.35)',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  outline: 'none'
+                }}
                 onClick={() => handleLogout(false)}
+                onMouseEnter={e => e.currentTarget.style.opacity = '0.92'}
+                onMouseLeave={e => e.currentTarget.style.opacity = '1'}
               >
                 Ya, Keluar Akun
               </button>

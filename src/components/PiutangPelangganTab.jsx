@@ -1,8 +1,27 @@
 import React, { useState, useMemo } from 'react';
-import { CreditCard, Search, DollarSign, Clock, CheckCircle2, User, Phone, MapPin, Eye, PlusCircle, Check, X, AlertCircle, ArrowDownLeft, Download, FileText, Trash2, Plus } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { CreditCard, Search, DollarSign, Clock, CheckCircle2, User, Users, Phone, MapPin, Eye, PlusCircle, Check, X, AlertCircle, ArrowDownLeft, ArrowUpRight, Download, FileText, Trash2, Plus, Wallet, Pencil, Save, Upload } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { exportToExcel, exportToPDF } from '../utils/exportUtils';
+import { ModernMonthPicker, ModernSearchableSelect } from './ModernDatePicker';
+import { cleanFloat } from '../utils/numberUtils';
 
 const formatRp = (n) => 'Rp ' + (Number(n) || 0).toLocaleString('id-ID');
+
+const parseCodeNumber = (str) => {
+  if (!str) return 999999;
+  const match = String(str).match(/\d+/);
+  return match ? parseInt(match[0], 10) : 999999;
+};
+
+const SALDO_AWAL_PIUTANG_KEY = 'SAREN_SALDO_AWAL_PIUTANG';
+
+const loadSaldoAwalManual = () => {
+  try { return JSON.parse(localStorage.getItem(SALDO_AWAL_PIUTANG_KEY) || '{}'); } catch { return {}; }
+};
+const saveSaldoAwalManual = (data) => {
+  try { localStorage.setItem(SALDO_AWAL_PIUTANG_KEY, JSON.stringify(data)); } catch { /* ignore */ }
+};
 
 export default function PiutangPelangganTab({
   pelangganList = [],
@@ -17,9 +36,21 @@ export default function PiutangPelangganTab({
   onOpenPdfPreview,
   showAlert
 }) {
+  const now = new Date();
+  const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
   const [search, setSearch] = useState('');
+  const [selectedMonth, setSelectedMonth] = useState(currentMonthStr);
   const [kategoriFilter, setKategoriFilter] = useState('');
   
+  // Modal States Saldo Awal Manual, Import, & Riwayat Setoran
+  const [isModalSaldoAwalOpen, setIsModalSaldoAwalOpen] = useState(false);
+  const [showImportSaldoModal, setShowImportSaldoModal] = useState(false);
+  const [isModalDebitHistoryOpen, setIsModalDebitHistoryOpen] = useState(false);
+  const [modalTargetMonth, setModalTargetMonth] = useState(currentMonthStr);
+  const [saldoAwalManual, setSaldoAwalManual] = useState(() => loadSaldoAwalManual());
+  const [draftSaldoAwal, setDraftSaldoAwal] = useState({});
+
   // Payment Modal States
   const [showPayModal, setShowPayModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(null);
@@ -39,69 +70,293 @@ export default function PiutangPelangganTab({
 
   const canEdit = ['ADMIN_PRODUK', 'TIM_PENJUALAN', 'SALES'].includes(activeRoleView);
 
-  // Calculate exact dynamic net piutang for any customer
-  const getNetPiutangForCustomer = (p) => {
-    const custId = (p.id || p._id || '').toString();
-    const custName = p.nama?.trim().toLowerCase();
+  const getSaldoAwalKey = (month, namaCust) => `${month}::${namaCust}`;
 
-    // 1. Sum of credit sales invoices for this customer
-    const totalSalesTempo = (penjualanList || [])
-      .filter(pj => {
-        const pjCustId = (pj.pelangganId || '').toString();
-        const matchId = (pjCustId && pjCustId === custId);
-        const matchName = (pj.namaPelanggan && custName && pj.namaPelanggan.trim().toLowerCase() === custName);
-        return matchId || matchName;
-      })
-      .filter(pj => {
-        const isTempoMethod = pj.metodePembayaran === 'Tempo';
-        const isTempoStatus = ['Tempo', 'Cicilan', 'Pending'].includes(pj.statusPembayaran);
-        const isTempoSystemCust = p.sistemPembayaran === 'Tempo';
-        return isTempoMethod || isTempoStatus || isTempoSystemCust;
-      })
-      .reduce((sum, pj) => sum + (Number(pj.totalBersih) || Number(pj.totalHarga) || 0), 0);
-
-    // 2. Sum of payment receipts for this customer
-    const totalPayments = (pembayaranMasukList || [])
-      .filter(pm => {
-        const pmCustId = (pm.pelangganId || '').toString();
-        const matchId = (pmCustId && pmCustId === custId);
-        const matchName = (pm.namaPelanggan && custName && pm.namaPelanggan.trim().toLowerCase() === custName);
-        return matchId || matchName;
-      })
-      .reduce((sum, pm) => sum + (Number(pm.jumlahBayar) || 0), 0);
-
-    const basePiutang = Number(p.totalPiutang) || 0;
-    const grossCredit = (totalSalesTempo > 0) ? (totalSalesTempo + basePiutang) : basePiutang;
-    return Math.max(0, grossCredit - totalPayments);
+  const getExplicitManualSaldo = (month, namaCust) => {
+    const key = getSaldoAwalKey(month, namaCust);
+    if (key in saldoAwalManual) return Number(saldoAwalManual[key]);
+    return null;
   };
 
-  // Filter customers that have matching search
-  const customersWithPiutang = useMemo(() => {
-    return pelangganList.filter(p => {
+  const getManualSaldoAwal = (month, namaCust) => {
+    if (!month || month === 'ALL') return 0;
+    const directVal = getExplicitManualSaldo(month, namaCust);
+    if (directVal !== null) return directVal;
+
+    const keysForCust = Object.keys(saldoAwalManual)
+      .filter(k => k.endsWith(`::${namaCust}`))
+      .map(k => k.split('::')[0])
+      .filter(m => m <= month)
+      .sort((a, b) => b.localeCompare(a));
+
+    if (keysForCust.length > 0) {
+      const latestMonth = keysForCust[0];
+      return Number(saldoAwalManual[getSaldoAwalKey(latestMonth, namaCust)] || 0);
+    }
+    return 0;
+  };
+
+  const loadDraftForMonth = (month) => {
+    const draft = {};
+    (pelangganList || []).forEach(p => {
+      const nama = p.nama || '';
+      if (nama) draft[nama] = getManualSaldoAwal(month, nama);
+    });
+    setDraftSaldoAwal(draft);
+  };
+
+  const handleOpenSaldoAwalModal = () => {
+    const target = (selectedMonth && selectedMonth !== 'ALL') ? selectedMonth : currentMonthStr;
+    setModalTargetMonth(target);
+    loadDraftForMonth(target);
+    setIsModalSaldoAwalOpen(true);
+  };
+
+  const handleModalMonthChange = (newMonth) => {
+    setModalTargetMonth(newMonth);
+    loadDraftForMonth(newMonth);
+  };
+
+  const handleSaveSaldoAwal = () => {
+    const updated = { ...saldoAwalManual };
+    Object.entries(draftSaldoAwal).forEach(([nama, val]) => {
+      const key = getSaldoAwalKey(modalTargetMonth, nama);
+      const num = Number(String(val).replace(/[^0-9]/g, '')) || 0;
+      if (num > 0) updated[key] = num;
+      else delete updated[key];
+    });
+    saveSaldoAwalManual(updated);
+    setSaldoAwalManual(updated);
+    setIsModalSaldoAwalOpen(false);
+  };
+
+  const handleDownloadTemplateSaldoAwal = () => {
+    const data = [
+      { 'Kode Pelanggan': 'C1', 'Nama Pelanggan': 'RSB Pusat', 'Saldo Awal (Rp)': 1500000 },
+      { 'Kode Pelanggan': 'C2', 'Nama Pelanggan': 'RSB Sawo', 'Saldo Awal (Rp)': 750000 },
+      { 'Kode Pelanggan': 'C3', 'Nama Pelanggan': 'RSB Ciroyom', 'Saldo Awal (Rp)': 0 }
+    ];
+    exportToExcel(`Template_Saldo_Awal_Piutang_${modalTargetMonth}`, ['Kode Pelanggan', 'Nama Pelanggan', 'Saldo Awal (Rp)'], data.map(d => [d['Kode Pelanggan'], d['Nama Pelanggan'], d['Saldo Awal (Rp)']]));
+  };
+
+  const handleImportExcelSaldoAwal = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const bstr = evt.target.result;
+        const wb = XLSX.read(bstr, { type: 'binary' });
+        const wsName = wb.SheetNames[0];
+        const ws = wb.Sheets[wsName];
+        const rawJson = XLSX.utils.sheet_to_json(ws);
+
+        if (!rawJson || rawJson.length === 0) {
+          if (showAlert) showAlert('File Excel kosong atau format tidak sesuai!', 'error');
+          return;
+        }
+
+        const newDraft = { ...draftSaldoAwal };
+        let matchCount = 0;
+
+        rawJson.forEach(row => {
+          const kode = String(row['Kode Pelanggan'] || row['Kode'] || '').trim().toUpperCase();
+          const nama = String(row['Nama Pelanggan'] || row['Nama Toko'] || row['Nama'] || '').trim();
+          const saldo = Number(row['Saldo Awal (Rp)'] || row['Saldo Awal'] || row['Total Piutang'] || row['Saldo'] || 0);
+
+          // Match by Kode or Nama Pelanggan
+          const found = (pelangganList || []).find(p => {
+            const pKode = (p.kode || '').trim().toUpperCase();
+            const pNama = (p.nama || '').trim().toLowerCase();
+            return (kode && pKode === kode) || (nama && pNama === nama.toLowerCase());
+          });
+
+          if (found) {
+            newDraft[found.nama] = saldo;
+            matchCount++;
+          }
+        });
+
+        setDraftSaldoAwal(newDraft);
+        if (showAlert) {
+          showAlert(`Berhasil membaca ${matchCount} saldo awal dari file Excel! Klik "Simpan Saldo Awal" untuk menyimpan. 🎉`, 'success', 'Import Saldo Awal');
+        }
+      } catch (err) {
+        if (showAlert) showAlert(`Gagal membaca Excel: ${err.message}`, 'error');
+      }
+      e.target.value = '';
+    };
+    reader.readAsBinaryString(file);
+  };
+
+  const getMonthFromDateStr = (dateStr) => {
+    if (!dateStr) return '';
+    const clean = String(dateStr).trim();
+    if (clean.length >= 7) return clean.substring(0, 7);
+    return '';
+  };
+
+  // Helper untuk mendapatkan Sisa Piutang Aktif (Saldo Akhir) untuk pelanggan tertentu
+  const getNetPiutangForCustomer = (p) => {
+    if (!p) return 0;
+    const cId = (p.id || p._id || '').toString();
+    const custName = p.nama?.trim().toLowerCase();
+
+    let found = customerAccountingMap[cId];
+    if (!found && custName) {
+      found = Object.values(customerAccountingMap).find(c => c.nama.trim().toLowerCase() === custName);
+    }
+    return found ? found.saldoAkhir : (Number(p.totalPiutang) || 0);
+  };
+
+  // ===== KALKULASI PERBULAN PER PELANGGAN (AKUNTANSI KREDIT & DEBIT PIUTANG) =====
+  const customerAccountingMap = useMemo(() => {
+    const map = {};
+
+    // Inisialisasi dari Master Pelanggan (Hanya mengambil Saldo Awal Murni jika di-set manual / di-import)
+    (pelangganList || []).forEach(p => {
+      const cId = (p.id || p._id || '').toString();
+      const name = p.nama || '';
+      const manualSaldo = selectedMonth !== 'ALL' ? getManualSaldoAwal(selectedMonth, name) : 0;
+
+      map[cId] = {
+        id: cId,
+        kode: p.kode || '',
+        nama: name,
+        kategoriCustomer: p.kategoriCustomer || 'Umum',
+        sistemPembayaran: p.sistemPembayaran || 'COD',
+        noHp: p.noHp || '',
+        alamat: p.alamat || '',
+        raw: p,
+        saldoAwal: manualSaldo,
+        piutangBaru: 0, // Kredit piutang baru bulan ini
+        pembayaran: 0,  // Setoran masuk bulan ini
+        saldoAkhir: 0
+      };
+    });
+
+    // 1. Penjualan (Semua Penjualan Tunai & Tempo menambah transaksi Penjualan/Piutang Baru)
+    (penjualanList || []).forEach(pj => {
+      const pjCustId = (pj.pelangganId || '').toString();
+      const custName = pj.namaPelanggan?.trim().toLowerCase();
+      let matchedId = pjCustId && map[pjCustId] ? pjCustId : null;
+
+      if (!matchedId && custName) {
+        matchedId = Object.keys(map).find(k => map[k].nama.trim().toLowerCase() === custName);
+      }
+
+      if (matchedId) {
+        const pjDate = pj.tanggal || pj.createdAt;
+        const pjMonth = getMonthFromDateStr(pjDate);
+        const amount = Number(pj.totalBersih) || Number(pj.totalHarga) || 0;
+
+        if (amount > 0) {
+          if (selectedMonth === 'ALL') {
+            map[matchedId].piutangBaru += amount;
+          } else if (pjMonth === selectedMonth) {
+            map[matchedId].piutangBaru += amount;
+          }
+        }
+      }
+    });
+
+    // 2. Pembayaran Masuk / Setoran (Pengurangan Piutang)
+    (pembayaranMasukList || []).forEach(pm => {
+      const pmCustId = (pm.pelangganId || '').toString();
+      const custName = pm.namaPelanggan?.trim().toLowerCase();
+      let matchedId = pmCustId && map[pmCustId] ? pmCustId : null;
+
+      if (!matchedId && custName) {
+        matchedId = Object.keys(map).find(k => map[k].nama.trim().toLowerCase() === custName);
+      }
+
+      if (matchedId) {
+        const pmDate = pm.tanggal || pm.createdAt;
+        const pmMonth = getMonthFromDateStr(pmDate);
+        const amount = Number(pm.jumlahBayar) || 0;
+
+        if (amount > 0) {
+          if (selectedMonth === 'ALL') {
+            map[matchedId].pembayaran += amount;
+          } else if (pmMonth === selectedMonth) {
+            map[matchedId].pembayaran += amount;
+          }
+        }
+      }
+    });
+
+    // Hitung Saldo Akhir Piutang per Pelanggan = Saldo Awal + Piutang Baru - Pembayaran
+    Object.values(map).forEach(c => {
+      c.saldoAwal = cleanFloat(c.saldoAwal);
+      c.piutangBaru = cleanFloat(c.piutangBaru);
+      c.pembayaran = cleanFloat(c.pembayaran);
+      c.saldoAkhir = cleanFloat(Math.max(0, c.saldoAwal + c.piutangBaru - c.pembayaran));
+    });
+
+    return map;
+  }, [pelangganList, penjualanList, pembayaranMasukList, selectedMonth]);
+
+  // Aggregate Ringkasan Global Saldo Awal, Piutang, Pembayaran, Saldo Akhir
+  const globalSummary = useMemo(() => {
+    let sa = 0, pNew = 0, pay = 0, saAkhir = 0;
+    Object.values(customerAccountingMap).forEach(c => {
+      sa += c.saldoAwal;
+      pNew += c.piutangBaru;
+      pay += c.pembayaran;
+      saAkhir += c.saldoAkhir;
+    });
+    return {
+      saldoAwal: cleanFloat(sa),
+      piutangBaru: cleanFloat(pNew),
+      pembayaran: cleanFloat(pay),
+      saldoAkhir: cleanFloat(saAkhir)
+    };
+  }, [customerAccountingMap]);
+
+  // Filter & Urutkan Pelanggan Sesuai Kode Terkecil (C1 -> C82)
+  const filteredCustomers = useMemo(() => {
+    const list = Object.values(customerAccountingMap).filter(p => {
       const q = search.toLowerCase();
       const matchQ = !search || p.nama?.toLowerCase().includes(q) || p.kode?.toLowerCase().includes(q) || p.noHp?.includes(q);
       const matchK = !kategoriFilter || p.kategoriCustomer === kategoriFilter;
       return matchQ && matchK;
     });
-  }, [pelangganList, search, kategoriFilter]);
 
-  const totalPiutangKeseluruhan = useMemo(() => {
-    return pelangganList.reduce((sum, p) => sum + getNetPiutangForCustomer(p), 0);
-  }, [pelangganList, penjualanList, pembayaranMasukList]);
-
-  const totalPelangganBerpiutang = useMemo(() => {
-    return pelangganList.filter(p => getNetPiutangForCustomer(p) > 0).length;
-  }, [pelangganList, penjualanList, pembayaranMasukList]);
-
-  const totalSetoranBulanIni = useMemo(() => {
-    return (pembayaranMasukList || []).reduce((sum, p) => sum + (Number(p.jumlahBayar) || 0), 0);
-  }, [pembayaranMasukList]);
+    return list.sort((a, b) => {
+      const numA = parseCodeNumber(a.kode);
+      const numB = parseCodeNumber(b.kode);
+      if (numA !== numB) return numA - numB;
+      return (a.kode || '').localeCompare(b.kode || '', undefined, { numeric: true });
+    });
+  }, [customerAccountingMap, search, kategoriFilter]);
 
   // Selected customer object in form pay modal
   const selectedCustInModal = useMemo(() => {
     if (!formPay.pelangganId) return null;
     return pelangganList.find(c => (c.id || c._id) === formPay.pelangganId);
   }, [formPay.pelangganId, pelangganList]);
+
+  // Options Pelanggan untuk ModernSearchableSelect (Urut C1 -> C82)
+  const sortedPelangganPayOptions = useMemo(() => {
+    return [...(pelangganList || [])]
+      .sort((a, b) => {
+        const numA = parseCodeNumber(a.kode);
+        const numB = parseCodeNumber(b.kode);
+        if (numA !== numB) return numA - numB;
+        return (a.kode || '').localeCompare(b.kode || '', undefined, { numeric: true });
+      })
+      .map(c => {
+        const cId = c.id || c._id;
+        const net = getNetPiutangForCustomer(c);
+        return {
+          value: cId,
+          label: `[${c.kode || 'C'}] ${c.nama} (Sisa Piutang: ${formatRp(net)})`,
+          kode: c.kode || '',
+          nama: c.nama || ''
+        };
+      });
+  }, [pelangganList, customerAccountingMap]);
 
   const openAddPayModal = (p = null) => {
     if (p) {
@@ -220,205 +475,267 @@ export default function PiutangPelangganTab({
   };
 
   return (
-    <div className="tab-container">
-      {/* HEADER */}
-      <div className="tab-header">
-        <div>
-          <h2 className="tab-title"><CreditCard size={24} /> Piutang &amp; Tagihan Pelanggan</h2>
-          <p className="tab-subtitle">Pantau sisa piutang tempo, histori tagihan customer, &amp; catat pembayaran masuk</p>
+    <div className="tab-container" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+      {/* 1. 4 KPI SUMMARY CARDS AKUNTANSI (SALDO AWAL, PIUTANG, PEMBAYARAN, SALDO AKHIR) */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.65rem', marginBottom: '0.85rem' }}>
+        {/* Card 1: Saldo Awal Piutang (Bisa Di-edit Manual) */}
+        <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderTop: '3.5px solid #0284c7', borderRadius: '10px', padding: '0.65rem 0.85rem', boxShadow: '0 2px 6px rgba(0,0,0,0.02)', position: 'relative' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.02em' }}>SALDO AWAL PIUTANG</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              {canEdit && selectedMonth !== 'ALL' && (
+                <button
+                  type="button"
+                  onClick={handleOpenSaldoAwalModal}
+                  title="Atur Saldo Awal Manual per Pelanggan"
+                  style={{ background: '#e0f2fe', border: '1px solid #bae6fd', color: '#0284c7', borderRadius: '5px', width: '22px', height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}
+                >
+                  <Pencil size={11} />
+                </button>
+              )}
+              <div style={{ width: '26px', height: '26px', borderRadius: '6px', background: '#e0f2fe', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Wallet size={13} style={{ color: '#0284c7' }} />
+              </div>
+            </div>
+          </div>
+          <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#0284c7', marginTop: '0.2rem', lineHeight: 1.1 }}>
+            {formatRp(globalSummary.saldoAwal)}
+          </div>
+          <span style={{ fontSize: '0.66rem', color: '#64748b', marginTop: '0.15rem', display: 'block' }}>
+            Sisa piutang bulan sebelumnya
+            {Object.keys(saldoAwalManual).some(k => k.startsWith(`${selectedMonth}::`)) && (
+              <span style={{ marginLeft: '0.3rem', color: '#0284c7', fontWeight: 700 }}>+ penyesuaian ✓</span>
+            )}
+          </span>
         </div>
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <button className="btn btn-secondary" onClick={handleExportExcel}>
-            <Download size={16} style={{ color: 'var(--emerald)' }} /> Excel
+
+        {/* Card 2: Penambahan Piutang Baru */}
+        <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderTop: '3.5px solid #dc2626', borderRadius: '10px', padding: '0.65rem 0.85rem', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.02em' }}>PENAMBAHAN PIUTANG</span>
+            <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <ArrowUpRight size={14} style={{ color: '#dc2626' }} />
+            </div>
+          </div>
+          <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#dc2626', marginTop: '0.2rem', lineHeight: 1.1 }}>
+            {formatRp(globalSummary.piutangBaru)}
+          </div>
+          <span style={{ fontSize: '0.66rem', color: '#64748b', marginTop: '0.15rem', display: 'block' }}>Penjualan kredit/tempo baru</span>
+        </div>
+
+        {/* Card 3: Pembayaran Setoran */}
+        <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderTop: '3.5px solid #16a34a', borderRadius: '10px', padding: '0.65rem 0.85rem', boxShadow: '0 2px 6px rgba(0,0,0,0.02)', position: 'relative' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.02em' }}>PEMBAYARAN / SETORAN</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <button
+                type="button"
+                onClick={() => setIsModalDebitHistoryOpen(true)}
+                title="Buka Jurnal & Detail Riwayat Pembayaran Masuk"
+                style={{ background: '#f0fdf4', border: '1px solid #86efac', color: '#16a34a', borderRadius: '5px', padding: '0.1rem 0.4rem', fontSize: '0.65rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer' }}
+              >
+                <FileText size={10} /> Riwayat
+              </button>
+              <div style={{ width: '26px', height: '26px', borderRadius: '6px', background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <ArrowDownLeft size={13} style={{ color: '#16a34a' }} />
+              </div>
+            </div>
+          </div>
+          <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#16a34a', marginTop: '0.2rem', lineHeight: 1.1 }}>
+            {formatRp(globalSummary.pembayaran)}
+          </div>
+          <span style={{ fontSize: '0.66rem', color: '#64748b', marginTop: '0.15rem', display: 'block' }}>Setoran pelunasan terkumpul</span>
+        </div>
+
+        {/* Card 4: Saldo Akhir Piutang */}
+        <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderTop: '3.5px solid #d97706', borderRadius: '10px', padding: '0.65rem 0.85rem', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.02em' }}>SALDO AKHIR PIUTANG</span>
+            <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: '#fffbeb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <AlertCircle size={14} style={{ color: '#d97706' }} />
+            </div>
+          </div>
+          <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#b45309', marginTop: '0.2rem', lineHeight: 1.1 }}>
+            {formatRp(globalSummary.saldoAkhir)}
+          </div>
+          <span style={{ fontSize: '0.66rem', color: '#64748b', marginTop: '0.15rem', display: 'block' }}>Total tagihan aktif berjalan</span>
+        </div>
+      </div>
+
+      {/* 2. TOOLBAR BARIS 1: MODERN MONTH PICKER DENGAN FILTER DISAMPING KIRI */}
+      <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
+        <ModernMonthPicker
+          value={selectedMonth}
+          onChange={(val) => setSelectedMonth(val)}
+          allowAll={true}
+        />
+      </div>
+
+      {/* 3. TOOLBAR BARIS 2: SEARCH & ACTION BUTTONS */}
+      <div style={{ background: '#ffffff', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #cbd5e1', boxShadow: '0 2px 6px rgba(0,0,0,0.02)', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', flex: 1, minWidth: '280px' }}>
+          <div className="search-box" style={{ flex: 1, minWidth: '200px', height: '34px' }}>
+            <Search size={14} />
+            <input className="search-input" placeholder="Cari kode C1/C2, nama pelanggan, no. HP..." value={search} onChange={e => setSearch(e.target.value)} style={{ fontSize: '0.78rem' }} />
+          </div>
+
+          <select value={kategoriFilter} onChange={e => setKategoriFilter(e.target.value)} className="form-select" style={{ height: '34px', fontSize: '0.78rem', width: 'auto', minWidth: '140px', background: '#f8fafc' }}>
+            <option value="">Semua Kategori</option>
+            <option value="Top Market">Top Market</option>
+            <option value="Umum">Umum</option>
+          </select>
+        </div>
+
+        <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+          <button className="btn btn-outline-secondary" onClick={handleExportExcel} style={{ height: '34px', fontSize: '0.75rem', fontWeight: 700, padding: '0 0.7rem', borderRadius: '7px', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+            <Download size={13} style={{ color: 'var(--emerald)' }} /> Excel
           </button>
-          <button className="btn btn-secondary" onClick={handleExportPDF}>
-            <FileText size={16} style={{ color: '#ef4444' }} /> PDF
+          <button className="btn btn-outline-secondary" onClick={handleExportPDF} style={{ height: '34px', fontSize: '0.75rem', fontWeight: 700, padding: '0 0.7rem', borderRadius: '7px', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+            <FileText size={13} style={{ color: '#ef4444' }} /> PDF
           </button>
+
           {canEdit && (
-            <button className="btn btn-primary" onClick={() => openAddPayModal()} style={{ background: 'linear-gradient(135deg,#10b981,#059669)', border: 'none' }}>
-              <Plus size={16} /> Catat Pembayaran Masuk
+            <button className="btn btn-emerald" onClick={() => openAddPayModal()} style={{ height: '34px', fontSize: '0.78rem', fontWeight: 800, padding: '0 0.85rem', borderRadius: '7px', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+              <Plus size={14} /> + Catat Pembayaran Masuk
             </button>
           )}
         </div>
       </div>
 
-      {/* STATS SUMMARY CARDS */}
-      <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', marginBottom: '1.5rem' }}>
-        <div className="stat-card">
-          <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#ef4444,#dc2626)' }}><DollarSign size={20} /></div>
-          <div className="stat-info"><p className="stat-label">Total Sisa Piutang Aktif</p><h3 className="stat-value" style={{ color: '#ef4444' }}>{formatRp(totalPiutangKeseluruhan)}</h3></div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#10b981,#059669)' }}><ArrowDownLeft size={20} /></div>
-          <div className="stat-info"><p className="stat-label">Setoran Masuk Terkumpul</p><h3 className="stat-value" style={{ color: '#10b981' }}>{formatRp(totalSetoranBulanIni)}</h3></div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#f59e0b,#d97706)' }}><User size={20} /></div>
-          <div className="stat-info"><p className="stat-label">Pelanggan Berpiutang</p><h3 className="stat-value">{totalPelangganBerpiutang} Orang</h3></div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#6366f1,#4f46e5)' }}><Clock size={20} /></div>
-          <div className="stat-info"><p className="stat-label">Customer Tempo Kredit</p><h3 className="stat-value">{pelangganList.filter(p => p.sistemPembayaran === 'Tempo').length}</h3></div>
-        </div>
-      </div>
-
-      {/* TOOLBAR */}
-      <div className="toolbar" style={{ marginBottom: '1.25rem' }}>
-        <div className="search-box">
-          <Search size={16} />
-          <input placeholder="Cari kode C1/C2, nama pelanggan, no. HP..." value={search} onChange={e => setSearch(e.target.value)} />
-        </div>
-
-        <select value={kategoriFilter} onChange={e => setKategoriFilter(e.target.value)} className="select-input" style={{ maxWidth: '180px' }}>
-          <option value="">Semua Kategori</option>
-          <option value="Top Market">Top Market</option>
-          <option value="Umum">Umum</option>
-        </select>
-      </div>
-
-      {/* TABLE PIUTANG PELANGGAN */}
-      <div style={{ marginBottom: '2rem' }}>
-        <h4 style={{ margin: '0 0 0.75rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-          <CreditCard size={18} style={{ color: '#ef4444' }} /> Daftar Saldo Piutang Pelanggan
-        </h4>
-        <div className="table-responsive">
-          <table className="table">
-            <thead>
+      {/* 4. TABEL DATA PIUTANG PELANGGAN (FONT DIPERKECIL RAMPING 1-BARIS) */}
+      <div className="table-responsive" style={{ borderRadius: '10px', border: '1px solid #e2e8f0', background: '#ffffff', marginBottom: '2rem' }}>
+        <table className="custom-table" style={{ width: '100%', fontSize: '0.75rem', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ background: '#f8fafc', color: '#475569', whiteSpace: 'nowrap' }}>
+              <th style={{ padding: '0.4rem 0.55rem', width: '60px' }}>Kode</th>
+              <th style={{ padding: '0.4rem 0.55rem' }}>Nama Pelanggan</th>
+              <th style={{ padding: '0.4rem 0.55rem', textAlign: 'center' }}>Kategori</th>
+              <th style={{ padding: '0.4rem 0.55rem', textAlign: 'center' }}>Sistem Bayar</th>
+              <th style={{ padding: '0.4rem 0.55rem' }}>No. WhatsApp</th>
+              <th style={{ padding: '0.4rem 0.55rem', textAlign: 'right' }}>Saldo Awal</th>
+              <th style={{ padding: '0.4rem 0.55rem', textAlign: 'right' }}>Piutang Baru</th>
+              <th style={{ padding: '0.4rem 0.55rem', textAlign: 'right' }}>Pembayaran</th>
+              <th style={{ padding: '0.4rem 0.55rem', textAlign: 'right' }}>Saldo Akhir</th>
+              {canEdit && <th style={{ padding: '0.4rem 0.55rem', textAlign: 'center' }}>Aksi</th>}
+            </tr>
+          </thead>
+          <tbody>
+            {filteredCustomers.length === 0 ? (
               <tr>
-                <th>Kode</th>
-                <th>Nama Pelanggan</th>
-                <th>Kategori</th>
-                <th>Sistem Bayar</th>
-                <th>No. WhatsApp</th>
-                <th>Total Sisa Piutang</th>
-                <th>Status Tagihan</th>
-                {canEdit && <th style={{ textAlign: 'right' }}>Aksi</th>}
+                <td colSpan={canEdit ? 10 : 9} style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8', fontSize: '0.75rem' }}>
+                  Tidak ada data saldo piutang pelanggan untuk periode ini.
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {customersWithPiutang.length === 0 ? (
-                <tr>
-                  <td colSpan={canEdit ? 8 : 7} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
-                    Tidak ada data piutang pelanggan. Seluruh piutang telah lunas atau belum ada tagihan kredit.
-                  </td>
-                </tr>
-              ) : (
-                customersWithPiutang.map(p => {
-                  const sisa = getNetPiutangForCustomer(p);
-                  const isLunas = sisa === 0;
+            ) : (
+              filteredCustomers.map(p => {
+                const isLunas = p.saldoAkhir === 0;
 
-                  return (
-                    <tr key={p.id || p._id}>
-                      <td><strong style={{ color: 'var(--accent-primary)', fontFamily: 'monospace' }}>{p.kode || 'C1'}</strong></td>
-                      <td>
-                        <strong style={{ color: '#fff', fontSize: '0.98rem' }}>{p.nama}</strong>
-                        {p.alamat && <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}><MapPin size={11} /> {p.alamat}</div>}
-                      </td>
-                      <td>
-                        <span className="badge" style={{ background: p.kategoriCustomer === 'Top Market' ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.08)', color: p.kategoriCustomer === 'Top Market' ? '#f59e0b' : 'var(--text-muted)', border: `1px solid ${p.kategoriCustomer === 'Top Market' ? '#f59e0b' : 'var(--border-color)'}` }}>
-                          {p.kategoriCustomer === 'Top Market' ? '⭐ Top Market' : 'Umum'}
-                        </span>
-                      </td>
-                      <td>
-                        <span className="badge" style={{ background: p.sistemPembayaran === 'Tempo' ? 'rgba(239,68,68,0.15)' : 'rgba(16,185,129,0.15)', color: p.sistemPembayaran === 'Tempo' ? '#ef4444' : '#10b981' }}>
-                          {p.sistemPembayaran || 'COD'}
-                        </span>
-                      </td>
-                      <td>
-                        {p.noHp ? (
-                          <a href={`https://wa.me/${p.noHp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" style={{ color: '#10b981', display: 'inline-flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }}>
-                            <Phone size={13} /> {p.noHp}
-                          </a>
-                        ) : '-'}
-                      </td>
-                      <td>
-                        <strong style={{ fontSize: '1.05rem', color: isLunas ? '#10b981' : '#ef4444' }}>
-                          {formatRp(sisa)}
-                        </strong>
-                      </td>
-                      <td>
-                        {isLunas ? (
-                          <span className="badge" style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981' }}>✓ Lunas</span>
-                        ) : (
-                          <span className="badge" style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444' }}>⚠️ Ada Belum Bayar</span>
-                        )}
-                      </td>
-                      {canEdit && (
-                        <td style={{ textAlign: 'right' }}>
-                          <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end' }}>
-                            {!isLunas && (
-                              <button className="btn btn-sm btn-primary" onClick={() => openAddPayModal(p)} style={{ background: 'linear-gradient(135deg,#10b981,#059669)', border: 'none' }} title="Catat Setoran / Pelunasan">
-                                <PlusCircle size={14} /> Bayar Piutang
-                              </button>
-                            )}
-                            <button className="btn btn-sm btn-secondary" onClick={() => setShowDetailModal(p)} title="Lihat Histori Faktur"><Eye size={14} /></button>
-                          </div>
-                        </td>
-                      )}
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* TABLE RIWAYAT PEMBAYARAN MASUK */}
-      <div style={{ marginTop: '1.5rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-          <h4 style={{ margin: 0, color: '#fff', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <ArrowDownLeft size={18} style={{ color: '#10b981' }} /> Riwayat Pembayaran Masuk Customer
-          </h4>
-        </div>
-        <div className="table-responsive">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>No. Bukti</th>
-                <th>Tanggal</th>
-                <th>Pelanggan</th>
-                <th>Faktur Terkait</th>
-                <th>Jumlah Setoran (Rp)</th>
-                <th>Metode Bayar</th>
-                <th>No. Referensi</th>
-                {canEdit && <th style={{ textAlign: 'right' }}>Aksi</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {(pembayaranMasukList || []).length === 0 ? (
-                <tr>
-                  <td colSpan={canEdit ? 8 : 7} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
-                    Belum ada riwayat pembayaran masuk dari pelanggan. Klik "+ Catat Pembayaran Masuk" untuk mencatat setoran baru.
-                  </td>
-                </tr>
-              ) : (
-                (pembayaranMasukList || []).map(pm => (
-                  <tr key={pm.id || pm._id}>
-                    <td><strong style={{ color: 'var(--accent-primary)', fontFamily: 'monospace' }}>{pm.noBukti}</strong></td>
-                    <td>{pm.tanggal || pm.createdAt}</td>
-                    <td>
-                      <strong style={{ color: '#fff' }}>{pm.namaPelanggan}</strong>
-                      {pm.kodePelanggan && <span className="badge" style={{ marginLeft: '6px', background: 'rgba(99,102,241,0.15)', color: '#818cf8' }}>{pm.kodePelanggan}</span>}
+                return (
+                  <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9', whiteSpace: 'nowrap' }}>
+                    <td style={{ padding: '0.35rem 0.55rem' }}>
+                      <strong style={{ color: '#0284c7', fontFamily: 'monospace', fontWeight: 800, fontSize: '0.76rem' }}>{p.kode || 'C1'}</strong>
                     </td>
-                    <td>{pm.noFaktur ? <strong style={{ color: '#0ea5e9', fontFamily: 'monospace' }}>{pm.noFaktur}</strong> : '-'}</td>
-                    <td><strong style={{ color: '#10b981', fontSize: '1.05rem' }}>{formatRp(pm.jumlahBayar)}</strong></td>
-                    <td><span className="badge" style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981' }}>{pm.metodePembayaran || 'Transfer Bank'}</span></td>
-                    <td style={{ color: 'var(--text-muted)', fontFamily: 'monospace' }}>{pm.noReferensi || '-'}</td>
+                    <td style={{ padding: '0.35rem 0.55rem' }}>
+                      <span style={{ color: '#0f172a', fontWeight: 800, fontSize: '0.76rem' }}>{p.nama}</span>
+                    </td>
+                    <td style={{ padding: '0.35rem 0.55rem', textAlign: 'center' }}>
+                      <span className="badge" style={{ background: p.kategoriCustomer === 'Top Market' ? '#fef3c7' : '#f1f5f9', color: p.kategoriCustomer === 'Top Market' ? '#d97706' : '#475569', border: `1px solid ${p.kategoriCustomer === 'Top Market' ? '#fde68a' : '#cbd5e1'}`, fontSize: '0.64rem', padding: '0.1rem 0.35rem' }}>
+                        {p.kategoriCustomer === 'Top Market' ? '⭐ Top' : 'Umum'}
+                      </span>
+                    </td>
+                    <td style={{ padding: '0.35rem 0.55rem', textAlign: 'center' }}>
+                      <span className="badge" style={{ background: p.sistemPembayaran === 'Tempo' ? '#fef2f2' : '#f0fdf4', color: p.sistemPembayaran === 'Tempo' ? '#dc2626' : '#16a34a', border: `1px solid ${p.sistemPembayaran === 'Tempo' ? '#fca5a5' : '#86efac'}`, fontSize: '0.64rem', padding: '0.1rem 0.35rem' }}>
+                        {p.sistemPembayaran || 'COD'}
+                      </span>
+                    </td>
+                    <td style={{ padding: '0.35rem 0.55rem', color: '#64748b', fontSize: '0.72rem' }}>
+                      {p.noHp ? (
+                        <a href={`https://wa.me/${p.noHp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" style={{ color: '#16a34a', display: 'inline-flex', alignItems: 'center', gap: '3px', textDecoration: 'none', fontWeight: 600 }}>
+                          <Phone size={11} /> {p.noHp}
+                        </a>
+                      ) : '-'}
+                    </td>
+                    <td style={{ padding: '0.35rem 0.55rem', textAlign: 'right', fontWeight: 700, color: '#475569' }}>
+                      {formatRp(p.saldoAwal)}
+                    </td>
+                    <td style={{ padding: '0.35rem 0.55rem', textAlign: 'right', fontWeight: 800, color: '#dc2626' }}>
+                      {formatRp(p.piutangBaru)}
+                    </td>
+                    <td style={{ padding: '0.35rem 0.55rem', textAlign: 'right', fontWeight: 800, color: '#16a34a' }}>
+                      {formatRp(p.pembayaran)}
+                    </td>
+                    <td style={{ padding: '0.35rem 0.55rem', textAlign: 'right' }}>
+                      <strong style={{ fontSize: '0.78rem', color: isLunas ? '#16a34a' : '#b45309', fontWeight: 900 }}>
+                        {formatRp(p.saldoAkhir)}
+                      </strong>
+                    </td>
                     {canEdit && (
-                      <td style={{ textAlign: 'right' }}>
-                        <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'flex-end' }}>
-                          <button className="btn btn-sm btn-secondary" onClick={() => setShowKwitansi(pm)} title="Lihat Kwitansi"><Eye size={14} /></button>
-                          <button className="btn btn-sm btn-danger" onClick={() => handleDeletePembayaran(pm)} title="Hapus Catatan"><Trash2 size={14} /></button>
+                      <td style={{ padding: '0.35rem 0.55rem', textAlign: 'center' }}>
+                        <div style={{ display: 'flex', gap: '0.25rem', justifyContent: 'center' }}>
+                          <button className="btn btn-sm" onClick={() => setShowDetailModal(p.raw)} style={{ padding: '0.15rem 0.4rem', background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', borderRadius: '5px' }} title="Histori Detail"><Eye size={12} /></button>
                         </div>
                       </td>
                     )}
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* TABLE RIWAYAT PEMBAYARAN MASUK */}
+      <div className="table-responsive" style={{ borderRadius: '10px', border: '1px solid #e2e8f0', background: '#ffffff', marginBottom: '2rem' }}>
+        <table className="custom-table" style={{ width: '100%', fontSize: '0.8rem' }}>
+          <thead>
+            <tr style={{ background: '#f8fafc', color: '#475569' }}>
+              <th style={{ padding: '0.45rem 0.65rem' }}>No. Bukti</th>
+              <th style={{ padding: '0.45rem 0.65rem' }}>Tanggal</th>
+              <th style={{ padding: '0.45rem 0.65rem' }}>Pelanggan</th>
+              <th style={{ padding: '0.45rem 0.65rem' }}>Faktur Terkait</th>
+              <th style={{ padding: '0.45rem 0.65rem', textAlign: 'right' }}>Jumlah Setoran</th>
+              <th style={{ padding: '0.45rem 0.65rem' }}>Metode Bayar</th>
+              <th style={{ padding: '0.45rem 0.65rem' }}>No. Referensi</th>
+              {canEdit && <th style={{ padding: '0.45rem 0.65rem', textAlign: 'center' }}>Aksi</th>}
+            </tr>
+          </thead>
+          <tbody>
+            {(pembayaranMasukList || []).length === 0 ? (
+              <tr>
+                <td colSpan={canEdit ? 8 : 7} style={{ textAlign: 'center', padding: '2.5rem', color: '#94a3b8' }}>
+                  Belum ada riwayat pembayaran masuk dari pelanggan.
+                </td>
+              </tr>
+            ) : (
+              (pembayaranMasukList || []).map(pm => (
+                <tr key={pm.id || pm._id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  <td style={{ padding: '0.4rem 0.65rem', fontFamily: 'monospace', fontWeight: 800, color: '#0284c7', fontSize: '0.75rem' }}>{pm.noBukti}</td>
+                  <td style={{ padding: '0.4rem 0.65rem', fontWeight: 600, color: '#475569', fontSize: '0.75rem' }}>{pm.tanggal || pm.createdAt}</td>
+                  <td style={{ padding: '0.4rem 0.65rem' }}>
+                    <strong style={{ color: '#0f172a', fontSize: '0.85rem' }}>{pm.namaPelanggan}</strong>
+                    {pm.kodePelanggan && <span className="badge" style={{ marginLeft: '6px', background: '#e0e7ff', color: '#4338ca', fontSize: '0.68rem', padding: '0.15rem 0.4rem' }}>{pm.kodePelanggan}</span>}
+                  </td>
+                  <td style={{ padding: '0.4rem 0.65rem', fontFamily: 'monospace', fontWeight: 700, color: '#0284c7', fontSize: '0.75rem' }}>{pm.noFaktur || '-'}</td>
+                  <td style={{ padding: '0.4rem 0.65rem', textAlign: 'right', fontWeight: 900, color: '#16a34a', fontSize: '0.85rem' }}>{formatRp(pm.jumlahBayar)}</td>
+                  <td style={{ padding: '0.4rem 0.65rem' }}>
+                    <span className="badge" style={{ background: '#f0fdf4', color: '#16a34a', border: '1px solid #86efac', fontSize: '0.68rem', padding: '0.15rem 0.45rem' }}>
+                      {pm.metodePembayaran || 'Transfer Bank'}
+                    </span>
+                  </td>
+                  <td style={{ padding: '0.4rem 0.65rem', color: '#64748b', fontFamily: 'monospace', fontSize: '0.75rem' }}>{pm.noReferensi || '-'}</td>
+                  {canEdit && (
+                    <td style={{ padding: '0.4rem 0.65rem', textAlign: 'center' }}>
+                      <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'center' }}>
+                        <button className="btn btn-sm" onClick={() => setShowKwitansi(pm)} style={{ padding: '0.2rem 0.45rem', background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', borderRadius: '5px' }} title="Lihat Kwitansi"><Eye size={13} /></button>
+                        <button className="btn btn-sm btn-outline-danger" onClick={() => handleDeletePembayaran(pm)} style={{ padding: '0.2rem 0.45rem', borderRadius: '5px' }} title="Hapus Catatan"><Trash2 size={13} /></button>
+                      </div>
+                    </td>
+                  )}
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
 
       {/* MODAL 1: CATAT PEMBAYARAN MASUK */}
@@ -433,17 +750,13 @@ export default function PiutangPelangganTab({
               <div className="modal-body" style={{ flex: 1, overflowY: 'auto', paddingRight: '4px' }}>
                 <div className="form-group">
                   <label className="form-label">Pilih Pelanggan / Customer *</label>
-                  <select className="form-select" value={formPay.pelangganId} onChange={handleSelectCustChange} required>
-                    <option value="">-- Pilih Pelanggan --</option>
-                    {pelangganList.map(c => {
-                      const net = getNetPiutangForCustomer(c);
-                      return (
-                        <option key={c.id || c._id} value={c.id || c._id}>
-                          👤 [{c.kode || 'C'}] {c.nama} (Sisa Piutang: {formatRp(net)})
-                        </option>
-                      );
-                    })}
-                  </select>
+                  <ModernSearchableSelect
+                    value={formPay.pelangganId}
+                    onChange={(val) => handleSelectCustChange({ target: { value: val } })}
+                    options={sortedPelangganPayOptions}
+                    placeholder="-- Cari Kode / Nama Pelanggan --"
+                    icon={Users}
+                  />
                 </div>
 
                 {selectedCustInModal && (
@@ -596,6 +909,409 @@ export default function PiutangPelangganTab({
             </div>
           </div>
         </div>
+      )}
+
+      {/* ===== MODAL SETTING SALDO AWAL MANUAL PER PELANGGAN ===== */}
+      {isModalSaldoAwalOpen && createPortal(
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.75)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '1rem'
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '16px',
+            width: '100%',
+            maxWidth: '650px',
+            maxHeight: '90vh',
+            display: 'flex',
+            flexDirection: 'column',
+            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.35)',
+            overflow: 'hidden'
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              padding: '1.25rem 1.5rem',
+              background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+              color: '#ffffff',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <div>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Pencil size={18} /> Atur Saldo Awal Piutang Manual per Pelanggan
+                </h3>
+                <span style={{ fontSize: '0.78rem', color: '#e0f2fe', marginTop: '0.25rem', display: 'block' }}>
+                  Atur sisa tagihan piutang dari bulan sebelumnya yang ingin dibawa ke bulan terpilih.
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsModalSaldoAwalOpen(false)}
+                style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: '#ffffff', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Target Month Selector & Import Button */}
+            <div style={{ padding: '0.85rem 1.5rem', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#475569' }}>Periode Bulan:</span>
+                <ModernMonthPicker
+                  value={modalTargetMonth}
+                  onChange={handleModalMonthChange}
+                  allowAll={false}
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowImportSaldoModal(true)}
+                style={{ height: '34px', fontSize: '0.78rem', fontWeight: 800, padding: '0 0.95rem', borderRadius: '8px', border: 'none', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#ffffff', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', boxShadow: '0 2px 6px rgba(16,185,129,0.2)' }}
+                title="Buka Modal Import Excel Saldo Awal"
+              >
+                <Upload size={14} /> Import Excel Saldo Awal
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div style={{ padding: '1.25rem 1.5rem', overflowY: 'auto', flex: 1 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {(pelangganList || []).length === 0 ? (
+                  <div style={{ textAlign: 'center', color: '#94a3b8', padding: '2rem' }}>Tidak ada data pelanggan terdaftar.</div>
+                ) : (
+                  [...(pelangganList || [])]
+                    .sort((a, b) => {
+                      const numA = parseCodeNumber(a.kode);
+                      const numB = parseCodeNumber(b.kode);
+                      if (numA !== numB) return numA - numB;
+                      return (a.kode || '').localeCompare(b.kode || '', undefined, { numeric: true });
+                    })
+                    .map(p => {
+                      const nama = p.nama || '';
+                      const currentVal = draftSaldoAwal[nama] ?? 0;
+
+                    return (
+                      <div key={p.id || p._id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.6rem 0.85rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                        <div>
+                          <strong style={{ fontSize: '0.83rem', color: '#0f172a', display: 'block' }}>[{p.kode || 'C'}] {nama}</strong>
+                          <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Kategori: {p.kategoriCustomer || 'Umum'}</span>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0284c7' }}>Rp</span>
+                          <input
+                            type="text"
+                            value={currentVal ? Number(currentVal).toLocaleString('id-ID') : ''}
+                            onChange={(e) => {
+                              const raw = e.target.value.replace(/[^0-9]/g, '');
+                              setDraftSaldoAwal(prev => ({ ...prev, [nama]: raw ? parseInt(raw, 10) : 0 }));
+                            }}
+                            placeholder="0"
+                            style={{ width: '130px', padding: '0.35rem 0.6rem', fontSize: '0.82rem', fontWeight: 700, borderRadius: '6px', border: '1px solid #cbd5e1', textAlign: 'right', outline: 'none' }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+
+            {/* Modal Footer (Ringkasan Total Saldo Awal & Action Buttons) */}
+            <div style={{ padding: '1rem 1.5rem', background: '#f8fafc', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
+              <div>
+                <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block', fontWeight: 600 }}>Total Saldo Awal ({modalTargetMonth}):</span>
+                <strong style={{ fontSize: '1.05rem', color: '#0284c7', fontWeight: 900 }}>
+                  {formatRp(Object.values(draftSaldoAwal).reduce((acc, curr) => acc + (Number(curr) || 0), 0))}
+                </strong>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsModalSaldoAwalOpen(false)}
+                  style={{ padding: '0.45rem 0.9rem', fontSize: '0.8rem', fontWeight: 700, borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#475569', cursor: 'pointer' }}
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveSaldoAwal}
+                  style={{ padding: '0.45rem 1rem', fontSize: '0.8rem', fontWeight: 700, borderRadius: '8px', border: 'none', background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)', color: '#ffffff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                >
+                  <Save size={14} /> Simpan Saldo Awal
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ===== MODAL 2: IMPORT EXCEL SALDO AWAL (STANDAR DRAG/DROP & DOWNLOAD TEMPLATE INSIDE) ===== */}
+      {showImportSaldoModal && createPortal(
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.75)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000,
+          padding: '1rem'
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '16px',
+            width: '100%',
+            maxWidth: '620px',
+            maxHeight: '90vh',
+            display: 'flex',
+            flexDirection: 'column',
+            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.35)',
+            overflow: 'hidden'
+          }}>
+            {/* Header */}
+            <div style={{ padding: '1.25rem 1.5rem', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#ffffff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Upload size={20} /> Import Saldo Awal Piutang via Excel
+                </h3>
+                <span style={{ fontSize: '0.78rem', color: '#ecfdf5', marginTop: '0.25rem', display: 'block' }}>
+                  Periode Target: <strong>{modalTargetMonth}</strong>
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowImportSaldoModal(false)}
+                style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: '#ffffff', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1 }}>
+              {/* Langkah 1: Download Template */}
+              <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '12px', border: '1px border-solid #e2e8f0', marginBottom: '1.25rem', textAlign: 'center' }}>
+                <Download size={32} style={{ color: '#0284c7', marginBottom: '0.4rem' }} />
+                <h4 style={{ margin: '0 0 0.25rem', color: '#0f172a', fontSize: '0.95rem', fontWeight: 800 }}>1. Unduh Template Format Excel</h4>
+                <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '0 0 0.85rem' }}>
+                  Gunakan format 3 kolom: <strong>Kode Pelanggan</strong>, <strong>Nama Pelanggan</strong>, dan <strong>Saldo Awal (Rp)</strong>.
+                </p>
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={handleDownloadTemplateSaldoAwal}
+                  style={{ height: '34px', fontSize: '0.78rem', fontWeight: 700, padding: '0 0.9rem', borderRadius: '7px', borderColor: '#0284c7', color: '#0284c7', background: '#ffffff' }}
+                >
+                  <Download size={14} style={{ color: '#0284c7' }} /> Download Template Excel (.xlsx)
+                </button>
+              </div>
+
+              {/* Langkah 2: Drag/Drop Upload File */}
+              <div style={{ background: '#f0fdf4', padding: '1.25rem', borderRadius: '12px', border: '2px dashed #86efac', textAlign: 'center' }}>
+                <Upload size={32} style={{ color: '#16a34a', marginBottom: '0.4rem' }} />
+                <h4 style={{ margin: '0 0 0.25rem', color: '#0f172a', fontSize: '0.95rem', fontWeight: 800 }}>2. Upload File Excel Saldo Awal</h4>
+                <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '0 0 1rem' }}>
+                  Pilih file .xlsx atau .xls dari komputer Anda.
+                </p>
+                <label className="btn btn-emerald" style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', height: '36px', fontSize: '0.8rem', fontWeight: 800, padding: '0 1rem', borderRadius: '8px' }}>
+                  <Upload size={15} /> Pilih File Excel...
+                  <input
+                    type="file"
+                    accept=".xlsx, .xls, .csv"
+                    onChange={(e) => {
+                      handleImportExcelSaldoAwal(e);
+                      setShowImportSaldoModal(false);
+                    }}
+                    style={{ display: 'none' }}
+                  />
+                </label>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div style={{ padding: '1rem 1.5rem', background: '#f8fafc', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={() => setShowImportSaldoModal(false)}
+                style={{ padding: '0.45rem 1rem', fontSize: '0.8rem', fontWeight: 700, borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#475569', cursor: 'pointer' }}
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ===== MODAL 3: JURNAL & DETAIL RIWAYAT PEMBAYARAN MASUK (LENGKAP DENGAN TOMBOL HAPUS) ===== */}
+      {isModalDebitHistoryOpen && createPortal(
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.75)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000,
+          padding: '1rem'
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '16px',
+            width: '100%',
+            maxWidth: '900px',
+            maxHeight: '90vh',
+            display: 'flex',
+            flexDirection: 'column',
+            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.35)',
+            overflow: 'hidden'
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              padding: '1.25rem 1.5rem',
+              background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+              color: '#ffffff',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <div>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0, color: '#34d399', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <ArrowDownLeft size={22} /> Jurnal &amp; Detail Riwayat Pembayaran Masuk (Debit)
+                </h3>
+                <span style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '0.25rem', display: 'block' }}>
+                  Periode: <strong>{selectedMonth === 'ALL' ? 'Semua Periode' : selectedMonth}</strong> • Total Terbayar: <strong style={{ color: '#34d399' }}>{formatRp(globalSummary.pembayaran)}</strong>
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsModalDebitHistoryOpen(false)}
+                style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#ffffff', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Body: Table of all payment records */}
+            <div style={{ padding: '1.25rem 1.5rem', overflowY: 'auto', flex: 1 }}>
+              {(() => {
+                const records = (pembayaranMasukList || []).filter(pm => {
+                  if (selectedMonth === 'ALL') return true;
+                  const pmMonth = getMonthFromDateStr(pm.tanggal || pm.createdAt);
+                  return pmMonth === selectedMonth;
+                }).sort((a, b) => new Date(b.tanggal || b.createdAt) - new Date(a.tanggal || a.createdAt));
+
+                if (records.length === 0) {
+                  return (
+                    <div style={{ textAlign: 'center', padding: '3rem 1rem', color: '#64748b' }}>
+                      <p style={{ margin: 0, fontWeight: 700, fontSize: '0.95rem' }}>Belum Ada Riwayat Pembayaran Masuk</p>
+                      <span style={{ fontSize: '0.8rem', display: 'block', marginTop: '0.25rem' }}>Tidak ada transaksi pembayaran setoran pada periode {selectedMonth === 'ALL' ? 'semua bulan' : selectedMonth}.</span>
+                    </div>
+                  );
+                }
+
+                return (
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
+                    <thead>
+                      <tr style={{ background: '#f8fafc', borderBottom: '2px solid #cbd5e1', color: '#475569' }}>
+                        <th style={{ padding: '0.6rem', textAlign: 'left' }}>No. Bukti / Reff</th>
+                        <th style={{ padding: '0.6rem', textAlign: 'left' }}>Tanggal</th>
+                        <th style={{ padding: '0.6rem', textAlign: 'left' }}>Nama Pelanggan</th>
+                        <th style={{ padding: '0.6rem', textAlign: 'left' }}>Keterangan / Faktur</th>
+                        <th style={{ padding: '0.6rem', textAlign: 'right' }}>Jumlah Setoran</th>
+                        {canEdit && <th style={{ padding: '0.6rem', textAlign: 'center' }}>Aksi</th>}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {records.map((pm, idx) => {
+                        const pmId = pm.id || pm._id;
+                        return (
+                          <tr key={pmId || idx} style={{ borderBottom: '1px solid #e2e8f0', whiteSpace: 'nowrap' }}>
+                            <td style={{ padding: '0.55rem 0.6rem', fontWeight: 800, color: '#4f46e5' }}>
+                              {pm.noBukti || `SETOR-${idx + 1}`}
+                            </td>
+                            <td style={{ padding: '0.55rem 0.6rem', color: '#334155' }}>
+                              {pm.tanggal || (pm.createdAt ? pm.createdAt.slice(0, 10) : '-')}
+                            </td>
+                            <td style={{ padding: '0.55rem 0.6rem', fontWeight: 800, color: '#0f172a' }}>
+                              [{pm.kodePelanggan || 'C'}] {pm.namaPelanggan}
+                            </td>
+                            <td style={{ padding: '0.55rem 0.6rem', color: '#475569' }}>
+                              <div>{pm.metodePembayaran || 'Transfer'} {pm.noFaktur ? `(Faktur: ${pm.noFaktur})` : ''}</div>
+                              {pm.catatan && <small style={{ color: '#64748b', fontStyle: 'italic' }}>{pm.catatan}</small>}
+                            </td>
+                            <td style={{ padding: '0.55rem 0.6rem', textAlign: 'right', fontWeight: 800, color: '#16a34a', fontSize: '0.82rem' }}>
+                              {formatRp(pm.jumlahBayar)}
+                            </td>
+                            {canEdit && (
+                              <td style={{ padding: '0.55rem 0.6rem', textAlign: 'center' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeletePembayaran(pm)}
+                                  title="Hapus Pembayaran Masuk Ini"
+                                  style={{
+                                    background: '#fef2f2',
+                                    border: '1px solid #fca5a5',
+                                    color: '#dc2626',
+                                    borderRadius: '6px',
+                                    padding: '0.2rem 0.5rem',
+                                    fontSize: '0.72rem',
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '0.25rem'
+                                  }}
+                                >
+                                  <Trash2 size={12} /> Hapus
+                                </button>
+                              </td>
+                            )}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                );
+              })()}
+            </div>
+
+            {/* Modal Footer */}
+            <div style={{ padding: '1rem 1.5rem', background: '#f8fafc', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={() => setIsModalDebitHistoryOpen(false)}
+                style={{ padding: '0.45rem 1.2rem', fontSize: '0.82rem', fontWeight: 700, borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#475569', cursor: 'pointer' }}
+              >
+                Tutup Jurnal
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );

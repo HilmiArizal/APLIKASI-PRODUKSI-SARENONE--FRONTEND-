@@ -1,41 +1,153 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Plus, FileSpreadsheet, FileText, Trash2, Calendar, PackageCheck, Download, Info, CheckCircle2, Layers } from 'lucide-react';
+import { Search, Plus, FileSpreadsheet, FileText, Trash2, Edit3, Calendar, PackageCheck, Download, Info, CheckCircle2, Layers } from 'lucide-react';
 import { formatNumber, INITIAL_PRODUK_MASTER } from '../data/initialData';
+import { ModernMonthPicker } from './ModernDatePicker';
 import { exportToExcel, exportToPDF } from '../utils/exportUtils';
-import { ModalCatatHasilProduksi, ModalImportHasilProduksiExcel } from './Modals';
+import { ModalCatatHasilProduksi, ModalImportHasilProduksiExcel, ModalMappingKemasanProduk } from './Modals';
 
 export default function HasilProduksiTab({
   hasilProduksi = [],
   produkList = [],
+  bahanBaku = [],
+  savedHppList = [],
+  riwayatProduksi = [],
   activeRoleView,
+  isReadOnlyMode = false,
   onSaveHasilProduksi,
   onImportHasilProduksi,
   onDeleteHasilProduksi,
+  onSaveMapping,
   onOpenPdfPreview,
   showAlert
 }) {
-  const todayStr = new Date().toISOString().substring(0, 10);
-  const [search, setSearch] = useState('');
-  const [filterTanggal, setFilterTanggal] = useState(todayStr);
-  const [isModalInputOpen, setIsModalInputOpen] = useState(false);
-  const [isModalImportOpen, setIsModalImportOpen] = useState(false);
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const currentMonthStr = todayStr.substring(0, 7); // e.g. "2026-08"
 
-  const canManage = ['ADMIN', 'ADMIN_PRODUK', 'BAHAN_BAKU', 'PRODUKSI'].includes(activeRoleView);
+  const [search, setSearch] = useState('');
+  const [filterBulan, setFilterBulan] = useState(currentMonthStr);
+  const [isModalInputOpen, setIsModalInputOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+  const [isModalMappingOpen, setIsModalMappingOpen] = useState(false);
+
+  const canManage = !isReadOnlyMode && ['ADMIN', 'BAHAN_BAKU', 'PRODUKSI'].includes(activeRoleView);
 
   // Master product list with full item names
   const allProducts = INITIAL_PRODUK_MASTER;
 
-  // Filtered yield entries for active date & search query
+  const calculateSyncedHppUnit = (item) => {
+    if (!item) return 0;
+
+    const targetDate = item.tanggal ? String(item.tanggal).substring(0, 10) : (item.timestamp ? String(item.timestamp).substring(0, 10) : '');
+    const itemAlias = String(item.alias || item.kode || '').trim().toUpperCase();
+    const itemName = String(item.produkNama || '').trim().toLowerCase();
+
+    // 1. Prioritize savedHppList exact date & product match
+    const matchedHppLog = (savedHppList || []).find(log => {
+      const logDate = String(log.tanggal || '').substring(0, 10);
+      const dateMatch = !targetDate || !logDate || logDate === targetDate;
+      if (!dateMatch) return false;
+
+      const logProd = String(log.produkNama || '').trim().toLowerCase();
+      return logProd && (
+        itemName.includes(logProd) ||
+        logProd.includes(itemName) ||
+        itemAlias.toLowerCase().includes(logProd) ||
+        logProd.includes(itemAlias.toLowerCase()) ||
+        (itemAlias.startsWith('RCS') && logProd.includes('rcs')) ||
+        (itemAlias.startsWith('SCM') && logProd.includes('scm')) ||
+        (itemAlias.startsWith('BS') && logProd.includes('bs')) ||
+        (itemAlias.startsWith('BLP') && logProd.includes('blp'))
+      );
+    }) || (savedHppList || []).find(log => {
+      const logProd = String(log.produkNama || '').trim().toLowerCase();
+      return logProd && (
+        itemName.includes(logProd) ||
+        logProd.includes(itemName) ||
+        itemAlias.toLowerCase().includes(logProd) ||
+        logProd.includes(itemAlias.toLowerCase()) ||
+        (itemAlias.startsWith('RCS') && logProd.includes('rcs')) ||
+        (itemAlias.startsWith('SCM') && logProd.includes('scm')) ||
+        (itemAlias.startsWith('BS') && logProd.includes('bs')) ||
+        (itemAlias.startsWith('BLP') && logProd.includes('blp'))
+      );
+    });
+
+    if (matchedHppLog) {
+      if (itemAlias.includes('250') || itemName.includes('250')) {
+        if (matchedHppLog.hpp250g && Number(matchedHppLog.hpp250g) > 0) return Number(matchedHppLog.hpp250g);
+      }
+      if (itemAlias.includes('300') || itemName.includes('300')) {
+        if (matchedHppLog.hpp250g && Number(matchedHppLog.hpp250g) > 0) return Math.round(Number(matchedHppLog.hpp250g) * 1.2);
+      }
+      if (itemAlias.includes('500') || itemName.includes('500')) {
+        if (matchedHppLog.hpp500g && Number(matchedHppLog.hpp500g) > 0) return Number(matchedHppLog.hpp500g);
+      }
+      if (itemAlias.includes('900') || itemName.includes('900')) {
+        if (matchedHppLog.hpp900g && Number(matchedHppLog.hpp900g) > 0) return Number(matchedHppLog.hpp900g);
+      }
+      if (itemAlias.includes('1000') || itemAlias.includes('1KG') || itemName.includes('1000') || itemName.includes('1kg')) {
+        const val1kg = matchedHppLog.hpp1000g || matchedHppLog.hpp1kg || matchedHppLog.hpp1Kg;
+        if (val1kg && Number(val1kg) > 0) return Number(val1kg);
+      }
+      if (matchedHppLog.hppPerKgWaste && Number(matchedHppLog.hppPerKgWaste) > 0) {
+        if (itemAlias.includes('250')) return Math.round(Number(matchedHppLog.hppPerKgWaste) * 0.25);
+        if (itemAlias.includes('300')) return Math.round(Number(matchedHppLog.hppPerKgWaste) * 0.30);
+        if (itemAlias.includes('500')) return Math.round(Number(matchedHppLog.hppPerKgWaste) * 0.50);
+        if (itemAlias.includes('900')) return Math.round(Number(matchedHppLog.hppPerKgWaste) * 0.90);
+        if (itemAlias.includes('1000') || itemAlias.includes('1KG')) return Math.round(Number(matchedHppLog.hppPerKgWaste) * 1.00);
+      }
+    }
+
+    if (item.hppPerPack && item.hppPerPack > 0 && item.hppPerPack !== item.harga) {
+      return item.hppPerPack;
+    }
+
+    return Number(item.harga || 0);
+  };
+
+  const normalizeDateStr = (str) => {
+    if (!str) return '';
+    const s = String(str).trim();
+    if (s.includes('/')) {
+      const parts = s.split('/');
+      if (parts.length === 3) {
+        if (parts[0].length === 4) return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+        return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+      }
+    }
+    if (s.includes('-')) {
+      const parts = s.split('-');
+      if (parts.length === 3) {
+        if (parts[0].length === 4) return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+        return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+      }
+    }
+    return s.substring(0, 10);
+  };
+
+  // Filtered yield entries for active month & search query
   const filteredYieldList = useMemo(() => {
     return (hasilProduksi || []).filter(item => {
-      const matchDate = filterTanggal ? (item.tanggal && item.tanggal.substring(0, 10) === filterTanggal) : true;
+      const itemDateNorm = normalizeDateStr(item.tanggal);
+      const matchMonth = filterBulan ? itemDateNorm.startsWith(filterBulan) : true;
       const matchSearch =
         String(item.produkNama || '').toLowerCase().includes(search.toLowerCase()) ||
         String(item.alias || item.kode || '').toLowerCase().includes(search.toLowerCase()) ||
         String(item.catatan || '').toLowerCase().includes(search.toLowerCase());
-      return matchDate && matchSearch;
+      return matchMonth && matchSearch;
     }).sort((a, b) => (b.timestamp || b.tanggal || '').localeCompare(a.timestamp || a.tanggal || ''));
-  }, [hasilProduksi, filterTanggal, search]);
+  }, [hasilProduksi, filterBulan, search]);
+
+  const handleSaveWrapper = async (newEntry) => {
+    if (onSaveHasilProduksi) {
+      await onSaveHasilProduksi(newEntry);
+    }
+    if (newEntry && newEntry.tanggal) {
+      const entryMonth = normalizeDateStr(newEntry.tanggal).substring(0, 7);
+      setFilterBulan(entryMonth);
+    }
+  };
 
   // Compute daily metrics
   const totalYieldPcs = useMemo(() => {
@@ -50,10 +162,10 @@ export default function HasilProduksiTab({
   const totalYieldValue = useMemo(() => {
     return filteredYieldList.reduce((acc, item) => {
       const qty = parseFloat(item.jumlahPcs) || 0;
-      const price = parseFloat(item.harga) || 0;
-      return acc + (qty * price);
+      const hppUnit = calculateSyncedHppUnit(item);
+      return acc + (qty * hppUnit);
     }, 0);
-  }, [filteredYieldList]);
+  }, [filteredYieldList, savedHppList]);
 
   // Handle Export Excel
   const handleExportExcel = () => {
@@ -99,224 +211,277 @@ export default function HasilProduksiTab({
   return (
     <div className="tab-pane active" style={{ maxWidth: '100%', overflowX: 'hidden', color: '#1e293b' }}>
       {/* ===== HEADER BANNER ===== */}
-      <div style={{ background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)', color: '#ffffff', padding: '1.25rem 1.5rem', borderRadius: '16px', marginBottom: '1.5rem', boxShadow: '0 8px 25px rgba(2, 132, 199, 0.25)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+      <div style={{
+        background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 45%, #09132b 100%)',
+        color: '#ffffff',
+        padding: '0.85rem 1.15rem',
+        borderRadius: '12px',
+        marginBottom: '0.75rem',
+        boxShadow: '0 6px 20px rgba(2, 132, 199, 0.25)',
+        border: '1px solid rgba(56, 189, 248, 0.4)',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '0.75rem'
+      }}>
         <div>
-          <span className="badge" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', fontSize: '0.75rem', padding: '0.25rem 0.6rem', marginBottom: '0.4rem', border: '1px solid rgba(255,255,255,0.3)' }}>
-            📦 OUTPUT FINISHED GOODS (PRODUK JADI)
-          </span>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 900, margin: 0, display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-            <PackageCheck size={28} /> Pencatatan &amp; Import Hasil Produksi
+          <h2 style={{ fontSize: '1.05rem', fontWeight: 900, margin: 0, display: 'flex', alignItems: 'center', gap: '0.45rem', color: '#ffffff' }}>
+            <PackageCheck size={20} style={{ color: '#38bdf8' }} /> {isReadOnlyMode ? 'Penerimaan Pembelian Produk' : 'Pencatatan Hasil Produksi'}
           </h2>
-          <p style={{ fontSize: '0.84rem', margin: '0.3rem 0 0 0', opacity: 0.9 }}>
-            Catat hasil akhir pembungkusan sosis &amp; produk beku per hari. Mendukung input manual &amp; <strong>Import Excel</strong> dengan pemetaan nama produk lengkap.
+          <p style={{ fontSize: '0.76rem', margin: '0.2rem 0 0 0', opacity: 0.95, color: '#e2e8f0' }}>
+            {isReadOnlyMode ? 'Daftar penerimaan produk jadi hasil olahan produksi tim Dapur & Bahan Baku.' : 'Catat hasil akhir pembungkusan sosis & produk beku harian. Sisa stok kemasan otomatis berkurang sesuai pemetaan.'}
           </p>
         </div>
 
         {canManage && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
             <button
+              type="button"
               className="btn"
-              onClick={() => setIsModalImportOpen(true)}
-              style={{ background: '#ffffff', color: '#0369a1', fontWeight: 800, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+              onClick={() => setIsModalMappingOpen(true)}
+              style={{ background: '#fef3c7', color: '#92400e', fontWeight: 800, border: '1px solid #fde68a', height: '32px', fontSize: '0.78rem', padding: '0 0.75rem', borderRadius: '6px' }}
+              title="Atur jenis vacumbag & stiker per produk"
             >
-              <FileSpreadsheet size={16} /> Import Excel Hasil Produksi
+              ⚙️ Pemetaan Kemasan
             </button>
             <button
+              type="button"
               className="btn btn-emerald"
-              onClick={() => setIsModalInputOpen(true)}
-              style={{ fontWeight: 800, boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)' }}
+              onClick={() => {
+                setEditingItem(null);
+                setIsModalInputOpen(true);
+              }}
+              style={{ fontWeight: 800, height: '32px', fontSize: '0.78rem', padding: '0 0.75rem', borderRadius: '6px', boxShadow: '0 3px 10px rgba(16, 185, 129, 0.3)', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
             >
-              <Plus size={16} /> + Catat Hasil Produksi
+              <Plus size={14} /> + Catat Hasil Produksi
             </button>
           </div>
         )}
       </div>
 
       {/* ===== KPI SUMMARY METRICS ===== */}
-      <div className="stats-grid mb-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
-        <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderLeft: '5px solid #0284c7', borderRadius: '12px', padding: '1.15rem', boxShadow: '0 4px 12px rgba(0,0,0,0.04)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{ background: '#e0f2fe', color: '#0284c7', padding: '0.65rem', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <PackageCheck size={24} />
-            </div>
-            <div>
-              <span style={{ fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#64748b' }}>
-                Total Output ({filterTanggal === todayStr ? 'Hari Ini' : (filterTanggal || 'Semua')})
-              </span>
-              <h3 style={{ color: '#0284c7', fontSize: '1.4rem', fontWeight: 900, margin: '0.2rem 0' }}>
-                {formatNumber(totalYieldPcs)} Pack/Pcs
-              </h3>
-              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#0369a1' }}>
-                Hasil Akhir Dapur &amp; Pembungkusan
-              </span>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem', marginBottom: '0.75rem' }}>
+        <div className="summary-stat-card" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', border: '1px solid rgba(56, 189, 248, 0.25)', borderTop: '3.5px solid var(--cyan)', borderRadius: '10px', padding: '0.75rem 0.95rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+              Total Output ({filterBulan === currentMonthStr ? 'Bulan Ini' : (filterBulan || 'Semua Month')})
+            </span>
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(6, 182, 212, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <PackageCheck size={16} style={{ color: 'var(--cyan)' }} />
             </div>
           </div>
+          <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#ffffff', marginTop: '0.35rem', letterSpacing: '-0.02em' }}>
+            {formatNumber(totalYieldPcs)} <span style={{ fontSize: '0.8rem', color: '#38bdf8', fontWeight: 700 }}>Pack/Pcs</span>
+          </div>
+          <span style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: '0.15rem', display: 'block' }}>
+            Hasil Akhir Dapur &amp; Pembungkusan
+          </span>
         </div>
 
-        <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderLeft: '5px solid #10b981', borderRadius: '12px', padding: '1.15rem', boxShadow: '0 4px 12px rgba(0,0,0,0.04)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{ background: '#dcfce7', color: '#10b981', padding: '0.65rem', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Layers size={24} />
-            </div>
-            <div>
-              <span style={{ fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#64748b' }}>
-                Jumlah Variasi Produk
-              </span>
-              <h3 style={{ color: '#10b981', fontSize: '1.4rem', fontWeight: 900, margin: '0.2rem 0' }}>
-                {uniqueVariantCount} Varian Item
-              </h3>
-              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#047857' }}>
-                Termasuk Kode Alias &amp; Nama Lengkap
-              </span>
+        <div className="summary-stat-card" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', border: '1px solid rgba(16, 185, 129, 0.25)', borderTop: '3.5px solid var(--emerald)', borderRadius: '10px', padding: '0.75rem 0.95rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+              Jumlah Variasi Produk
+            </span>
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(16, 185, 129, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Layers size={16} style={{ color: 'var(--emerald)' }} />
             </div>
           </div>
+          <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#ffffff', marginTop: '0.35rem', letterSpacing: '-0.02em' }}>
+            {uniqueVariantCount} <span style={{ fontSize: '0.8rem', color: '#34d399', fontWeight: 700 }}>Varian Item</span>
+          </div>
+          <span style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: '0.15rem', display: 'block' }}>
+            Termasuk Kode Alias &amp; Nama Lengkap
+          </span>
         </div>
 
-        <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderLeft: '5px solid #8b5cf6', borderRadius: '12px', padding: '1.15rem', boxShadow: '0 4px 12px rgba(0,0,0,0.04)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{ background: '#f3e8ff', color: '#8b5cf6', padding: '0.65rem', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <CheckCircle2 size={24} />
-            </div>
-            <div>
-              <span style={{ fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#64748b' }}>
-                Estimasi Nilai Hasil Produksi
-              </span>
-              <h3 style={{ color: '#8b5cf6', fontSize: '1.4rem', fontWeight: 900, margin: '0.2rem 0' }}>
-                Rp {formatNumber(totalYieldValue)}
-              </h3>
-              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#6d28d9' }}>
-                Berdasarkan Harga Master Produk
-              </span>
+        <div className="summary-stat-card" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', border: '1px solid rgba(168, 85, 247, 0.25)', borderTop: '3.5px solid #a855f7', borderRadius: '10px', padding: '0.75rem 0.95rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+              Estimasi Nilai Hasil Produksi
+            </span>
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(168, 85, 247, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <CheckCircle2 size={16} style={{ color: '#c084fc' }} />
             </div>
           </div>
+          <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#ffffff', marginTop: '0.35rem', letterSpacing: '-0.02em' }}>
+            Rp {formatNumber(totalYieldValue)}
+          </div>
+          <span style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: '0.15rem', display: 'block' }}>
+            Berdasarkan HPP Master Sosis
+          </span>
         </div>
       </div>
 
       {/* ===== TOOLBAR & CONTROL BAR ===== */}
-      <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '0.9rem 1.1rem', marginBottom: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.85rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexWrap: 'wrap', flex: 1 }}>
-          <div className="search-box" style={{ maxWidth: '340px', margin: 0 }}>
-            <Search size={16} />
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <div className="search-box" style={{ height: '32px' }}>
+            <Search size={14} />
             <input
               type="text"
-              placeholder="Cari kode alias (RCS, FS, BS) atau nama produk..."
+              placeholder="Cari kode alias (RCS, FS, BS)..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              style={{ fontSize: '0.78rem' }}
             />
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#f8fafc', padding: '0.4rem 0.85rem', borderRadius: '10px', border: '1px solid #cbd5e1' }}>
-            <Calendar size={16} style={{ color: '#0284c7' }} />
-            <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#475569' }}>Tanggal Position:</span>
-            <input
-              type="date"
-              value={filterTanggal}
-              onChange={(e) => setFilterTanggal(e.target.value)}
-              style={{ border: 'none', background: 'transparent', fontSize: '0.85rem', fontWeight: 800, color: '#0f172a', outline: 'none', cursor: 'pointer' }}
-            />
-          </div>
-
-          {filterTanggal !== todayStr && (
-            <button className="btn btn-sm btn-outline" onClick={() => setFilterTanggal(todayStr)} style={{ fontSize: '0.78rem' }}>
-              Hari Ini
-            </button>
-          )}
-          {filterTanggal && (
-            <button className="btn btn-sm btn-outline" onClick={() => setFilterTanggal('')} style={{ fontSize: '0.78rem' }}>
-              Semua Tanggal
-            </button>
-          )}
+          <ModernMonthPicker
+            value={filterBulan}
+            onChange={(val) => setFilterBulan(val === 'semua' ? '' : val)}
+            allowAll={true}
+          />
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <button className="btn btn-sm btn-outline" onClick={handleExportExcel} title="Export ke Spreadsheet Excel">
-            <FileSpreadsheet size={15} /> Excel
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginLeft: 'auto' }}>
+          <button className="btn btn-sm btn-outline" onClick={handleExportExcel} style={{ fontSize: '0.75rem', height: '32px', fontWeight: 800 }}>
+            <FileSpreadsheet size={14} style={{ color: 'var(--emerald)' }} /> Excel
           </button>
-          <button className="btn btn-sm btn-outline" onClick={handleExportPDF} title="Cetak Jurnal Laporan PDF">
-            <FileText size={15} /> PDF
+          <button className="btn btn-sm btn-outline" onClick={handleExportPDF} style={{ fontSize: '0.75rem', height: '32px', fontWeight: 800 }}>
+            <FileText size={14} style={{ color: 'var(--amber)' }} /> PDF
           </button>
         </div>
       </div>
 
       {/* ===== JURNAL TABEL HASIL PRODUKSI ===== */}
       <div className="table-container" style={{ background: '#ffffff', borderRadius: '12px', border: '1px solid #cbd5e1', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
-        <table className="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <table className="custom-table" style={{ width: '100%', fontSize: '0.72rem', borderCollapse: 'separate', borderSpacing: 0 }}>
           <thead>
-            <tr style={{ background: '#f8fafc', borderBottom: '2px solid #cbd5e1' }}>
-              <th style={{ padding: '0.6rem', textAlign: 'center', width: '40px' }}>No</th>
-              <th style={{ padding: '0.6rem' }}>Tanggal</th>
-              <th style={{ padding: '0.6rem' }}>Kode Alias</th>
-              <th style={{ padding: '0.6rem' }}>Nama Produk Jadi</th>
-              <th style={{ padding: '0.6rem' }}>Brand</th>
-              <th style={{ padding: '0.6rem', textAlign: 'right' }}>Hasil Produksi</th>
-              <th style={{ padding: '0.6rem', textAlign: 'right' }}>HPP / Pack</th>
-              <th style={{ padding: '0.6rem', textAlign: 'right' }}>Total HPP Modal</th>
-              <th style={{ padding: '0.6rem' }}>Catatan / Shift</th>
-              {canManage && <th style={{ padding: '0.6rem', textAlign: 'right' }}>Aksi</th>}
+            <tr style={{ background: '#f8fafc' }}>
+              <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', textAlign: 'center', width: '35px', whiteSpace: 'nowrap' }}>NO</th>
+              <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', whiteSpace: 'nowrap' }}>TANGGAL</th>
+              <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', whiteSpace: 'nowrap' }}>KODE ALIAS</th>
+              <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', whiteSpace: 'nowrap' }}>NAMA PRODUK JADI</th>
+              <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', whiteSpace: 'nowrap' }}>BRAND</th>
+              <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', textAlign: 'right', whiteSpace: 'nowrap' }}>HASIL PRODUKSI</th>
+              <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', textAlign: 'right', whiteSpace: 'nowrap' }}>HPP / PACK</th>
+              <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', textAlign: 'right', whiteSpace: 'nowrap' }}>TOTAL HPP MODAL</th>
+              <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', whiteSpace: 'nowrap' }}>CATATAN / SHIFT</th>
+              {canManage && <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', textAlign: 'right', whiteSpace: 'nowrap' }}>AKSI</th>}
             </tr>
           </thead>
           <tbody>
             {filteredYieldList.length === 0 ? (
               <tr>
-                <td colSpan={canManage ? 10 : 9} style={{ textAlign: 'center', padding: '2.5rem', color: '#64748b' }}>
-                  <Info size={32} style={{ color: '#94a3b8', marginBottom: '0.5rem' }} />
-                  <p style={{ margin: 0, fontWeight: 700 }}>Belum ada catatan hasil produksi untuk tanggal atau pencarian ini.</p>
-                  <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.8rem' }}>Klik tombol <strong>"+ Catat Hasil Produksi"</strong> atau <strong>"Import Excel"</strong> untuk menambahkan data.</p>
+                <td colSpan={canManage ? 10 : 9} style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>
+                  <Info size={28} style={{ color: '#0284c7', marginBottom: '0.35rem' }} />
+                  <p style={{ margin: 0, fontWeight: 700, fontSize: '0.85rem', color: '#0f172a' }}>
+                    {filterBulan ? `Belum ada catatan hasil produksi untuk periode bulan ${filterBulan}.` : 'Belum ada catatan hasil produksi.'}
+                  </p>
+
+                  {(hasilProduksi || []).length > 0 ? (
+                    <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
+                      <p style={{ margin: 0, fontSize: '0.78rem', color: '#0369a1', fontWeight: 600 }}>
+                        💡 Terdapat <strong>{(hasilProduksi || []).length} data hasil produksi</strong> yang tersimpan pada bulan lain!
+                      </p>
+                      <button
+                        type="button"
+                        className="btn btn-amber"
+                        onClick={() => setFilterBulan('')}
+                        style={{ fontWeight: 800, padding: '0.4rem 0.85rem', fontSize: '0.75rem', boxShadow: '0 3px 10px rgba(217, 119, 6, 0.2)', border: 'none' }}
+                      >
+                        📋 Tampilkan Semua Bulan ({(hasilProduksi || []).length} Data Catatan)
+                      </button>
+                    </div>
+                  ) : (
+                    <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.75rem', color: '#64748b' }}>
+                      Klik tombol <strong>"+ Catat Hasil Produksi"</strong> di pojok kanan atas untuk menambah data baru.
+                    </p>
+                  )}
                 </td>
               </tr>
             ) : (
               filteredYieldList.map((item, idx) => {
                 const qty = parseFloat(item.jumlahPcs) || 0;
-                const hppUnit = item.hppPerPack || item.harga || 32000;
+                const hppUnit = calculateSyncedHppUnit(item);
                 const totalHppItem = qty * hppUnit;
 
                 return (
-                  <tr key={item.id || idx} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                    <td style={{ padding: '0.5rem 0.6rem', textAlign: 'center', color: '#64748b', fontSize: '0.78rem', fontWeight: 600 }}>{idx + 1}</td>
-                    <td style={{ padding: '0.5rem 0.6rem', fontWeight: 700, color: '#475569', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                  <tr key={item.id || idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '0.32rem 0.55rem', textAlign: 'center', color: '#64748b', fontSize: '0.7rem', fontWeight: 600, whiteSpace: 'nowrap' }}>{idx + 1}</td>
+                    <td style={{ padding: '0.32rem 0.55rem', fontWeight: 600, color: '#64748b', fontSize: '0.7rem', whiteSpace: 'nowrap' }}>
                       {item.tanggal || '-'}
                     </td>
-                    <td style={{ padding: '0.5rem 0.6rem', whiteSpace: 'nowrap' }}>
-                      <span style={{ fontFamily: 'monospace', background: '#f0f9ff', color: '#0284c7', padding: '0.2rem 0.55rem', borderRadius: '5px', fontWeight: 900, border: '1px solid #bae6fd', fontSize: '0.82rem' }}>
+                    <td style={{ padding: '0.32rem 0.55rem', whiteSpace: 'nowrap' }}>
+                      <span style={{ background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd', fontSize: '0.68rem', fontWeight: 800, padding: '0.12rem 0.45rem', borderRadius: '5px' }}>
                         {item.alias || item.kode || '-'}
                       </span>
                     </td>
-                    <td style={{ padding: '0.5rem 0.6rem', fontWeight: 800, color: '#0f172a', fontSize: '0.84rem' }}>
+                    <td style={{ padding: '0.32rem 0.55rem', fontWeight: 800, color: '#0f172a', fontSize: '0.74rem', whiteSpace: 'nowrap' }}>
                       {item.produkNama || '-'}
                     </td>
-                    <td style={{ padding: '0.5rem 0.6rem', whiteSpace: 'nowrap' }}>
-                      <span className="badge badge-info" style={{ fontSize: '0.7rem' }}>
+                    <td style={{ padding: '0.32rem 0.55rem', whiteSpace: 'nowrap' }}>
+                      <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#334155', padding: '0.1rem 0.4rem', borderRadius: '4px', background: '#f1f5f9', border: '1px solid #e2e8f0' }}>
                         {item.brand || 'SAREN ONE'}
                       </span>
                     </td>
-                    <td style={{ padding: '0.5rem 0.6rem', textAlign: 'right', fontWeight: 900, color: '#059669', fontSize: '0.88rem', whiteSpace: 'nowrap' }}>
-                      +{formatNumber(qty)} <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>{item.satuan || 'pack'}</span>
+                    <td style={{ padding: '0.32rem 0.55rem', textAlign: 'right', fontWeight: 900, color: '#059669', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
+                      +{formatNumber(qty)} <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>{item.satuan || 'pack'}</span>
                     </td>
-                    <td style={{ padding: '0.5rem 0.6rem', textAlign: 'right', fontWeight: 700, color: '#475569', fontSize: '0.82rem', whiteSpace: 'nowrap' }}>
+                    <td style={{ padding: '0.32rem 0.55rem', textAlign: 'right', fontWeight: 700, color: '#475569', fontSize: '0.72rem', whiteSpace: 'nowrap' }}>
                       Rp {formatNumber(hppUnit)}
                     </td>
-                    <td style={{ padding: '0.5rem 0.6rem', textAlign: 'right', fontWeight: 900, color: '#8b5cf6', fontSize: '0.88rem', whiteSpace: 'nowrap' }}>
+                    <td style={{ padding: '0.32rem 0.55rem', textAlign: 'right', fontWeight: 900, color: '#7c3aed', fontSize: '0.74rem', whiteSpace: 'nowrap' }}>
                       Rp {formatNumber(totalHppItem)}
                     </td>
-                    <td style={{ padding: '0.5rem 0.6rem', color: '#475569', fontSize: '0.78rem' }}>
+                    <td style={{ padding: '0.32rem 0.55rem', color: '#64748b', fontSize: '0.7rem', whiteSpace: 'nowrap' }}>
                       {item.catatan || '-'}
                     </td>
-                  {canManage && (
-                    <td style={{ padding: '0.5rem 0.6rem', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                      <button
-                        className="btn btn-sm btn-icon btn-danger"
-                        style={{ width: '26px', height: '26px', padding: 0 }}
-                        onClick={() => {
-                          if (onDeleteHasilProduksi) onDeleteHasilProduksi(item.id);
-                        }}
-                        title="Hapus Catatan Hasil Produksi"
-                      >
-                        <Trash2 size={12} />
-                      </button>
-                    </td>
-                  )}
-                </tr>
-              );
+                    {canManage && (
+                      <td style={{ padding: '0.32rem 0.55rem', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.35rem' }}>
+                          <button
+                            type="button"
+                            style={{
+                              background: '#f0f9ff',
+                              color: '#0284c7',
+                              border: '1px solid #bae6fd',
+                              borderRadius: '5px',
+                              width: '24px',
+                              height: '24px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease'
+                            }}
+                            onClick={() => {
+                              setEditingItem(item);
+                              setIsModalInputOpen(true);
+                            }}
+                            title="Edit Catatan Hasil Produksi"
+                          >
+                            <Edit3 size={12} />
+                          </button>
+                          <button
+                            type="button"
+                            style={{
+                              background: '#fef2f2',
+                              color: '#ef4444',
+                              border: '1px solid #fecaca',
+                              borderRadius: '5px',
+                              width: '24px',
+                              height: '24px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease'
+                            }}
+                            onClick={() => {
+                              if (onDeleteHasilProduksi) onDeleteHasilProduksi(item.id);
+                            }}
+                            title="Hapus Catatan Hasil Produksi"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                );
               })
             )}
           </tbody>
@@ -326,17 +491,21 @@ export default function HasilProduksiTab({
       {/* ===== MODAL FORMS ===== */}
       <ModalCatatHasilProduksi
         isOpen={isModalInputOpen}
-        onClose={() => setIsModalInputOpen(false)}
-        onSave={onSaveHasilProduksi}
+        onClose={() => {
+          setIsModalInputOpen(false);
+          setEditingItem(null);
+        }}
+        onSave={handleSaveWrapper}
+        editingItem={editingItem}
         produkList={allProducts}
         showAlert={showAlert}
       />
 
-      <ModalImportHasilProduksiExcel
-        isOpen={isModalImportOpen}
-        onClose={() => setIsModalImportOpen(false)}
-        onImport={onImportHasilProduksi}
-        produkList={allProducts}
+      <ModalMappingKemasanProduk
+        isOpen={isModalMappingOpen}
+        onClose={() => setIsModalMappingOpen(false)}
+        onSaveMapping={onSaveMapping}
+        bahanBaku={bahanBaku}
         showAlert={showAlert}
       />
     </div>

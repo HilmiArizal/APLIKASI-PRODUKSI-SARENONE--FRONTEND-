@@ -65,31 +65,26 @@ export default function ResepTab({
   });
 
   return (
-    <div className="tab-pane active">
-      <div className="resep-grid-layout">
-        {/* Left Side: Select Product */}
-        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1.25rem', display: 'flex', flexDirection: 'column' }}>
-          {/* <h4 style={{ fontSize: '0.95rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <BookOpen size={18} style={{ color: 'var(--primary)' }} /> Pilih Produk Jadi
-          </h4> */}
-
+    <div className="tab-pane active" style={{ maxWidth: '100%', overflowX: 'hidden', color: '#1e293b' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: '0.75rem', alignItems: 'start' }}>
+        {/* Left Side: Select Product SKU List */}
+        <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '10px', padding: '0.75rem', display: 'flex', flexDirection: 'column', boxShadow: '0 3px 10px rgba(0,0,0,0.03)' }}>
           {/* Search Input Box */}
-          <div style={{ marginBottom: '0.85rem' }}>
-            <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+          <div className="search-box mb-2" style={{ height: '32px' }}>
+            <Search size={14} />
             <input
               type="text"
-              className="form-control"
               placeholder="Cari SKU / Nama Produk..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              style={{ paddingLeft: '2.25rem', fontSize: '0.85rem' }}
+              style={{ fontSize: '0.78rem' }}
             />
           </div>
 
-          {/* Scrollable Container (Shows ~7 items up to PR7) */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '480px', overflowY: 'auto', paddingRight: '0.25rem' }}>
+          {/* Scrollable Container */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', maxHeight: '520px', overflowY: 'auto', paddingRight: '0.2rem' }}>
             {filteredProduk.length === 0 ? (
-              <div style={{ padding: '1.5rem 0.5rem', textAlign: 'center', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+              <div style={{ padding: '1.25rem 0.5rem', textAlign: 'center', fontSize: '0.75rem', color: '#64748b' }}>
                 Produk tidak ditemukan.
               </div>
             ) : (
@@ -100,26 +95,38 @@ export default function ResepTab({
                 return (
                   <button
                     key={p.id}
+                    type="button"
                     onClick={() => setSelectedProdukId(p.id)}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      padding: '0.85rem 1rem',
-                      borderRadius: 'var(--radius-sm)',
-                      border: isSelected ? '1px solid #007bff' : '1px solid #dee2e6',
-                      background: isSelected ? '#e7f1ff' : '#ffffff',
-                      color: isSelected ? '#0056b3' : '#212529',
+                      padding: '0.45rem 0.65rem',
+                      borderRadius: '6px',
+                      border: isSelected ? '1px solid #7dd3fc' : '1px solid #f1f5f9',
+                      background: isSelected ? '#f0f9ff' : '#ffffff',
+                      color: isSelected ? '#0284c7' : '#0f172a',
                       cursor: 'pointer',
                       textAlign: 'left',
-                      transition: 'all 0.2s ease'
+                      transition: 'all 0.15s ease'
                     }}
                   >
                     <div>
-                      <div style={{ fontSize: '0.72rem', opacity: 0.8 }}>{p.sku}</div>
-                      <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{p.nama}</div>
+                      <div style={{ fontSize: '0.68rem', fontWeight: 800, color: isSelected ? '#0369a1' : '#64748b' }}>{p.sku}</div>
+                      <div style={{ fontWeight: 800, fontSize: '0.78rem', color: isSelected ? '#0f172a' : '#334155' }}>{p.nama}</div>
                     </div>
-                    <span className="badge badge-amber">{itemsCount} Bahan</span>
+                    <span style={{
+                      fontSize: '0.68rem',
+                      fontWeight: 800,
+                      padding: '0.1rem 0.4rem',
+                      borderRadius: '4px',
+                      background: isSelected ? '#e0f2fe' : '#f8fafc',
+                      color: isSelected ? '#0284c7' : '#64748b',
+                      border: isSelected ? '1px solid #bae6fd' : '1px solid #e2e8f0',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {itemsCount} Bahan
+                    </span>
                   </button>
                 );
               })
@@ -128,78 +135,116 @@ export default function ResepTab({
         </div>
 
         {/* Right Side: Recipe BOM Details */}
-        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1.5rem' }}>
+        <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '10px', padding: '0.85rem', boxShadow: '0 3px 10px rgba(0,0,0,0.03)' }}>
           {selectedProduk ? (
             <>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.65rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                 <div>
-                  <span className="badge badge-cyan">{selectedProduk.sku}</span>
-                  <h3 style={{ fontSize: '1.3rem', fontWeight: 800, marginTop: '0.25rem' }}>Formulasi Resep (BOM): {selectedProduk.nama}</h3>
-                  <p className="text-muted" style={{ fontSize: '0.8rem' }}>Kebutuhan takaran bahan baku presisi per 1 batch.</p>
+                  <span style={{ background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd', fontSize: '0.68rem', fontWeight: 800, padding: '0.12rem 0.45rem', borderRadius: '5px' }}>
+                    {selectedProduk.sku}
+                  </span>
+                  <h3 style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0f172a', margin: '0.2rem 0 0 0' }}>Formulasi Resep (BOM): {selectedProduk.nama}</h3>
+                  <p style={{ fontSize: '0.74rem', color: '#64748b', margin: 0 }}>Kebutuhan takaran bahan baku presisi per 1 batch.</p>
                 </div>
 
                 {canEdit && (
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button className="btn btn-outline btn-amber" onClick={() => setIsImportExcelOpen(true)} title="Import Formulasi Resep (BOM) Masal dari File Excel">
-                      <Upload size={16} style={{ color: 'var(--amber)' }} /> Import Resep (BOM)
+                  <div style={{ display: 'flex', gap: '0.4rem' }}>
+                    <button className="btn btn-sm btn-outline" onClick={() => setIsImportExcelOpen(true)} title="Import Formulasi Resep (BOM) Masal dari File Excel" style={{ fontSize: '0.75rem', height: '32px', fontWeight: 800 }}>
+                      <Upload size={14} style={{ color: 'var(--amber)' }} /> Import Resep (BOM)
                     </button>
-                    <button className="btn btn-primary" onClick={() => onOpenTambahResepItem(selectedProduk.id)}>
-                      <Plus size={16} /> Tambah Takaran Bahan
+                    <button className="btn btn-sm btn-emerald" onClick={() => onOpenTambahResepItem(selectedProduk.id)} style={{ fontSize: '0.78rem', height: '32px', fontWeight: 800, padding: '0 0.75rem', borderRadius: '6px', boxShadow: '0 3px 10px rgba(16, 185, 129, 0.3)', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <Plus size={14} /> + Tambah Takaran Bahan
                     </button>
                   </div>
                 )}
               </div>
 
               {/* Table Ingredients */}
-              <table className="custom-table">
-                <thead>
-                  <tr>
-                    <th>NO</th>
-                    <th>NAMA BAHAN BAKU</th>
-                    <th>TAKARAN PER 1 BATCH</th>
-                    {canEdit && <th style={{ textAlign: 'right' }}>AKSI</th>}
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedFormula.length === 0 ? (
-                    <tr>
-                      <td colSpan={canEdit ? 4 : 3} style={{ textAlign: 'center', padding: '2rem' }} className="text-muted">
-                        Belum ada formula resep bahan baku untuk produk ini.
-                      </td>
+              <div className="table-container" style={{ background: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                <table className="custom-table" style={{ width: '100%', fontSize: '0.72rem', borderCollapse: 'separate', borderSpacing: 0 }}>
+                  <thead>
+                    <tr style={{ background: '#f8fafc' }}>
+                      <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', textAlign: 'center', width: '35px', whiteSpace: 'nowrap' }}>NO</th>
+                      <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', whiteSpace: 'nowrap' }}>NAMA BAHAN BAKU</th>
+                      <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', whiteSpace: 'nowrap' }}>TAKARAN PER 1 BATCH</th>
+                      {canEdit && <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', textAlign: 'right', whiteSpace: 'nowrap' }}>AKSI</th>}
                     </tr>
-                  ) : (
-                    sortedFormula.map((item, idx) => {
-                      const b = getBahanItem(item.bahanId);
-                      const displayTakaran = Number(Math.round(parseFloat(item.takaran || 0) + 'e6') + 'e-6');
+                  </thead>
+                  <tbody>
+                    {sortedFormula.length === 0 ? (
+                      <tr>
+                        <td colSpan={canEdit ? 4 : 3} style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>
+                          Belum ada formula resep bahan baku untuk produk ini.
+                        </td>
+                      </tr>
+                    ) : (
+                      sortedFormula.map((item, idx) => {
+                        const b = getBahanItem(item.bahanId);
+                        const displayTakaran = Number(Math.round(parseFloat(item.takaran || 0) + 'e6') + 'e-6');
 
-                      return (
-                        <tr key={idx}>
-                          <td>{idx + 1}</td>
-                          <td style={{ fontWeight: 600 }}>{b ? b.nama : 'Bahan tidak ditemukan'}</td>
-                          <td>
-                            <strong style={{ color: 'var(--primary)' }}>{displayTakaran}</strong> {b?.satuan || 'satuan'}
-                          </td>
-                          {canEdit && (
-                            <td style={{ textAlign: 'right' }}>
-                              <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'flex-end' }}>
-                                <button className="btn btn-sm btn-outline" onClick={() => onOpenEditResepItem(selectedProduk.id, item)} title="Edit Takaran Resep">
-                                  <Edit3 size={14} />
-                                </button>
-                                <button className="btn btn-sm btn-outline btn-danger" onClick={() => onDeleteResepItem(selectedProduk.id, idx)} title="Hapus Takaran Resep">
-                                  <Trash2 size={14} />
-                                </button>
-                              </div>
+                        return (
+                          <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                            <td style={{ padding: '0.32rem 0.55rem', textAlign: 'center', color: '#64748b', fontSize: '0.7rem', fontWeight: 600, whiteSpace: 'nowrap' }}>{idx + 1}</td>
+                            <td style={{ padding: '0.32rem 0.55rem', fontWeight: 800, color: '#0f172a', fontSize: '0.74rem', whiteSpace: 'nowrap' }}>{b ? b.nama : 'Bahan tidak ditemukan'}</td>
+                            <td style={{ padding: '0.32rem 0.55rem', fontSize: '0.74rem', whiteSpace: 'nowrap' }}>
+                              <strong style={{ color: '#0284c7', fontWeight: 900 }}>{displayTakaran}</strong> <span style={{ color: '#64748b', fontWeight: 600 }}>{b?.satuan || 'satuan'}</span>
                             </td>
-                          )}
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
+                            {canEdit && (
+                              <td style={{ padding: '0.32rem 0.55rem', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                                <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'flex-end' }}>
+                                  <button
+                                    type="button"
+                                    style={{
+                                      background: '#f0f9ff',
+                                      color: '#0284c7',
+                                      border: '1px solid #bae6fd',
+                                      borderRadius: '5px',
+                                      width: '24px',
+                                      height: '24px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      cursor: 'pointer',
+                                      transition: 'all 0.15s ease'
+                                    }}
+                                    onClick={() => onOpenEditResepItem(selectedProduk.id, item)}
+                                    title="Edit Takaran Resep"
+                                  >
+                                    <Edit3 size={12} />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    style={{
+                                      background: '#fef2f2',
+                                      color: '#ef4444',
+                                      border: '1px solid #fecaca',
+                                      borderRadius: '5px',
+                                      width: '24px',
+                                      height: '24px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      cursor: 'pointer',
+                                      transition: 'all 0.15s ease'
+                                    }}
+                                    onClick={() => onDeleteResepItem(selectedProduk.id, idx)}
+                                    title="Hapus Takaran Resep"
+                                  >
+                                    <Trash2 size={12} />
+                                  </button>
+                                </div>
+                              </td>
+                            )}
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </>
           ) : (
-            <div style={{ textAlign: 'center', padding: '3rem' }} className="text-muted">
+            <div style={{ textAlign: 'center', padding: '3rem', color: '#64748b', fontSize: '0.85rem' }}>
               Pilih produk di sebelah kiri untuk mengonfigurasi resep BOM.
             </div>
           )}

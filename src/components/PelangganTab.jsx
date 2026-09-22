@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import { Users, Plus, Search, Edit3, Trash2, Phone, MapPin, Tag, Check, X, Building2, AlertTriangle, CreditCard, Star, Download, Upload, FileText, AlertCircle } from 'lucide-react';
 import { exportToExcel, exportToPDF } from '../utils/exportUtils';
+import { ModernFilterSelect } from './ModernDatePicker';
 
 const TIPE_PELANGGAN = ['Retail', 'Reseller', 'Distributor', 'Agent', 'Outlet'];
 const KATEGORI_CUSTOMER = ['Top Market', 'Umum'];
@@ -48,16 +49,41 @@ export default function PelangganTab({
 
   const canEdit = ['ADMIN_PRODUK', 'TIM_PENJUALAN', 'TIM_MARKETING', 'SALES'].includes(activeRoleView);
 
+  const uniquePelangganList = useMemo(() => {
+    const map = new Map();
+    (pelangganList || []).forEach(p => {
+      if (!p) return;
+      const key = p.id || p._id || p.kode || p.nama;
+      if (!map.has(key)) {
+        map.set(key, p);
+      }
+    });
+    return Array.from(map.values());
+  }, [pelangganList]);
+
   const filtered = useMemo(() => {
-    return (pelangganList || []).filter(p => {
+    const res = uniquePelangganList.filter(p => {
       if (!p) return false;
       const q = search.toLowerCase();
       const matchQ = !search || p.nama?.toLowerCase().includes(q) || p.kode?.toLowerCase().includes(q) || p.noHp?.toLowerCase().includes(q) || p.alamat?.toLowerCase().includes(q);
-      const matchK = !kategoriFilter || p.kategoriCustomer === kategoriFilter;
+      const matchK = !kategoriFilter || p.kategoriCustomer === kategoriFilter || (kategoriFilter === 'Top Market' && p.kategoriCustomer === 'TM');
       const matchS = !sistemBayarFilter || p.sistemPembayaran === sistemBayarFilter;
       return matchQ && matchK && matchS;
     });
-  }, [pelangganList, search, kategoriFilter, sistemBayarFilter]);
+
+    // Urutkan dari Kode Terkecil (Contoh: C1, C2, C3 ... C80, C81, C82)
+    return res.sort((a, b) => {
+      const getNum = (str) => {
+        if (!str) return 999999;
+        const match = String(str).match(/\d+/);
+        return match ? parseInt(match[0], 10) : 999999;
+      };
+      const numA = getNum(a.kode);
+      const numB = getNum(b.kode);
+      if (numA !== numB) return numA - numB;
+      return String(a.kode || '').localeCompare(String(b.kode || ''));
+    });
+  }, [uniquePelangganList, search, kategoriFilter, sistemBayarFilter]);
 
   // Export Excel
   const handleExportExcel = () => {
@@ -100,30 +126,22 @@ export default function PelangganTab({
     else exportToPDF(config.title, config.subtitle, config.headers, config.rows, config.summaryText, config.filename);
   };
 
-  // Download Excel Import Template
+  // Download Excel Import Template (5 Kolom Sederhana)
   const handleDownloadTemplate = () => {
     const templateData = [
       {
         'Kode Pelanggan': 'C1',
-        'Nama Pelanggan / Toko': 'Rajawali Sosis Baso',
+        'Nama Pelanggan': 'Rajawali Sosis Baso',
         'Kategori Customer': 'Top Market',
-        'Sistem Pembayaran': 'Tempo',
-        'No. WhatsApp / HP': '081234567890',
-        'Tipe Kemitraan': 'Distributor',
-        'Alamat Lengkap Pengiriman': 'Jl. Rajawali Barat No. 45, Bandung',
-        'Total Piutang (Rp)': 0,
-        'Catatan': 'Mitra utama agen wilayah Bandung'
+        'No WhatsApp': '081234567890',
+        'Alamat Lengkap Pengiriman': 'Jl. Rajawali Barat No. 45, Bandung'
       },
       {
         'Kode Pelanggan': 'C2',
-        'Nama Pelanggan / Toko': 'Toko Berkah Frozen',
+        'Nama Pelanggan': 'Toko Berkah Frozen',
         'Kategori Customer': 'Umum',
-        'Sistem Pembayaran': 'COD',
-        'No. WhatsApp / HP': '089876543210',
-        'Tipe Kemitraan': 'Retail',
-        'Alamat Lengkap Pengiriman': 'Jl. Soekarno Hatta No. 102, Bandung',
-        'Total Piutang (Rp)': 0,
-        'Catatan': 'Pengiriman hari Selasa dan Jumat'
+        'No WhatsApp': '089876543210',
+        'Alamat Lengkap Pengiriman': 'Jl. Soekarno Hatta No. 102, Bandung'
       }
     ];
 
@@ -132,8 +150,7 @@ export default function PelangganTab({
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Template_Pelanggan');
 
     worksheet['!cols'] = [
-      { wch: 14 }, { wch: 28 }, { wch: 18 }, { wch: 18 },
-      { wch: 18 }, { wch: 16 }, { wch: 35 }, { wch: 18 }, { wch: 30 }
+      { wch: 16 }, { wch: 28 }, { wch: 20 }, { wch: 20 }, { wch: 40 }
     ];
 
     XLSX.writeFile(workbook, 'Template_Import_Pelanggan_SarenOne.xlsx');
@@ -153,19 +170,48 @@ export default function PelangganTab({
         const ws = wb.Sheets[wsName];
         const rawJson = XLSX.utils.sheet_to_json(ws);
 
+        // Helper Title Case untuk merapikan teks CAPSLOCK menjadi Kapital Huruf Pertama Per Kata
+        const toTitleCase = (str) => {
+          if (!str || typeof str !== 'string') return '';
+          return str
+            .toLowerCase()
+            .split(' ')
+            .map(word => {
+              if (!word) return '';
+              // Jaga kata singkatan umum seperti RSB, TSB, DLL atau angka/simbol tetap rapi
+              if (word.length <= 3 && !['dan', 'atau', 'ke', 'di'].includes(word)) {
+                return word.toUpperCase();
+              }
+              return word.charAt(0).toUpperCase() + word.slice(1);
+            })
+            .join(' ');
+        };
+
         const parsed = rawJson.map((row, idx) => {
-          const kode = row['Kode Pelanggan'] || row['Kode'] || `C${pelangganList.length + idx + 1}`;
-          const nama = row['Nama Pelanggan / Toko'] || row['Nama Pelanggan'] || row['Nama Toko'] || row['Nama'] || '';
+          const kode = String(row['Kode Pelanggan'] || row['Kode'] || `C${pelangganList.length + idx + 1}`).trim().toUpperCase();
+          const rawNama = row['Nama Pelanggan / Toko'] || row['Nama Pelanggan'] || row['Nama Toko'] || row['Nama'] || '';
+          const nama = toTitleCase(String(rawNama).trim());
           
-          let kategoriCustomer = row['Kategori Customer'] || row['Kategori'] || 'Umum';
-          if (!['Top Market', 'Umum'].includes(kategoriCustomer)) kategoriCustomer = 'Umum';
+          let rawKat = String(row['Kategori Customer'] || row['Kategori Pelanggan'] || row['Kategori'] || '').trim();
+          let kategoriCustomer = 'Umum';
+          if (rawKat) {
+            const katLower = rawKat.toLowerCase();
+            if (katLower === 'tm' || katLower.includes('top') || katLower.includes('star') || katLower.includes('khusus') || katLower.includes('vip')) {
+              kategoriCustomer = 'TM';
+            } else if (katLower.includes('umum') || katLower.includes('regular') || katLower.includes('standar')) {
+              kategoriCustomer = 'Umum';
+            } else {
+              kategoriCustomer = toTitleCase(rawKat);
+            }
+          }
 
           let sistemPembayaran = row['Sistem Pembayaran'] || row['Sistem Bayar'] || 'COD';
           if (!['COD', 'CBD', 'Tempo'].includes(sistemPembayaran)) sistemPembayaran = 'COD';
 
-          const noHp = String(row['No. WhatsApp / HP'] || row['No HP'] || row['Telepon'] || '');
+          const noHp = String(row['No. WhatsApp / HP'] || row['No HP'] || row['Telepon'] || row['No WhatsApp'] || '');
           const tipe = row['Tipe Kemitraan'] || row['Tipe'] || 'Retail';
-          const alamat = row['Alamat Lengkap Pengiriman'] || row['Alamat'] || '';
+          const rawAlamat = row['Alamat Lengkap Pengiriman'] || row['Alamat'] || '';
+          const alamat = toTitleCase(String(rawAlamat).trim());
           const totalPiutang = Number(row['Total Piutang (Rp)'] || row['Total Piutang'] || row['Piutang'] || 0);
           const catatan = row['Catatan'] || '';
 
@@ -300,132 +346,230 @@ export default function PelangganTab({
     }
   };
 
+  const handleClearAllPelanggan = async () => {
+    if (!uniquePelangganList.length) return alert('Tidak ada data pelanggan untuk dihapus.');
+    if (!window.confirm(`⚠️ PERINGATAN: Apakah Anda yakin ingin MENGHAPUS SELURUH (${uniquePelangganList.length}) DATA PELANGGAN dari database? Tindakan ini tidak dapat dibatalkan!`)) return;
+
+    if (onDeletePelanggan) {
+      for (const p of uniquePelangganList) {
+        const id = p.id || p._id;
+        if (id) await onDeletePelanggan(id, true);
+      }
+      if (showAlert) showAlert('Seluruh data pelanggan telah berhasil dikosongkan! 🗑️', 'info', 'Kosongkan Data');
+    }
+  };
+
   return (
-    <div className="tab-container">
-      {/* HEADER */}
-      <div className="tab-header">
-        <div>
-          <h2 className="tab-title"><Users size={24} /> Kelola Pelanggan / Customer</h2>
-          <p className="tab-subtitle">Master data pelanggan, Kode (C1, C2...), Kategori (Top Market vs Umum), Sistem Bayar (COD, CBD, Tempo)</p>
+    <div className="tab-container" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+      {/* STATS CARDS RAMPING CLEAN WHITE */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem', marginBottom: '1rem' }}>
+        <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderTop: '3.5px solid #6366f1', borderRadius: '10px', padding: '0.65rem 0.85rem', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.02em' }}>TOTAL PELANGGAN</span>
+            <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: '#e0e7ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Users size={15} style={{ color: '#4f46e5' }} />
+            </div>
+          </div>
+          <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', marginTop: '0.2rem', lineHeight: 1.1 }}>
+            {uniquePelangganList.length} <span style={{ fontSize: '0.75rem', color: '#4f46e5', fontWeight: 800 }}>Mitra</span>
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <button className="btn btn-secondary" onClick={handleExportExcel} title="Export ke Excel">
-            <Download size={16} style={{ color: 'var(--emerald)' }} /> Excel
-          </button>
-          <button className="btn btn-secondary" onClick={handleExportPDF} title="Export ke PDF">
-            <FileText size={16} style={{ color: '#ef4444' }} /> PDF
-          </button>
-          {canEdit && (
-            <>
-              <button className="btn btn-secondary" onClick={() => setShowImportModal(true)}>
-                <Upload size={16} style={{ color: 'var(--cyan)' }} /> Import Excel
-              </button>
-              <button className="btn btn-primary" onClick={openAdd}>
-                <Plus size={16} /> Tambah Pelanggan
-              </button>
-            </>
-          )}
+
+        <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderTop: '3.5px solid #d97706', borderRadius: '10px', padding: '0.65rem 0.85rem', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.02em' }}>CUSTOMER TOP MARKET</span>
+            <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Star size={15} style={{ color: '#d97706' }} />
+            </div>
+          </div>
+          <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#92400e', marginTop: '0.2rem', lineHeight: 1.1 }}>
+            {uniquePelangganList.filter(p => p.kategoriCustomer === 'Top Market' || p.kategoriCustomer === 'TM').length} <span style={{ fontSize: '0.75rem', color: '#d97706', fontWeight: 800 }}>Toko</span>
+          </div>
+        </div>
+
+        <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderTop: '3.5px solid #0284c7', borderRadius: '10px', padding: '0.65rem 0.85rem', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.02em' }}>SISTEM TEMPO KREDIT</span>
+            <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: '#e0f2fe', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <CreditCard size={15} style={{ color: '#0284c7' }} />
+            </div>
+          </div>
+          <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0369a1', marginTop: '0.2rem', lineHeight: 1.1 }}>
+            {uniquePelangganList.filter(p => p.sistemPembayaran === 'Tempo').length} <span style={{ fontSize: '0.75rem', color: '#0284c7', fontWeight: 800 }}>Mitra</span>
+          </div>
+        </div>
+
+        <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderTop: '3.5px solid #ef4444', borderRadius: '10px', padding: '0.65rem 0.85rem', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.02em' }}>TOTAL PIUTANG AKTIF</span>
+            <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Building2 size={15} style={{ color: '#ef4444' }} />
+            </div>
+          </div>
+          <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#dc2626', marginTop: '0.2rem', lineHeight: 1.1 }}>
+            {formatRp(uniquePelangganList.reduce((s, p) => s + (Number(p.totalPiutang) || 0), 0))}
+          </div>
         </div>
       </div>
 
-      {/* STATS SUMMARY */}
-      <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', marginBottom: '1.5rem' }}>
-        <div className="stat-card">
-          <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}><Users size={20} /></div>
-          <div className="stat-info"><p className="stat-label">Total Pelanggan</p><h3 className="stat-value">{pelangganList.length}</h3></div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#f59e0b,#d97706)' }}><Star size={20} /></div>
-          <div className="stat-info"><p className="stat-label">Customer Top Market</p><h3 className="stat-value">{pelangganList.filter(p => p.kategoriCustomer === 'Top Market').length}</h3></div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#0ea5e9,#0284c7)' }}><CreditCard size={20} /></div>
-          <div className="stat-info"><p className="stat-label">Sistem Tempo Kredit</p><h3 className="stat-value">{pelangganList.filter(p => p.sistemPembayaran === 'Tempo').length}</h3></div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#ef4444,#dc2626)' }}><Building2 size={20} /></div>
-          <div className="stat-info"><p className="stat-label">Total Piutang Aktif</p><h3 className="stat-value" style={{ fontSize: '1rem', color: '#ef4444' }}>{formatRp(pelangganList.reduce((s, p) => s + (Number(p.totalPiutang) || 0), 0))}</h3></div>
-        </div>
-      </div>
+      {/* TOOLBAR & FILTER CARD */}
+      <div style={{
+        background: '#ffffff',
+        padding: '0.65rem 0.85rem',
+        borderRadius: '10px',
+        border: '1px solid #cbd5e1',
+        boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+        marginBottom: '1rem',
+        display: 'flex',
+        justify: 'space-between',
+        alignItems: 'center',
+        gap: '0.75rem',
+        flexWrap: 'wrap'
+      }}>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', flex: 1, minWidth: '280px' }}>
+          <div className="search-box" style={{ flex: 1, minWidth: '220px', height: '36px' }}>
+            <Search size={15} />
+            <input
+              placeholder="Cari Kode C1, nama pelanggan, no HP, atau alamat..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              style={{ fontSize: '0.8rem' }}
+            />
+          </div>
 
-      {/* TOOLBAR */}
-      <div className="toolbar" style={{ marginBottom: '1.25rem' }}>
-        <div className="search-box">
-          <Search size={16} />
-          <input placeholder="Cari Kode C1, nama pelanggan, no HP, atau alamat..." value={search} onChange={e => setSearch(e.target.value)} />
+          <ModernFilterSelect
+            value={kategoriFilter}
+            onChange={setKategoriFilter}
+            options={KATEGORI_CUSTOMER}
+            placeholder="Semua Kategori"
+            icon={Star}
+            maxWidth="160px"
+          />
+
+          <ModernFilterSelect
+            value={sistemBayarFilter}
+            onChange={setSistemBayarFilter}
+            options={SISTEM_PEMBAYARAN}
+            placeholder="Semua Sistem Bayar"
+            icon={CreditCard}
+            maxWidth="170px"
+          />
         </div>
 
-        <select value={kategoriFilter} onChange={e => setKategoriFilter(e.target.value)} className="select-input" style={{ maxWidth: '170px' }}>
-          <option value="">Semua Kategori</option>
-          {KATEGORI_CUSTOMER.map(k => <option key={k} value={k}>{k}</option>)}
-        </select>
+        {canEdit && (
+          <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+            <button
+              className="btn btn-outline-danger"
+              onClick={handleClearAllPelanggan}
+              title="Hapus Seluruh Data Pelanggan / Customer"
+              style={{
+                height: '36px',
+                fontSize: '0.78rem',
+                fontWeight: 800,
+                padding: '0 0.85rem',
+                borderRadius: '8px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem'
+              }}
+            >
+              <Trash2 size={15} /> Kosongkan Data
+            </button>
 
-        <select value={sistemBayarFilter} onChange={e => setSistemBayarFilter(e.target.value)} className="select-input" style={{ maxWidth: '170px' }}>
-          <option value="">Semua Sistem Bayar</option>
-          {SISTEM_PEMBAYARAN.map(s => <option key={s} value={s}>{s}</option>)}
-        </select>
+            <button
+              className="btn btn-emerald"
+              onClick={openAdd}
+              style={{
+                height: '36px',
+                fontSize: '0.78rem',
+                fontWeight: 800,
+                padding: '0 0.95rem',
+                borderRadius: '8px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem'
+              }}
+            >
+              <Plus size={15} /> + Tambah Pelanggan
+            </button>
+          </div>
+        )}
       </div>
 
       {/* TABLE */}
-      <div className="table-responsive">
-        <table className="table">
+      {/* TABLE CLEAN WHITE RAMPING */}
+      <div className="table-responsive" style={{ borderRadius: '10px', border: '1px solid #cbd5e1', background: '#ffffff', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+        <table className="custom-table" style={{ width: '100%', fontSize: '0.75rem', borderCollapse: 'collapse' }}>
           <thead>
-            <tr>
-              <th>Kode</th>
-              <th>Nama Pelanggan</th>
-              <th>Kategori Customer</th>
-              <th>Sistem Bayar</th>
-              <th>WhatsApp / HP</th>
-              <th>Alamat Lengkap</th>
-              <th>Sisa Piutang</th>
-              {canEdit && <th style={{ textAlign: 'right' }}>Aksi</th>}
+            <tr style={{ background: '#f8fafc', color: '#475569', borderBottom: '1px solid #cbd5e1', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+              <th style={{ padding: '0.45rem 0.55rem', whiteSpace: 'nowrap', width: '55px' }}>KODE</th>
+              <th style={{ padding: '0.45rem 0.55rem', whiteSpace: 'nowrap' }}>NAMA PELANGGAN</th>
+              <th style={{ padding: '0.45rem 0.55rem', whiteSpace: 'nowrap' }}>KATEGORI CUSTOMER</th>
+              <th style={{ padding: '0.45rem 0.55rem', whiteSpace: 'nowrap' }}>WHATSAPP / HP</th>
+              <th style={{ padding: '0.45rem 0.55rem', whiteSpace: 'nowrap' }}>ALAMAT LENGKAP</th>
+              {canEdit && <th style={{ padding: '0.45rem 0.55rem', textAlign: 'right', whiteSpace: 'nowrap' }}>AKSI</th>}
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={canEdit ? 8 : 7} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+                <td colSpan={canEdit ? 6 : 5} style={{ textAlign: 'center', padding: '2.5rem', color: '#94a3b8', fontWeight: 600, fontSize: '0.78rem' }}>
                   Belum ada data pelanggan. Klik "+ Tambah Pelanggan" atau "Import Excel" di atas untuk menambahkan pelanggan baru.
                 </td>
               </tr>
             ) : (
               filtered.map((p, i) => (
-                <tr key={p.id || p._id || i}>
-                  <td><strong style={{ color: 'var(--accent-primary)', fontFamily: 'monospace', fontSize: '1rem' }}>{p.kode || `C${i+1}`}</strong></td>
-                  <td>
-                    <strong style={{ fontSize: '0.98rem', color: '#fff' }}>{p.nama}</strong>
-                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Tipe: {p.tipe || 'Retail'}</div>
-                  </td>
-                  <td>
-                    <span className="badge" style={{ background: p.kategoriCustomer === 'Top Market' ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.08)', color: p.kategoriCustomer === 'Top Market' ? '#f59e0b' : 'var(--text-muted)', border: `1px solid ${p.kategoriCustomer === 'Top Market' ? '#f59e0b' : 'var(--border-color)'}` }}>
-                      {p.kategoriCustomer === 'Top Market' ? '⭐ Top Market' : 'Umum'}
+                <tr key={p.id || p._id || i} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  <td style={{ padding: '0.35rem 0.55rem', whiteSpace: 'nowrap' }}>
+                    <span style={{ background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd', fontSize: '0.7rem', fontWeight: 800, padding: '0.1rem 0.4rem', borderRadius: '4px' }}>
+                      {p.kode || `C${i+1}`}
                     </span>
                   </td>
-                  <td>
-                    <span className="badge" style={{ background: p.sistemPembayaran === 'Tempo' ? 'rgba(239,68,68,0.15)' : (p.sistemPembayaran === 'CBD' ? 'rgba(14,165,233,0.15)' : 'rgba(16,185,129,0.15)'), color: p.sistemPembayaran === 'Tempo' ? '#ef4444' : (p.sistemPembayaran === 'CBD' ? '#0ea5e9' : '#10b981') }}>
-                      {p.sistemPembayaran || 'COD'}
-                    </span>
+                  <td style={{ padding: '0.35rem 0.55rem', whiteSpace: 'nowrap' }}>
+                    <strong style={{ fontSize: '0.78rem', color: '#0f172a', fontWeight: 800 }}>{p.nama}</strong>
                   </td>
-                  <td>
+                  <td style={{ padding: '0.35rem 0.55rem', whiteSpace: 'nowrap' }}>
+                    {p.kategoriCustomer === 'Top Market' || p.kategoriCustomer === 'TM' ? (
+                      <span style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', fontSize: '0.68rem', fontWeight: 800, padding: '0.08rem 0.4rem', borderRadius: '4px' }}>
+                        ⭐ {p.kategoriCustomer}
+                      </span>
+                    ) : (
+                      <span style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', fontSize: '0.68rem', fontWeight: 700, padding: '0.08rem 0.4rem', borderRadius: '4px' }}>
+                        {p.kategoriCustomer || 'Umum'}
+                      </span>
+                    )}
+                  </td>
+                  <td style={{ padding: '0.35rem 0.55rem', whiteSpace: 'nowrap' }}>
                     {p.noHp ? (
-                      <a href={`https://wa.me/${p.noHp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" style={{ color: '#10b981', display: 'inline-flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }}>
-                        <Phone size={13} /> {p.noHp}
+                      <a href={`https://wa.me/${p.noHp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" style={{ color: '#059669', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '3px', textDecoration: 'none', fontSize: '0.74rem' }}>
+                        <Phone size={11} /> {p.noHp}
                       </a>
-                    ) : '-'}
+                    ) : (
+                      <span style={{ color: '#94a3b8', fontSize: '0.74rem' }}>-</span>
+                    )}
                   </td>
-                  <td style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                    {p.alamat ? <span><MapPin size={12} style={{ color: 'var(--cyan)' }} /> {p.alamat}</span> : '-'}
-                  </td>
-                  <td>
-                    <strong style={{ color: (Number(p.totalPiutang) || 0) > 0 ? '#ef4444' : '#10b981', fontSize: '0.92rem' }}>
-                      {formatRp(p.totalPiutang)}
-                    </strong>
+                  <td style={{ padding: '0.35rem 0.55rem', color: '#475569', fontSize: '0.74rem', whiteSpace: 'nowrap' }}>
+                    {p.alamat ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}><MapPin size={11} style={{ color: '#0284c7', flexShrink: 0 }} /> {p.alamat}</span> : <span style={{ color: '#94a3b8' }}>-</span>}
                   </td>
                   {canEdit && (
-                    <td style={{ textAlign: 'right' }}>
-                      <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'flex-end' }}>
-                        <button className="btn btn-sm btn-outline" onClick={() => openEdit(p)} title="Edit Pelanggan"><Edit3 size={14} /></button>
-                        <button className="btn btn-sm btn-danger" onClick={() => setDeleteTarget(p)} title="Hapus Pelanggan"><Trash2 size={14} /></button>
+                    <td style={{ padding: '0.35rem 0.55rem', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                      <div style={{ display: 'flex', gap: '0.3rem', justifyContent: 'flex-end' }}>
+                        <button
+                          className="btn btn-sm btn-outline"
+                          onClick={() => openEdit(p)}
+                          title="Edit Pelanggan"
+                          style={{ height: '25px', fontSize: '0.68rem', padding: '0 0.45rem', borderRadius: '5px', fontWeight: 700 }}
+                        >
+                          <Edit3 size={11} /> Edit
+                        </button>
+                        <button
+                          className="btn btn-sm btn-outline-danger"
+                          onClick={() => setDeleteTarget(p)}
+                          title="Hapus Pelanggan"
+                          style={{ height: '25px', fontSize: '0.68rem', padding: '0 0.45rem', borderRadius: '5px', fontWeight: 700 }}
+                        >
+                          <Trash2 size={11} /> Hapus
+                        </button>
                       </div>
                     </td>
                   )}
@@ -451,7 +595,7 @@ export default function PelangganTab({
                     <Download size={36} style={{ color: 'var(--emerald)', marginBottom: '0.5rem' }} />
                     <h4 style={{ margin: '0 0 0.25rem', color: '#fff' }}>1. Unduh Template Excel Pelanggan</h4>
                     <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>
-                      Gunakan format template resmi agar data Kode (C1, C2), Nama Toko, Kategori (Top Market/Umum), dan Sistem Bayar (COD/CBD/Tempo) terisi dengan benar.
+                      Gunakan format 5 kolom sederhana: <strong>Kode Pelanggan</strong> (C1, C2), <strong>Nama Pelanggan</strong>, <strong>Kategori Customer</strong> (Top Market/Umum), <strong>No WhatsApp</strong>, dan <strong>Alamat Lengkap Pengiriman</strong>.
                     </p>
                     <button className="btn btn-outline" onClick={handleDownloadTemplate} style={{ marginTop: '0.75rem' }}>
                       <Download size={16} style={{ color: 'var(--emerald)' }} /> Download Template Excel Pelanggan (.xlsx)
@@ -489,10 +633,9 @@ export default function PelangganTab({
                           <th>Status</th>
                           <th>Kode</th>
                           <th>Nama Pelanggan</th>
-                          <th>Kategori</th>
-                          <th>Sistem Bayar</th>
+                          <th>Kategori Customer</th>
                           <th>No. WhatsApp</th>
-                          <th>Tipe</th>
+                          <th>Alamat Lengkap Pengiriman</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -508,9 +651,8 @@ export default function PelangganTab({
                             <td style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--accent-primary)' }}>{r.kode}</td>
                             <td><strong>{r.nama}</strong></td>
                             <td><span className="badge">{r.kategoriCustomer}</span></td>
-                            <td><span className="badge">{r.sistemPembayaran}</span></td>
                             <td>{r.noHp || '-'}</td>
-                            <td>{r.tipe}</td>
+                            <td style={{ fontSize: '0.78rem', color: '#64748b' }}>{r.alamat || '-'}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -535,11 +677,23 @@ export default function PelangganTab({
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal-card" onClick={e => e.stopPropagation()} style={{ maxWidth: '560px', width: '92%', maxHeight: '90vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-card)', borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
-            <div className="modal-header" style={{ padding: '1.25rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0, fontSize: '1.15rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Users size={20} style={{ color: 'var(--accent-primary)' }} /> {editData ? 'Edit Data Pelanggan' : 'Tambah Pelanggan Baru'}
+            <div className="modal-header" style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Users size={18} style={{ color: 'var(--accent-primary)' }} /> {editData ? 'Edit Data Pelanggan' : 'Tambah Pelanggan Baru'}
               </h3>
-              <button className="modal-close" onClick={() => setShowModal(false)}><X size={18} /></button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                {!editData && (
+                  <button
+                    type="button"
+                    className="btn btn-outline"
+                    onClick={() => { setShowModal(false); setShowImportModal(true); }}
+                    style={{ height: '30px', fontSize: '0.72rem', fontWeight: 700, padding: '0 0.65rem', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                  >
+                    <Upload size={13} style={{ color: '#0284c7' }} /> Import Excel
+                  </button>
+                )}
+                <button className="modal-close" onClick={() => setShowModal(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '0.2rem' }}><X size={18} /></button>
+              </div>
             </div>
 
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
@@ -594,12 +748,29 @@ export default function PelangganTab({
                   <label className="form-label">Catatan Pelanggan</label>
                   <input className="form-input" placeholder="Catatan diskon khusus, jadwal kirim..." value={form.catatan} onChange={e => setForm(f => ({ ...f, catatan: e.target.value }))} />
                 </div>
+
+                {!editData && (
+                  <div style={{ marginTop: '1.2rem', padding: '0.75rem 0.9rem', borderRadius: '10px', background: '#f8fafc', border: '1px dashed #cbd5e1', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#334155' }}>Punya banyak data pelanggan sekaligus?</div>
+                      <div style={{ fontSize: '0.7rem', color: '#64748b' }}>Upload file Excel (.xlsx) untuk menambahkan otomatis.</div>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-outline"
+                      onClick={() => { setShowModal(false); setShowImportModal(true); }}
+                      style={{ height: '30px', fontSize: '0.72rem', fontWeight: 800, padding: '0 0.75rem', borderRadius: '6px', whiteSpace: 'nowrap' }}
+                    >
+                      <Upload size={13} style={{ color: '#0284c7' }} /> Import Excel
+                    </button>
+                  </div>
+                )}
               </div>
 
-              <div className="modal-footer" style={{ padding: '1rem 1.25rem', borderTop: '1px solid var(--border-color)', background: 'var(--bg-secondary)', display: 'flex', gap: '0.6rem', justifyContent: 'flex-end' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>Batal</button>
-                <button type="submit" className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600, padding: '0.6rem 1.2rem' }}>
-                  <Check size={16} /> {editData ? 'Simpan Edit Pelanggan' : 'Simpan Pelanggan Baru'}
+              <div className="modal-footer" style={{ padding: '0.85rem 1.25rem', borderTop: '1px solid var(--border-color)', background: 'var(--bg-secondary)', display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                <button type="button" className="btn btn-secondary" style={{ height: '34px', fontSize: '0.78rem', fontWeight: 700, padding: '0 0.85rem', borderRadius: '7px' }} onClick={() => setShowModal(false)}>Batal</button>
+                <button type="submit" className="btn btn-emerald" style={{ height: '34px', fontSize: '0.78rem', fontWeight: 800, padding: '0 1rem', borderRadius: '7px', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <Check size={15} /> {editData ? 'Simpan Edit' : 'Simpan Pelanggan'}
                 </button>
               </div>
             </form>

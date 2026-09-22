@@ -2,7 +2,8 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { ClipboardCheck, Calendar, DollarSign, Upload, Download, Save, CheckCircle, Trash2, Eye, X, FileText, Search, TrendingDown, FileSpreadsheet } from 'lucide-react';
 import * as XLSX from 'xlsx';
-import { formatNumber, STOCK_AWAL_JULI, getSkuSortIndex } from '../data/initialData';
+import { ModernDatePicker } from './ModernDatePicker';
+import { formatNumber, STOCK_AWAL_JULI, getSkuSortIndex, getThreeMonthCutoffDate, getThreeMonthCutoffLabel } from '../data/initialData';
 import { exportToExcel, exportToPDF } from '../utils/exportUtils';
 import { getAuditStokListApi, saveAuditStokApi, deleteAuditStokApi, deleteAuditStokByDateApi, deleteAuditStokBatchApi } from '../services/api';
 
@@ -797,21 +798,21 @@ export default function AuditStokTab({
       )}
 
       {/* ===== KPI SUMMARY METRICS CARDS ===== */}
-      <div className="stats-grid mb-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+      <div className="stats-grid mb-3" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem' }}>
         {/* Card 1: Total Items */}
-        <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderLeft: '5px solid #3b82f6', borderRadius: '12px', padding: '1.15rem', boxShadow: '0 4px 12px rgba(0,0,0,0.04)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{ background: '#dbeafe', color: '#2563eb', padding: '0.65rem', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <FileSpreadsheet size={24} />
+        <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderLeft: '4px solid #3b82f6', borderRadius: '10px', padding: '0.75rem 0.9rem', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <div style={{ background: '#dbeafe', color: '#2563eb', padding: '0.5rem', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <FileSpreadsheet size={18} />
             </div>
             <div>
-              <span style={{ fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#64748b' }}>
+              <span style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#64748b', display: 'block' }}>
                 Item Opname Fisik ({filterBulan})
               </span>
-              <h3 style={{ color: '#2563eb', fontSize: '1.4rem', fontWeight: 900, margin: '0.2rem 0' }}>
+              <h3 style={{ color: '#2563eb', fontSize: '1.05rem', fontWeight: 900, margin: '0.1rem 0', lineHeight: 1.2 }}>
                 {totalAuditCount} Record
               </h3>
-              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#1d4ed8' }}>
+              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#1d4ed8', display: 'block' }}>
                 Stok BOM Sistem 100% Aman &amp; Utuh
               </span>
             </div>
@@ -819,19 +820,19 @@ export default function AuditStokTab({
         </div>
 
         {/* Card 2: Total Akumulasi Susut (KG) */}
-        <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderLeft: '5px solid #f59e0b', borderRadius: '12px', padding: '1.15rem', boxShadow: '0 4px 12px rgba(0,0,0,0.04)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{ background: '#fef3c7', color: '#d97706', padding: '0.65rem', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <TrendingDown size={24} />
+        <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderLeft: '4px solid #f59e0b', borderRadius: '10px', padding: '0.75rem 0.9rem', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <div style={{ background: '#fef3c7', color: '#d97706', padding: '0.5rem', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <TrendingDown size={18} />
             </div>
             <div>
-              <span style={{ fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#64748b' }}>
+              <span style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#64748b', display: 'block' }}>
                 Akumulasi Susut Fisik (KG)
               </span>
-              <h3 style={{ color: '#d97706', fontSize: '1.4rem', fontWeight: 900, margin: '0.2rem 0' }}>
+              <h3 style={{ color: '#d97706', fontSize: '1.05rem', fontWeight: 900, margin: '0.1rem 0', lineHeight: 1.2 }}>
                 {totalSusutQty.toFixed(2)} KG
               </h3>
-              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#b45309' }}>
+              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#b45309', display: 'block' }}>
                 Selisih Penimbangan Fisik Vs Sistem
               </span>
             </div>
@@ -839,19 +840,19 @@ export default function AuditStokTab({
         </div>
 
         {/* Card 3: Total Kerugian Susut (Rp) */}
-        <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderLeft: '5px solid #e11d48', borderRadius: '12px', padding: '1.15rem', boxShadow: '0 4px 12px rgba(0,0,0,0.04)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{ background: '#ffe4e6', color: '#e11d48', padding: '0.65rem', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <DollarSign size={24} />
+        <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderLeft: '4px solid #e11d48', borderRadius: '10px', padding: '0.75rem 0.9rem', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <div style={{ background: '#ffe4e6', color: '#e11d48', padding: '0.5rem', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <DollarSign size={18} />
             </div>
             <div>
-              <span style={{ fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#64748b' }}>
+              <span style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#64748b', display: 'block' }}>
                 Total Nilai Kerugian Susut
               </span>
-              <h3 style={{ color: '#e11d48', fontSize: '1.4rem', fontWeight: 900, margin: '0.2rem 0' }}>
+              <h3 style={{ color: '#e11d48', fontSize: '1.05rem', fontWeight: 900, margin: '0.1rem 0', lineHeight: 1.2 }}>
                 Rp {formatNumber(totalNilaiKerugianRp)}
               </h3>
-              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#be123c' }}>
+              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#be123c', display: 'block' }}>
                 Perhitungan Kerugian Fisik ({filterBulan})
               </span>
             </div>
@@ -860,38 +861,26 @@ export default function AuditStokTab({
       </div>
 
       {/* ===== ACTION CONTROL BAR: TARGET TANGGAL & SINGLE IMPORT EXCEL BUTTON ===== */}
-      <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '1.15rem 1.5rem', marginBottom: '1.5rem', boxShadow: '0 4px 20px rgba(0,0,0,0.04)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+      <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '0.75rem 1.15rem', marginBottom: '1rem', boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
           <div>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.55rem', margin: 0 }}>
-              <FileSpreadsheet size={22} style={{ color: '#10b981' }} /> Import Stok Fisik Opname Harian
+            <h3 style={{ fontSize: '0.88rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.45rem', margin: 0 }}>
+              <FileSpreadsheet size={16} style={{ color: '#10b981' }} /> Import Stok Fisik Opname Harian
             </h3>
-            <p style={{ fontSize: '0.82rem', color: '#64748b', marginTop: '0.2rem', margin: 0 }}>
+            <p style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '0.15rem', margin: 0 }}>
               Import file Excel hasil penimbangan stok fisik per tanggal tanpa mengubah stok sistem BOM.
             </p>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
             {/* Target Date Selector */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-              <span style={{ fontSize: '0.83rem', fontWeight: 800, color: '#2563eb' }}>📅 Tanggal Opname:</span>
-              <input
-                type="date"
-                min={getThreeMonthCutoffDate()}
-                max={todayStr}
-                style={{
-                  background: '#f0f9ff',
-                  border: '2px solid #2563eb',
-                  borderRadius: '9px',
-                  padding: '0.45rem 0.75rem',
-                  fontSize: '0.85rem',
-                  fontWeight: 800,
-                  color: '#0f172a',
-                  outline: 'none',
-                  cursor: 'pointer'
-                }}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <span style={{ fontSize: '0.76rem', fontWeight: 800 }}>📅 Tanggal Opname:</span>
+              <ModernDatePicker
                 value={targetTanggal}
-                onChange={(e) => handleTargetTanggalChange(e.target.value)}
+                onChange={(val) => handleTargetTanggalChange(val)}
+                minDate={getThreeMonthCutoffDate()}
+                maxDate={todayStr}
               />
             </div>
 
@@ -904,18 +893,19 @@ export default function AuditStokTab({
                 background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                 color: '#ffffff',
                 fontWeight: 800,
-                fontSize: '0.88rem',
-                borderRadius: '10px',
-                padding: '0.6rem 1.35rem',
+                fontSize: '0.78rem',
+                borderRadius: '8px',
+                padding: '0 0.85rem',
+                height: '32px',
                 border: 'none',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.5rem',
-                boxShadow: '0 4px 14px rgba(16, 185, 129, 0.35)',
+                gap: '0.4rem',
+                boxShadow: '0 3px 10px rgba(16, 185, 129, 0.28)',
                 cursor: 'pointer'
               }}
             >
-              <Upload size={18} />
+              <Upload size={14} />
               <span>Import Excel Stok Fisik</span>
             </button>
           </div>
@@ -923,50 +913,36 @@ export default function AuditStokTab({
       </div>
 
       {/* ===== TABEL RIWAYAT SELISIH STOK FISIK PER TANGGAL ===== */}
-      <div className="table-container mt-4" style={{ borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 4px 16px rgba(0,0,0,0.04)', background: '#ffffff' }}>
+      <div className="table-container mt-3" style={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 2px 10px rgba(0,0,0,0.03)', background: '#ffffff' }}>
         {/* Table Controls Header */}
-        <div style={{ padding: '1.15rem 1.35rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', borderTopLeftRadius: '14px', borderTopRightRadius: '14px', flexWrap: 'wrap', gap: '0.75rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <ClipboardCheck size={20} style={{ color: '#2563eb' }} /> Riwayat Selisih Stok Fisik Vs Sistem BOM
+        <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', borderTopLeftRadius: '12px', borderTopRightRadius: '12px', flexWrap: 'wrap', gap: '0.65rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <h3 style={{ fontSize: '0.88rem', fontWeight: 900, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+              <ClipboardCheck size={16} style={{ color: '#2563eb' }} /> Riwayat Selisih Stok Fisik Vs Sistem BOM
             </h3>
 
             {/* CLEAN DIRECT DATE PICKER */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-              <Calendar size={16} style={{ color: '#3b82f6' }} />
-              {/* <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#475569' }}>Filter Tanggal Opname:</span> */}
-              <input
-                type="date"
-                style={{
-                  background: '#334155',
-                  border: '2px solid #3b82f6',
-                  color: '#ffffff',
-                  fontWeight: 800,
-                  fontSize: '0.85rem',
-                  borderRadius: '9px',
-                  padding: '0.35rem 0.75rem',
-                  outline: 'none',
-                  cursor: 'pointer',
-                  boxShadow: '0 2px 8px rgba(59, 130, 246, 0.25)'
-                }}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              {/* <Calendar size={14} style={{ color: '#3b82f6' }} /> */}
+              <ModernDatePicker
                 value={filterTanggal}
-                onChange={(e) => setFilterTanggal(e.target.value)}
+                onChange={(val) => setFilterTanggal(val)}
               />
-
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
             {/* Search Input */}
-            <div style={{ position: 'relative', width: '180px' }}>
-              <Search size={14} style={{ position: 'absolute', left: '0.6rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+            <div style={{ position: 'relative', width: '170px' }}>
+              <Search size={13} style={{ position: 'absolute', left: '0.55rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
               <input
                 type="text"
                 placeholder="Cari bahan / auditor..."
                 style={{
                   width: '100%',
-                  padding: '0.35rem 0.65rem 0.35rem 2rem',
-                  fontSize: '0.8rem',
+                  padding: '0.3rem 0.55rem 0.3rem 1.85rem',
+                  fontSize: '0.76rem',
+                  height: '32px',
                   borderRadius: '8px',
                   border: '1px solid #cbd5e1',
                   outline: 'none'
@@ -984,29 +960,30 @@ export default function AuditStokTab({
                   background: 'linear-gradient(135deg, #e11d48 0%, #be123c 100%)',
                   color: '#ffffff',
                   fontWeight: 900,
-                  fontSize: '0.8rem',
-                  padding: '0.38rem 0.85rem',
+                  fontSize: '0.74rem',
+                  padding: '0 0.75rem',
+                  height: '32px',
                   borderRadius: '8px',
                   border: 'none',
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '0.4rem',
-                  boxShadow: '0 4px 12px rgba(225, 29, 72, 0.35)',
+                  gap: '0.35rem',
+                  boxShadow: '0 3px 8px rgba(225, 29, 72, 0.3)',
                   cursor: 'pointer'
                 }}
                 onClick={() => setShowBatchDeleteModal(true)}
               >
-                <Trash2 size={15} />
-                <span>Hapus Semua ({selectedItemIds.length} Terpilih)</span>
+                <Trash2 size={13} />
+                <span>Hapus ({selectedItemIds.length})</span>
               </button>
             )}
 
             {displayedAuditList.length > 0 && (
               <>
-                <button className="btn btn-sm btn-outline" onClick={handleExportPDF} title="Cetak Laporan PDF Audit" style={{ fontWeight: 700 }}>
-                  <FileText size={15} style={{ color: '#f59e0b' }} /> Cetak PDF
+                <button className="btn btn-sm btn-outline" onClick={handleExportPDF} title="Cetak Laporan PDF Audit" style={{ height: '32px', padding: '0 0.75rem', fontSize: '0.76rem', fontWeight: 700, borderRadius: '8px', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <FileText size={13} style={{ color: '#f59e0b' }} /> Cetak PDF
                 </button>
-                <button className="btn btn-sm btn-outline" onClick={handleExportExcelHistory} style={{ fontSize: '0.78rem', fontWeight: 700 }}>
+                <button className="btn btn-sm btn-outline" onClick={handleExportExcelHistory} style={{ height: '32px', padding: '0 0.75rem', fontSize: '0.76rem', fontWeight: 700, borderRadius: '8px' }}>
                   Export Excel
                 </button>
               </>
@@ -1015,39 +992,41 @@ export default function AuditStokTab({
         </div>
 
         {/* Table Body */}
-        <table className="custom-table">
+        <table className="custom-table" style={{ width: '100%', whiteSpace: 'nowrap' }}>
           <thead>
-            <tr>
-              <th style={{ width: '44px', textAlign: 'center' }}>
+            <tr style={{ background: '#f8fafc' }}>
+              <th style={{ width: '36px', textAlign: 'center', padding: '0.45rem 0.35rem' }}>
                 <input
                   type="checkbox"
                   checked={isAllSelected}
                   onChange={handleToggleSelectAll}
-                  style={{ width: '17px', height: '17px', cursor: 'pointer', accentColor: '#e11d48' }}
+                  style={{ width: '15px', height: '15px', cursor: 'pointer', accentColor: '#e11d48' }}
                   title="Pilih Semua / Batal Pilih Semua"
                 />
               </th>
-              <th>TANGGAL OPNAME</th>
-              <th>KODE SKU</th>
-              <th>NAMA BAHAN BAKU</th>
-              <th>STOK SISTEM (BOM)</th>
-              <th>STOK FISIK (HASIL IMPORT)</th>
-              <th>SELISIH / SUSUT</th>
-              <th>SUSUT (%)</th>
-              <th>KERUGIAN SUSUT (RP)</th>
-              <th>KETERANGAN / ALASAN</th>
-              <th>AUDITOR</th>
-              <th style={{ textAlign: 'center' }}>AKSI</th>
+              <th style={{ padding: '0.45rem 0.5rem', fontSize: '0.72rem', letterSpacing: '0.03em', color: '#0f172a', fontWeight: 800 }}>TANGGAL OPNAME</th>
+              <th style={{ padding: '0.45rem 0.5rem', fontSize: '0.72rem', letterSpacing: '0.03em', color: '#0f172a', fontWeight: 800 }}>KODE SKU</th>
+              <th style={{ padding: '0.45rem 0.5rem', fontSize: '0.72rem', letterSpacing: '0.03em', color: '#0f172a', fontWeight: 800 }}>NAMA BAHAN BAKU</th>
+              <th style={{ padding: '0.45rem 0.5rem', fontSize: '0.72rem', letterSpacing: '0.03em', color: '#0f172a', fontWeight: 800 }}>STOK SISTEM (BOM)</th>
+              <th style={{ padding: '0.45rem 0.5rem', fontSize: '0.72rem', letterSpacing: '0.03em', color: '#0f172a', fontWeight: 800 }}>STOK FISIK (HASIL IMPORT)</th>
+              <th style={{ padding: '0.45rem 0.5rem', fontSize: '0.72rem', letterSpacing: '0.03em', color: '#0f172a', fontWeight: 800 }}>SELISIH / SUSUT</th>
+              <th style={{ padding: '0.45rem 0.5rem', fontSize: '0.72rem', letterSpacing: '0.03em', color: '#0f172a', fontWeight: 800 }}>SUSUT (%)</th>
+              <th style={{ padding: '0.45rem 0.5rem', fontSize: '0.72rem', letterSpacing: '0.03em', color: '#0f172a', fontWeight: 800 }}>KERUGIAN SUSUT (RP)</th>
+              <th style={{ padding: '0.45rem 0.5rem', fontSize: '0.72rem', letterSpacing: '0.03em', color: '#0f172a', fontWeight: 800 }}>KETERANGAN / ALASAN</th>
+              <th style={{ padding: '0.45rem 0.5rem', fontSize: '0.72rem', letterSpacing: '0.03em', color: '#0f172a', fontWeight: 800 }}>AUDITOR</th>
+              <th style={{ padding: '0.45rem 0.65rem', fontSize: '0.72rem', letterSpacing: '0.03em', color: '#0f172a', fontWeight: 800, textAlign: 'right', position: 'sticky', right: 0, background: '#f8fafc', zIndex: 3, boxShadow: '-2px 0 5px rgba(0,0,0,0.04)' }}>
+                AKSI
+              </th>
             </tr>
           </thead>
           <tbody>
             {displayedAuditList.length === 0 ? (
               <tr>
-                <td colSpan={12} style={{ textAlign: 'center', padding: '2.5rem' }} className="text-muted">
-                  <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#64748b', marginBottom: '0.35rem' }}>
+                <td colSpan={12} style={{ textAlign: 'center', padding: '2rem' }} className="text-muted">
+                  <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#64748b', marginBottom: '0.25rem' }}>
                     Belum ada riwayat stok fisik yang diimport untuk periode bulan {filterBulan}.
                   </div>
-                  <div style={{ fontSize: '0.82rem', color: '#94a3b8' }}>
+                  <div style={{ fontSize: '0.76rem', color: '#94a3b8' }}>
                     Silakan gunakan tombol <strong>"Import Excel Stok Fisik"</strong> di atas untuk mencatat stok fisik pertanggal.
                   </div>
                 </td>
@@ -1060,62 +1039,63 @@ export default function AuditStokTab({
                 const isSelected = selectedItemIds.includes(itemKey);
 
                 return (
-                  <tr key={itemKey || idx} style={{ background: isSelected ? '#fff1f2' : undefined }}>
-                    <td style={{ textAlign: 'center' }}>
+                  <tr key={itemKey || idx} style={{ borderBottom: '1px solid #e2e8f0', fontSize: '0.74rem', background: isSelected ? '#fff1f2' : undefined }}>
+                    <td style={{ textAlign: 'center', padding: '0.35rem 0.35rem' }}>
                       <input
                         type="checkbox"
                         checked={isSelected}
                         onChange={() => handleToggleSelectItem(itemKey)}
-                        style={{ width: '17px', height: '17px', cursor: 'pointer', accentColor: '#e11d48' }}
+                        style={{ width: '15px', height: '15px', cursor: 'pointer', accentColor: '#e11d48' }}
                       />
                     </td>
-                    <td style={{ fontSize: '0.82rem', fontWeight: 700, color: '#2563eb' }}>{a.tanggal}</td>
-                    <td style={{ fontWeight: 800, color: '#475569', fontSize: '0.82rem' }}>{skuCodeVal || '-'}</td>
-                    <td style={{ fontWeight: 900, color: '#0f172a' }}>{a.bahanNama}</td>
-                    <td style={{ fontWeight: 700, color: '#475569' }}>{a.stokSistem} {a.satuan}</td>
-                    <td style={{ fontWeight: 900, color: '#059669' }}>{a.stokFisik} {a.satuan}</td>
-                    <td style={{ fontWeight: 900, color: isLossRow ? '#e11d48' : '#059669' }}>
+                    <td style={{ padding: '0.35rem 0.5rem', fontSize: '0.74rem', fontWeight: 700, color: '#2563eb', whiteSpace: 'nowrap' }}>{a.tanggal}</td>
+                    <td style={{ padding: '0.35rem 0.5rem', fontWeight: 800, color: '#0f172a', fontSize: '0.74rem', whiteSpace: 'nowrap' }}>{skuCodeVal || '-'}</td>
+                    <td style={{ padding: '0.35rem 0.5rem', fontWeight: 800, color: '#0f172a', fontSize: '0.74rem', whiteSpace: 'nowrap' }}>{a.bahanNama}</td>
+                    <td style={{ padding: '0.35rem 0.5rem', fontWeight: 700, color: '#475569', fontSize: '0.74rem', whiteSpace: 'nowrap' }}>{a.stokSistem} {a.satuan}</td>
+                    <td style={{ padding: '0.35rem 0.5rem', fontWeight: 800, color: '#059669', fontSize: '0.74rem', whiteSpace: 'nowrap' }}>{a.stokFisik} {a.satuan}</td>
+                    <td style={{ padding: '0.35rem 0.5rem', fontWeight: 800, color: isLossRow ? '#e11d48' : '#059669', fontSize: '0.74rem', whiteSpace: 'nowrap' }}>
                       {a.selisihQty > 0 ? `+${a.selisihQty}` : a.selisihQty} {a.satuan}
                     </td>
-                    <td style={{ fontWeight: 800, color: isLossRow ? '#be123c' : '#047857' }}>
+                    <td style={{ padding: '0.35rem 0.5rem', fontWeight: 800, color: isLossRow ? '#be123c' : '#047857', fontSize: '0.74rem', whiteSpace: 'nowrap' }}>
                       {a.susutPct ? `${a.susutPct}%` : '0%'}
                     </td>
-                    <td style={{ fontWeight: 800, color: isLossRow ? '#e11d48' : '#1e293b' }}>
+                    <td style={{ padding: '0.35rem 0.5rem', fontWeight: 800, color: isLossRow ? '#e11d48' : '#0f172a', fontSize: '0.74rem', whiteSpace: 'nowrap' }}>
                       Rp {formatNumber(a.nilaiSusutRp || 0)}
                     </td>
-                    <td style={{ fontSize: '0.8rem', color: '#475569', maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <td style={{ padding: '0.35rem 0.5rem', fontSize: '0.74rem', color: '#475569', maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {a.keterangan || '-'}
                     </td>
-                    <td style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748b' }}>{a.auditor || 'Auditor'}</td>
-                    <td style={{ textAlign: 'center' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
+                    <td style={{ padding: '0.35rem 0.5rem', fontSize: '0.74rem', fontWeight: 700, color: '#64748b', whiteSpace: 'nowrap' }}>{a.auditor || 'Auditor'}</td>
+                    <td style={{ padding: '0.3rem 0.65rem', textAlign: 'right', whiteSpace: 'nowrap', position: 'sticky', right: 0, background: isSelected ? '#fff1f2' : '#ffffff', zIndex: 2, boxShadow: '-2px 0 5px rgba(0,0,0,0.04)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.3rem' }}>
                         <button
                           type="button"
                           className="btn btn-sm btn-outline"
                           style={{
-                            padding: '0.3rem 0.65rem',
-                            fontSize: '0.78rem',
+                            padding: '0 0.45rem',
+                            height: '26px',
+                            fontSize: '0.7rem',
                             fontWeight: 800,
                             color: '#2563eb',
                             borderColor: '#2563eb',
                             borderRadius: '6px',
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: '0.3rem'
+                            gap: '0.25rem'
                           }}
                           onClick={() => setSelectedDetailAudit(a)}
                           title="Lihat Detail Opname"
                         >
-                          <Eye size={14} /> Detail
+                          <Eye size={12} /> Detail
                         </button>
                         <button
                           type="button"
                           className="btn btn-outline btn-sm text-rose"
-                          style={{ padding: '0.3rem 0.5rem', border: '1px solid #f43f5e', borderRadius: '6px' }}
+                          style={{ width: '26px', height: '26px', padding: 0, border: '1px solid #f43f5e', borderRadius: '6px' }}
                           onClick={() => promptDeleteAudit(a.id || a._id, a.bahanNama, a.tanggal)}
                           title="Hapus Catatan Ini"
                         >
-                          <Trash2 size={14} />
+                          <Trash2 size={12} />
                         </button>
                       </div>
                     </td>

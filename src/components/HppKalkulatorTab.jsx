@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { TrendingUp, Calculator, Calendar, DollarSign, Package, FileText, ShoppingCart, Scale, ShieldAlert, Filter, Save, CheckCircle, Trash2, Eye, X } from 'lucide-react';
 import { formatNumber, HARGA_AWAL_JULI } from '../data/initialData';
 import { exportToExcel, exportToPDF } from '../utils/exportUtils';
+import { ModernMonthPicker, ModernDatePicker } from './ModernDatePicker';
 import { getHppListApi, saveHppApi, deleteHppApi } from '../services/api';
 
 export default function HppKalkulatorTab({
@@ -127,23 +128,22 @@ export default function HppKalkulatorTab({
     return uniqueList;
   }, [riwayatProduksi, filterTanggal]);
 
-  // Auto reset selectedProdukNama if it's no longer present on the new target date
-  useEffect(() => {
-    if (selectedProdukNama && !availableProdukList.includes(selectedProdukNama)) {
-      setSelectedProdukNama('');
-    }
-  }, [filterTanggal, availableProdukList, selectedProdukNama]);
-
   // Check if there is already a saved HPP record for this date & product in database
   const savedRecordForCurrentSelection = useMemo(() => {
     if (!filterTanggal || !selectedProdukNama) return null;
     return (savedHppList || []).find(rec => rec.tanggal === filterTanggal && rec.produkNama === selectedProdukNama);
   }, [savedHppList, filterTanggal, selectedProdukNama]);
 
-  // Auto fill yield input if saved record exists in DB and user hasn't typed manually
+  // Auto fill yield & packaging cost inputs if saved records exist in DB for target date, otherwise reset
   useEffect(() => {
-    if (savedRecordForCurrentSelection && savedRecordForCurrentSelection.hasilKg > 0 && manualHasilKgInput === '') {
-      setManualHasilKgInput(String(savedRecordForCurrentSelection.hasilKg));
+    if (savedRecordForCurrentSelection) {
+      setManualHasilKgInput(savedRecordForCurrentSelection.hasilKg ? String(savedRecordForCurrentSelection.hasilKg) : '');
+      setBiayaKemasanPerPack(savedRecordForCurrentSelection.biayaKemasan !== undefined && savedRecordForCurrentSelection.biayaKemasan !== null ? String(savedRecordForCurrentSelection.biayaKemasan) : '');
+      setMarginErrorPct(savedRecordForCurrentSelection.marginPct !== undefined ? String(savedRecordForCurrentSelection.marginPct) : '8');
+    } else {
+      setManualHasilKgInput('');
+      setBiayaKemasanPerPack('');
+      setMarginErrorPct('8');
     }
   }, [savedRecordForCurrentSelection, filterTanggal, selectedProdukNama]);
 
@@ -220,13 +220,20 @@ export default function HppKalkulatorTab({
   // Summary Metrics for Selected Date & Product
   const totalBiayaHppPeriode = filteredProductionHpp.reduce((acc, x) => acc + x.totalBiayaBahan, 0);
 
-  // Effective Hasil Produksi (KG) - PURELY MANUAL USER INPUT
+  // Effective Hasil Produksi (KG) - AUTO POPULATES SAVED TOTAL KG FOR DATE OR USER INPUT
   const effectiveHasilKg = useMemo(() => {
     if (manualHasilKgInput !== '' && !isNaN(Number(manualHasilKgInput)) && Number(manualHasilKgInput) > 0) {
       return Number(manualHasilKgInput);
     }
-    return 0; // Pure user manual input! No automatic batch yield.
-  }, [manualHasilKgInput]);
+    if (filterTanggal) {
+      const recs = (savedHppList || []).filter(r => r.tanggal === filterTanggal && (!selectedProdukNama || r.produkNama === selectedProdukNama));
+      if (recs.length > 0) {
+        const sumKg = recs.reduce((acc, r) => acc + Number(r.hasilKg || 0), 0);
+        if (sumKg > 0) return sumKg;
+      }
+    }
+    return 0;
+  }, [manualHasilKgInput, filterTanggal, selectedProdukNama, savedHppList]);
 
   // Calculated Base HPP Per 1 KG (Netto) based on User Input KG
   const currentActiveHpp1Kg = useMemo(() => {
@@ -414,53 +421,38 @@ export default function HppKalkulatorTab({
           </p>
         </div> */}
 
-        {/* Date, Product Filter & SIMPAN DATA HPP BUTTON (MOVED HERE ON THE TOP RIGHT!) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-          {/* Date Picker */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <span style={{ fontSize: '0.83rem', color: '#b45309', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-              <Calendar size={15} />
-            </span>
-            <input
-              type="date"
-              style={{
-                background: '#ffffff',
-                border: '1.5px solid #f59e0b',
-                color: '#0f172a',
-                borderRadius: '8px',
-                padding: '0.45rem 0.75rem',
-                fontSize: '0.83rem',
-                fontWeight: '700',
-                outline: 'none',
-                cursor: 'pointer',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.03)'
-              }}
+        {/* Date, Product Filter & SIMPAN DATA HPP BUTTON (MATCHING PEMBELIAN TAB STYLING!) */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+          {/* Modern Date Picker */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <ModernDatePicker
               value={filterTanggal}
-              onChange={(e) => {
-                setFilterTanggal(e.target.value);
+              onChange={(val) => {
+                setFilterTanggal(val);
                 setManualHasilKgInput('');
               }}
             />
           </div>
 
           {/* Select Product Item Dropdown */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <span style={{ fontSize: '0.83rem', color: '#0284c7', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-              <Filter size={15} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              <Filter size={14} style={{ color: 'var(--cyan)' }} />
             </span>
             <select
               className="select-input"
               style={{
-                background: selectedProdukNama ? '#f0f9ff' : '#fff1f2',
-                border: selectedProdukNama ? '2px solid #0284c7' : '2px solid #f43f5e',
+                background: selectedProdukNama ? '#f0f9ff' : '#ffffff',
+                border: selectedProdukNama ? '1px solid #7dd3fc' : '1px solid #cbd5e1',
                 color: '#0f172a',
-                borderRadius: '8px',
-                padding: '0.45rem 0.75rem',
-                fontSize: '0.83rem',
-                fontWeight: '800',
+                borderRadius: '6px',
+                padding: '0 0.6rem',
+                height: '32px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
                 outline: 'none',
                 maxWidth: '220px',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.03)'
+                boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
               }}
               value={selectedProdukNama}
               onChange={(e) => {
@@ -479,7 +471,7 @@ export default function HppKalkulatorTab({
             </select>
           </div>
 
-          {/* SIMPAN DATA HPP BUTTON (ALIGNED TO FAR RIGHT END!) */}
+          {/* SIMPAN DATA HPP BUTTON (MATCHING PEMBELIAN TAB BUTTONS!) */}
           <button
             type="button"
             className="btn"
@@ -487,249 +479,277 @@ export default function HppKalkulatorTab({
             disabled={isSaving || !filterTanggal || !selectedProdukNama || effectiveHasilKg <= 0}
             style={{
               marginLeft: 'auto',
-              background: (effectiveHasilKg <= 0 || !selectedProdukNama) ? '#cbd5e1' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-              color: '#ffffff',
-              padding: '0.55rem 1.25rem',
+              background: (effectiveHasilKg <= 0 || !selectedProdukNama)
+                ? '#f1f5f9'
+                : 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+              color: (effectiveHasilKg <= 0 || !selectedProdukNama) ? '#94a3b8' : '#ffffff',
+              padding: '0 0.85rem',
+              height: '32px',
               fontWeight: 800,
-              fontSize: '0.88rem',
-              borderRadius: '9px',
-              border: 'none',
-              display: 'flex',
+              fontSize: '0.78rem',
+              borderRadius: '6px',
+              border: (effectiveHasilKg <= 0 || !selectedProdukNama) ? '1px solid #cbd5e1' : 'none',
+              cursor: (effectiveHasilKg <= 0 || !selectedProdukNama) ? 'not-allowed' : 'pointer',
+              boxShadow: (effectiveHasilKg <= 0 || !selectedProdukNama) ? 'none' : '0 3px 10px rgba(16, 185, 129, 0.3)',
+              display: 'inline-flex',
               alignItems: 'center',
-              gap: '0.5rem',
-              boxShadow: (effectiveHasilKg <= 0 || !selectedProdukNama) ? 'none' : '0 4px 14px rgba(16, 185, 129, 0.4)',
-              cursor: (isSaving || effectiveHasilKg <= 0 || !selectedProdukNama) ? 'not-allowed' : 'pointer'
+              gap: '0.35rem',
+              transition: 'all 0.2s ease'
             }}
           >
-            <Save size={16} />
+            <Save size={13} />
             <span>
               {isSaving
-                ? 'Menyimpan HPP ke Database...'
+                ? 'Menyimpan...'
                 : (!selectedProdukNama
                     ? '⚠️ Pilih Item Produk Dulu'
                     : (effectiveHasilKg <= 0
-                        ? '⚠️ Isi Hasil Produksi'
-                        : `Simpan Data HPP ${selectedProdukNama} (${filterTanggal})`))}
+                        ? '⚠️ Ketik Hasil KG Dulu'
+                        : 'Simpan Data HPP'))}
             </span>
           </button>
         </div>
       </div>
 
-      {/* ===== SUMMARY METRICS CARDS (4 TOP CARDS GRID INC. BIAYA KEMASAN INPUT!) ===== */}
-      <div className="stats-grid mb-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
-        {/* Card 1: Biaya Bahan Mentah */}
-        <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderLeft: '5px solid #f59e0b', borderRadius: '12px', padding: '1.15rem', boxShadow: '0 4px 12px rgba(0,0,0,0.04)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{ background: '#fef3c7', color: '#d97706', padding: '0.65rem', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <DollarSign size={24} />
-            </div>
-            <div>
-              <span style={{ fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#64748b' }}>
-                Biaya Bahan Baku {selectedProdukNama}
-              </span>
-              <h3 style={{ color: '#d97706', fontSize: '1.4rem', fontWeight: 900, margin: '0.2rem 0' }}>
-                Rp {formatNumber(totalBiayaHppPeriode)}
-              </h3>
-              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#b45309' }}>
-                {selectedProdukNama ? `${selectedProdukNama}` : "?"} : {filterTanggal || 'Semua'}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Card 2: Input Hasil Produksi (KG) */}
-        <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderLeft: '5px solid #10b981', borderRadius: '12px', padding: '1.15rem', boxShadow: '0 4px 12px rgba(0,0,0,0.04)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{ background: '#d1fae5', color: '#059669', padding: '0.65rem', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Scale size={24} />
-            </div>
-            <div>
-              <span style={{ fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#64748b' }}>
-                Hasil Produksi {selectedProdukNama } / KG
-              </span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
-                <input
-                  type="number"
-                  step="0.1"
-                  min="0.1"
-                  style={{
-                    width: '130px',
-                    background: '#f0fdf4',
-                    border: '2px solid #10b981',
-                    color: '#065f46',
-                    fontWeight: 900,
-                    fontSize: '1.2rem',
-                    padding: '0.25rem 0.65rem',
-                    borderRadius: '8px',
-                    outline: 'none'
-                  }}
-                  value={manualHasilKgInput}
-                  onChange={(e) => setManualHasilKgInput(e.target.value)}
-                  placeholder=""
-                />
-                <span style={{ fontWeight: 900, color: '#059669', fontSize: '1.1rem' }}>KG</span>
+      {/* ===== SUMMARY METRICS CARDS (5 TOP CARDS RESPONSIVE GRID INC. BIAYA KEMASAN INPUT & TOTAL BIAYA + KEMASAN!) ===== */}
+      <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '0.5rem', marginBottom: '1.25rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem', minWidth: '680px' }}>
+          {/* Card 1: Biaya Bahan Mentah */}
+          <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderLeft: '4px solid #f59e0b', borderRadius: '10px', padding: '0.75rem 0.85rem', boxShadow: '0 3px 10px rgba(0,0,0,0.03)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div style={{ background: '#fef3c7', color: '#d97706', padding: '0.45rem', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <DollarSign size={18} />
               </div>
-              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#047857', marginTop: '0.25rem', display: 'block' }}>
-                {manualHasilKgInput ? `✓ Input Yield User: ${manualHasilKgInput} KG` : `⚠️ Wajib di isi`}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Card 3: Input Biaya Kemasan & Stiker (Rp/pcs) */}
-        <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderLeft: '5px solid #6366f1', borderRadius: '12px', padding: '1.15rem', boxShadow: '0 4px 12px rgba(0,0,0,0.04)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{ background: '#e0e7ff', color: '#4f46e5', padding: '0.65rem', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Package size={24} />
-            </div>
-            <div>
-              <span style={{ fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#64748b' }}>
-                Biaya Kemasan &amp; Stiker
-              </span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.25rem' }}>
-                <span style={{ fontWeight: 900, color: '#4f46e5', fontSize: '1.1rem' }}>Rp</span>
-                <input
-                  type="number"
-                  style={{
-                    width: '120px',
-                    background: '#eef2ff',
-                    border: '2px solid #6366f1',
-                    color: '#3730a3',
-                    fontWeight: 900,
-                    fontSize: '1.2rem',
-                    padding: '0.25rem 0.65rem',
-                    borderRadius: '8px',
-                    outline: 'none'
-                  }}
-                  value={biayaKemasanPerPack}
-                  onChange={(e) => setBiayaKemasanPerPack(e.target.value)}
-                  placeholder=""
-                />
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <span style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.02em', color: '#64748b', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  Biaya Bahan Baku ({selectedProdukNama || 'Total All Item'})
+                </span>
+                <h3 style={{ color: '#d97706', fontSize: '1.1rem', fontWeight: 900, margin: '0.15rem 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  Rp {formatNumber(totalBiayaHppPeriode)}
+                </h3>
+                <span style={{ fontSize: '0.66rem', fontWeight: 700, color: '#b45309', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {selectedProdukNama ? selectedProdukNama : 'Semua Item'} : {filterTanggal || 'Semua'}
+                </span>
               </div>
-              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#4338ca', marginTop: '0.25rem', display: 'block' }}>
-                {biayaKemasanPerPack ? `✓ Kemasan Rp ${biayaKemasanPerPack}/pcs` : 'Plastik & Stiker Per Pcs'}
-              </span>
             </div>
           </div>
-        </div>
 
-        {/* Card 4: HPP 1 KG (+ Waste 8% + Kemasan) */}
-        <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderLeft: '5px solid #0284c7', borderRadius: '12px', padding: '1.15rem', boxShadow: '0 4px 12px rgba(0,0,0,0.04)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{ background: '#e0f2fe', color: '#0284c7', padding: '0.65rem', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <TrendingUp size={24} />
+          {/* Card 2: Input Hasil Produksi (KG) */}
+          <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderLeft: '4px solid #10b981', borderRadius: '10px', padding: '0.75rem 0.85rem', boxShadow: '0 3px 10px rgba(0,0,0,0.03)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div style={{ background: '#d1fae5', color: '#059669', padding: '0.45rem', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Scale size={18} />
+              </div>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <span style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.02em', color: '#64748b', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  Hasil Produksi ({selectedProdukNama || 'Total All Item'}) / KG
+                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', marginTop: '0.15rem' }}>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0.1"
+                    style={{
+                      width: '85px',
+                      background: '#f0fdf4',
+                      border: '1.5px solid #10b981',
+                      color: '#065f46',
+                      fontWeight: 900,
+                      fontSize: '0.95rem',
+                      padding: '0.15rem 0.4rem',
+                      borderRadius: '6px',
+                      outline: 'none'
+                    }}
+                    value={manualHasilKgInput || (effectiveHasilKg > 0 ? effectiveHasilKg : '')}
+                    onChange={(e) => setManualHasilKgInput(e.target.value)}
+                    placeholder="0"
+                  />
+                  <span style={{ fontWeight: 900, color: '#059669', fontSize: '0.9rem' }}>KG</span>
+                </div>
+                <span style={{ fontSize: '0.66rem', fontWeight: 700, color: '#047857', marginTop: '0.15rem', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {effectiveHasilKg > 0 ? `✓ Yield: ${effectiveHasilKg} KG` : `⚠️ Wajib di isi`}
+                </span>
+              </div>
             </div>
-            <div>
-              <span style={{ fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#64748b' }}>
-                HPP 1kg + Mrg {packCost > 0 ? '+ Kemasan' : ''}
-              </span>
-              <h3 style={{ color: '#0284c7', fontSize: '1.35rem', fontWeight: 900, margin: '0.2rem 0' }}>
-                {currentActiveHpp1Kg > 0 ? `Rp ${formatNumber(hpp1KgWithWasteAndPack)} / kg` : 'Rp 0 / kg'}
-              </h3>
-              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#0369a1' }}>
-                {currentActiveHpp1Kg > 0
-                  ? `Rp ${formatNumber(currentActiveHpp1Kg)} + Rp ${formatNumber(marginErrorNominal1Kg)}${packCost > 0 ? ` + Rp ${formatNumber(packCost)}` : ''}`
-                  : 'Isi Hasil Produksi'}
-              </span>
+          </div>
+
+          {/* Card 3: Input Biaya Kemasan & Stiker (Rp/pcs) */}
+          <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderLeft: '4px solid #6366f1', borderRadius: '10px', padding: '0.75rem 0.85rem', boxShadow: '0 3px 10px rgba(0,0,0,0.03)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div style={{ background: '#e0e7ff', color: '#4f46e5', padding: '0.45rem', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Package size={18} />
+              </div>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <span style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.02em', color: '#64748b', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  Biaya Kemasan &amp; Stiker
+                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', marginTop: '0.15rem' }}>
+                  <span style={{ fontWeight: 900, color: '#4f46e5', fontSize: '0.9rem' }}>Rp</span>
+                  <input
+                    type="number"
+                    style={{
+                      width: '75px',
+                      background: '#eef2ff',
+                      border: '1.5px solid #6366f1',
+                      color: '#3730a3',
+                      fontWeight: 900,
+                      fontSize: '0.95rem',
+                      padding: '0.15rem 0.4rem',
+                      borderRadius: '6px',
+                      outline: 'none'
+                    }}
+                    value={biayaKemasanPerPack}
+                    onChange={(e) => setBiayaKemasanPerPack(e.target.value)}
+                    placeholder="0"
+                  />
+                </div>
+                <span style={{ fontSize: '0.66rem', fontWeight: 700, color: '#4338ca', marginTop: '0.15rem', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {biayaKemasanPerPack ? `✓ Kemasan Rp ${biayaKemasanPerPack}/pcs` : 'Plastik & Stiker/Pcs'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 4 (NEW): Total Biaya Bahan + Total Kemasan */}
+          <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderLeft: '4px solid #8b5cf6', borderRadius: '10px', padding: '0.75rem 0.85rem', boxShadow: '0 3px 10px rgba(0,0,0,0.03)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div style={{ background: '#f3e8ff', color: '#8b5cf6', padding: '0.45rem', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <ShoppingCart size={18} />
+              </div>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <span style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.02em', color: '#64748b', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  Total Biaya + Kemasan
+                </span>
+                <h3 style={{ color: '#7c3aed', fontSize: '1.1rem', fontWeight: 900, margin: '0.15rem 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  Rp {formatNumber(Math.round(totalBiayaHppPeriode + (packCost * (parseFloat(manualHasilKgInput) || 0))))}
+                </h3>
+                <span style={{ fontSize: '0.66rem', fontWeight: 700, color: '#6d28d9', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {packCost > 0 && parseFloat(manualHasilKgInput) > 0
+                    ? `Bahan + Plastik (Rp ${formatNumber(Math.round(packCost * (parseFloat(manualHasilKgInput) || 0)))})`
+                    : 'Bahan Baku + Total Plastik'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 5: HPP 1 KG (+ Waste 8% + Kemasan) */}
+          <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderLeft: '4px solid #0284c7', borderRadius: '10px', padding: '0.75rem 0.85rem', boxShadow: '0 3px 10px rgba(0,0,0,0.03)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div style={{ background: '#e0f2fe', color: '#0284c7', padding: '0.45rem', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <TrendingUp size={18} />
+              </div>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <span style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.02em', color: '#64748b', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  HPP 1kg + Mrg {packCost > 0 ? '+ Kemasan' : ''}
+                </span>
+                <h3 style={{ color: '#0284c7', fontSize: '1.1rem', fontWeight: 900, margin: '0.15rem 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {currentActiveHpp1Kg > 0 ? `Rp ${formatNumber(hpp1KgWithWasteAndPack)} / kg` : 'Rp 0 / kg'}
+                </h3>
+                <span style={{ fontSize: '0.66rem', fontWeight: 700, color: '#0369a1', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {currentActiveHpp1Kg > 0
+                    ? `Rp ${formatNumber(currentActiveHpp1Kg)} + Rp ${formatNumber(marginErrorNominal1Kg)}${packCost > 0 ? ` + Rp ${formatNumber(packCost)}` : ''}`
+                    : 'Isi Hasil Produksi'}
+                </span>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ===== LANGSUNG GRAMASI KUSTOM & KARTU PACKAGING KONVERSI (HEADER BOX DIHILANGKAN!) ===== */}
+      {/* ===== LANGSUNG GRAMASI KUSTOM & KARTU PACKAGING KONVERSI (COMPACT ELEGANT SIZE) ===== */}
       <div style={{ marginBottom: '1.75rem' }}>
         {/* INPUT GRAMASI KUSTOM BAR */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginBottom: '1.25rem', background: '#f8fafc', padding: '0.75rem 1.25rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0369a1' }}>Gramasi Kustom:</span>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginBottom: '1rem', background: '#f8fafc', padding: '0.6rem 1rem', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#0369a1' }}>Gramasi Kustom:</span>
             <input
               type="number"
-              style={{ width: '110px', padding: '0.4rem 0.7rem', fontSize: '0.95rem', fontWeight: 900, color: '#0369a1', background: '#ffffff', border: '1.5px solid #0284c7', borderRadius: '8px', outline: 'none' }}
+              style={{ width: '90px', padding: '0.3rem 0.5rem', fontSize: '0.88rem', fontWeight: 900, color: '#0369a1', background: '#ffffff', border: '1.5px solid #0284c7', borderRadius: '6px', outline: 'none' }}
               value={customGramInput}
               onChange={(e) => setCustomGramInput(e.target.value)}
               placeholder="350"
             />
-            <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0284c7' }}>gram</span>
+            <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0284c7' }}>gram</span>
           </div>
         </div>
 
-        {/* 5 PACKAGING CONVERSION CARDS */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+        {/* 5 PACKAGING CONVERSION CARDS (COMPACT & NEAT) */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem' }}>
           {/* Kemasan 250 Gram */}
-          <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderTop: '5px solid #6366f1', borderRadius: '12px', padding: '1rem', textAlign: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
-            <span style={{ fontSize: '0.88rem', fontWeight: 900, color: '#3730a3', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Kemasan 250 Gram</span>
-            <div style={{ fontSize: '0.78rem', color: '#475569', marginTop: '0.4rem', display: 'flex', flexDirection: 'column', gap: '0.2rem', fontWeight: 600 }}>
+          <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderTop: '4px solid #6366f1', borderRadius: '10px', padding: '0.75rem 0.85rem', textAlign: 'center', boxShadow: '0 3px 10px rgba(0,0,0,0.03)' }}>
+            <span style={{ fontSize: '0.78rem', fontWeight: 900, color: '#3730a3', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Kemasan 250 Gram</span>
+            <div style={{ fontSize: '0.72rem', color: '#475569', marginTop: '0.3rem', display: 'flex', flexDirection: 'column', gap: '0.15rem', fontWeight: 600 }}>
               <div>HPP : <strong>Rp {formatNumber(hpp250gNetto)}</strong></div>
               <div style={{ color: '#dc2626', fontWeight: 800 }}>+ Mrg error {marginPct}% : <strong> Rp {formatNumber(hpp250gWasteNominal)}</strong></div>
               <div>+ Plastik &amp; Stiker : <strong> Rp {formatNumber(packCost)}</strong></div>
             </div>
-            <div style={{ borderTop: '1px dashed #cbd5e1', marginTop: '0.6rem', paddingTop: '0.5rem' }}>
-              <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: '#4338ca', fontWeight: 800 }}>HPP FINAL 250G:</span>
-              <h4 style={{ color: '#4f46e5', fontSize: '1.35rem', fontWeight: 900, margin: '0.2rem 0 0 0' }}>
+            <div style={{ borderTop: '1px dashed #cbd5e1', marginTop: '0.5rem', paddingTop: '0.4rem' }}>
+              <span style={{ fontSize: '0.66rem', textTransform: 'uppercase', color: '#4338ca', fontWeight: 800 }}>HPP FINAL 250G:</span>
+              <h4 style={{ color: '#4f46e5', fontSize: '1.15rem', fontWeight: 900, margin: '0.15rem 0 0 0' }}>
                 {hpp250gWaste > 0 ? `Rp ${formatNumber(hpp250gWaste)}` : 'Rp 0'}
               </h4>
             </div>
           </div>
 
           {/* Kemasan 500 Gram */}
-          <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderTop: '5px solid #2563eb', borderRadius: '12px', padding: '1rem', textAlign: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
-            <span style={{ fontSize: '0.88rem', fontWeight: 900, color: '#1e40af', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Kemasan 500 Gram</span>
-            <div style={{ fontSize: '0.78rem', color: '#475569', marginTop: '0.4rem', display: 'flex', flexDirection: 'column', gap: '0.2rem', fontWeight: 600 }}>
+          <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderTop: '4px solid #2563eb', borderRadius: '10px', padding: '0.75rem 0.85rem', textAlign: 'center', boxShadow: '0 3px 10px rgba(0,0,0,0.03)' }}>
+            <span style={{ fontSize: '0.78rem', fontWeight: 900, color: '#1e40af', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Kemasan 500 Gram</span>
+            <div style={{ fontSize: '0.72rem', color: '#475569', marginTop: '0.3rem', display: 'flex', flexDirection: 'column', gap: '0.15rem', fontWeight: 600 }}>
               <div>HPP : <strong>Rp {formatNumber(hpp500gNetto)}</strong></div>
               <div style={{ color: '#dc2626', fontWeight: 800 }}>+ Mrg error {marginPct}% : <strong> Rp {formatNumber(hpp500gWasteNominal)}</strong></div>
               <div>+ Plastik &amp; Stiker : <strong>Rp {formatNumber(packCost)}</strong></div>
             </div>
-            <div style={{ borderTop: '1px dashed #cbd5e1', marginTop: '0.6rem', paddingTop: '0.5rem' }}>
-              <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: '#1d4ed8', fontWeight: 800 }}>HPP FINAL 500G:</span>
-              <h4 style={{ color: '#2563eb', fontSize: '1.35rem', fontWeight: 900, margin: '0.2rem 0 0 0' }}>
+            <div style={{ borderTop: '1px dashed #cbd5e1', marginTop: '0.5rem', paddingTop: '0.4rem' }}>
+              <span style={{ fontSize: '0.66rem', textTransform: 'uppercase', color: '#1d4ed8', fontWeight: 800 }}>HPP FINAL 500G:</span>
+              <h4 style={{ color: '#2563eb', fontSize: '1.15rem', fontWeight: 900, margin: '0.15rem 0 0 0' }}>
                 {hpp500gWaste > 0 ? `Rp ${formatNumber(hpp500gWaste)}` : 'Rp 0'}
               </h4>
             </div>
           </div>
 
           {/* Kemasan 900 Gram */}
-          <div style={{ background: '#ffffff', border: '1px solid #fcd34d', borderTop: '5px solid #f59e0b', borderRadius: '12px', padding: '1rem', textAlign: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
-            <span style={{ fontSize: '0.88rem', fontWeight: 900, color: '#92400e', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Kemasan 900 Gram</span>
-            <div style={{ fontSize: '0.78rem', color: '#475569', marginTop: '0.4rem', display: 'flex', flexDirection: 'column', gap: '0.2rem', fontWeight: 600 }}>
+          <div style={{ background: '#ffffff', border: '1px solid #fcd34d', borderTop: '4px solid #f59e0b', borderRadius: '10px', padding: '0.75rem 0.85rem', textAlign: 'center', boxShadow: '0 3px 10px rgba(0,0,0,0.03)' }}>
+            <span style={{ fontSize: '0.78rem', fontWeight: 900, color: '#92400e', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Kemasan 900 Gram</span>
+            <div style={{ fontSize: '0.72rem', color: '#475569', marginTop: '0.3rem', display: 'flex', flexDirection: 'column', gap: '0.15rem', fontWeight: 600 }}>
               <div>HPP : <strong>Rp {formatNumber(hpp900gNetto)}</strong></div>
               <div style={{ color: '#dc2626', fontWeight: 800 }}>+ Mrg error {marginPct}% : <strong> Rp {formatNumber(hpp900gWasteNominal)}</strong></div>
               <div>+ Plastik &amp; Stiker : <strong>Rp {formatNumber(packCost)}</strong></div>
             </div>
-            <div style={{ borderTop: '1px dashed #fcd34d', marginTop: '0.6rem', paddingTop: '0.5rem' }}>
-              <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: '#b45309', fontWeight: 800 }}>HPP FINAL 900G:</span>
-              <h4 style={{ color: '#d97706', fontSize: '1.35rem', fontWeight: 900, margin: '0.2rem 0 0 0' }}>
+            <div style={{ borderTop: '1px dashed #fcd34d', marginTop: '0.5rem', paddingTop: '0.4rem' }}>
+              <span style={{ fontSize: '0.66rem', textTransform: 'uppercase', color: '#b45309', fontWeight: 800 }}>HPP FINAL 900G:</span>
+              <h4 style={{ color: '#d97706', fontSize: '1.15rem', fontWeight: 900, margin: '0.15rem 0 0 0' }}>
                 {hpp900gWaste > 0 ? `Rp ${formatNumber(hpp900gWaste)}` : 'Rp 0'}
               </h4>
             </div>
           </div>
 
           {/* Kemasan 1000 Gram (1 KG) */}
-          <div style={{ background: '#ffffff', border: '1px solid #6ee7b7', borderTop: '5px solid #10b981', borderRadius: '12px', padding: '1rem', textAlign: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
-            <span style={{ fontSize: '0.88rem', fontWeight: 900, color: '#065f46', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Kemasan 1kg</span>
-            <div style={{ fontSize: '0.78rem', color: '#475569', marginTop: '0.4rem', display: 'flex', flexDirection: 'column', gap: '0.2rem', fontWeight: 600 }}>
+          <div style={{ background: '#ffffff', border: '1px solid #6ee7b7', borderTop: '4px solid #10b981', borderRadius: '10px', padding: '0.75rem 0.85rem', textAlign: 'center', boxShadow: '0 3px 10px rgba(0,0,0,0.03)' }}>
+            <span style={{ fontSize: '0.78rem', fontWeight: 900, color: '#065f46', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Kemasan 1kg</span>
+            <div style={{ fontSize: '0.72rem', color: '#475569', marginTop: '0.3rem', display: 'flex', flexDirection: 'column', gap: '0.15rem', fontWeight: 600 }}>
               <div>HPP : <strong>Rp {formatNumber(hpp1000gNetto)}</strong></div>
               <div style={{ color: '#dc2626', fontWeight: 800 }}>+ Mrg error {marginPct}% : <strong> Rp {formatNumber(hpp1000gWasteNominal)}</strong></div>
               <div>+ Plastik &amp; Stiker : <strong>Rp {formatNumber(packCost)}</strong></div>
             </div>
-            <div style={{ borderTop: '1px dashed #6ee7b7', marginTop: '0.6rem', paddingTop: '0.5rem' }}>
-              <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: '#047857', fontWeight: 800 }}>HPP FINAL 1 KG:</span>
-              <h4 style={{ color: '#059669', fontSize: '1.35rem', fontWeight: 900, margin: '0.2rem 0 0 0' }}>
+            <div style={{ borderTop: '1px dashed #6ee7b7', marginTop: '0.5rem', paddingTop: '0.4rem' }}>
+              <span style={{ fontSize: '0.66rem', textTransform: 'uppercase', color: '#047857', fontWeight: 800 }}>HPP FINAL 1 KG:</span>
+              <h4 style={{ color: '#059669', fontSize: '1.15rem', fontWeight: 900, margin: '0.15rem 0 0 0' }}>
                 {hpp1000gWaste > 0 ? `Rp ${formatNumber(hpp1000gWaste)}` : 'Rp 0'}
               </h4>
             </div>
           </div>
 
           {/* Gramasi Kustom */}
-          <div style={{ background: '#ffffff', border: '1px solid #7dd3fc', borderTop: '5px solid #0284c7', borderRadius: '12px', padding: '1rem', textAlign: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
-            <span style={{ fontSize: '0.88rem', fontWeight: 900, color: '#075985', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Gramasi Kustom ({customGrams}g)</span>
-            <div style={{ fontSize: '0.78rem', color: '#475569', marginTop: '0.4rem', display: 'flex', flexDirection: 'column', gap: '0.2rem', fontWeight: 600 }}>
+          <div style={{ background: '#ffffff', border: '1px solid #7dd3fc', borderTop: '4px solid #0284c7', borderRadius: '10px', padding: '0.75rem 0.85rem', textAlign: 'center', boxShadow: '0 3px 10px rgba(0,0,0,0.03)' }}>
+            <span style={{ fontSize: '0.78rem', fontWeight: 900, color: '#075985', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Gramasi Kustom ({customGrams}g)</span>
+            <div style={{ fontSize: '0.72rem', color: '#475569', marginTop: '0.3rem', display: 'flex', flexDirection: 'column', gap: '0.15rem', fontWeight: 600 }}>
               <div>HPP : <strong>Rp {formatNumber(hppCustomNetto)}</strong></div>
               <div style={{ color: '#dc2626', fontWeight: 800 }}>+ Mrg error {marginPct}% : <strong> Rp {formatNumber(hppCustomWasteNominal)}</strong></div>
               <div>+ Plastik &amp; Stiker : <strong>Rp {formatNumber(packCost)}</strong></div>
             </div>
-            <div style={{ borderTop: '1px dashed #7dd3fc', marginTop: '0.6rem', paddingTop: '0.5rem' }}>
-              <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: '#0369a1', fontWeight: 800 }}>HPP FINAL ({customGrams}g):</span>
-              <h4 style={{ color: '#0284c7', fontSize: '1.35rem', fontWeight: 900, margin: '0.2rem 0 0 0' }}>
+            <div style={{ borderTop: '1px dashed #7dd3fc', marginTop: '0.5rem', paddingTop: '0.4rem' }}>
+              <span style={{ fontSize: '0.66rem', textTransform: 'uppercase', color: '#0369a1', fontWeight: 800 }}>HPP FINAL ({customGrams}g):</span>
+              <h4 style={{ color: '#0284c7', fontSize: '1.15rem', fontWeight: 900, margin: '0.15rem 0 0 0' }}>
                 {hppCustomWaste > 0 ? `Rp ${formatNumber(hppCustomWaste)}` : 'Rp 0'}
               </h4>
             </div>
@@ -739,43 +759,29 @@ export default function HppKalkulatorTab({
 
       {/* ===== TABEL RINCIAN DATA HPP TERSIMPAN ===== */}
       <div className="table-container mt-4" style={{ borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 4px 16px rgba(0,0,0,0.04)', background: '#ffffff' }}>
-        <div style={{ padding: '1.15rem 1.35rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', borderTopLeftRadius: '14px', borderTopRightRadius: '14px', flexWrap: 'wrap', gap: '0.75rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Package size={20} style={{ color: '#10b981' }} /> Laporan Data HPP Produk Tersimpan
+        <div style={{ padding: '0.65rem 0.85rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', borderTopLeftRadius: '14px', borderTopRightRadius: '14px', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <h3 style={{ fontSize: '0.88rem', fontWeight: 900, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <Package size={17} style={{ color: '#10b981' }} /> Laporan Data HPP Produk Tersimpan
             </h3>
 
-            {/* PERIODE BULAN MONTH PICKER (EXACTLY MATCHING USER SCREENSHOT!) */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Calendar size={18} style={{ color: '#3b82f6' }} />
-              {/* <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#475569' }}>Periode Bulan:</span> */}
-              <input
-                type="month"
-                style={{
-                  background: '#334155',
-                  border: '2px solid #3b82f6',
-                  color: '#ffffff',
-                  fontWeight: 800,
-                  fontSize: '0.85rem',
-                  borderRadius: '9px',
-                  padding: '0.35rem 0.75rem',
-                  outline: 'none',
-                  cursor: 'pointer',
-                  boxShadow: '0 2px 8px rgba(59, 130, 246, 0.25)'
-                }}
+            {/* PERIODE BULAN MODERN MONTH PICKER */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <ModernMonthPicker
                 value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
+                onChange={(val) => setSelectedMonth(val)}
+                allowAll={true}
               />
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
             {displayedSavedHppList.length > 0 && (
               <>
-                <button className="btn btn-sm btn-outline" onClick={handleExportPDF} title="Cetak Laporan PDF HPP" style={{ fontWeight: 700 }}>
-                  <FileText size={15} style={{ color: '#f59e0b' }} /> Cetak PDF
+                <button className="btn btn-sm btn-outline" onClick={handleExportPDF} title="Cetak Laporan PDF HPP" style={{ fontSize: '0.72rem', height: '28px', padding: '0 0.55rem', fontWeight: 800 }}>
+                  <FileText size={13} style={{ color: '#f59e0b' }} /> Cetak PDF
                 </button>
-                <button className="btn btn-sm btn-outline" onClick={handleExportExcel} style={{ fontSize: '0.78rem', fontWeight: 700 }}>
+                <button className="btn btn-sm btn-outline" onClick={handleExportExcel} style={{ fontSize: '0.72rem', height: '28px', padding: '0 0.55rem', fontWeight: 800 }}>
                   Export Excel
                 </button>
               </>
@@ -783,26 +789,26 @@ export default function HppKalkulatorTab({
           </div>
         </div>
 
-        <table className="custom-table">
+        <table className="custom-table" style={{ width: '100%', fontSize: '0.72rem', borderCollapse: 'separate', borderSpacing: 0 }}>
           <thead>
-            <tr>
-              <th>TANGGAL &amp; WAKTU</th>
-              <th>NAMA PRODUK OLAHAN</th>
-              <th>HPP KEMASAN 250G</th>
-              <th>HPP KEMASAN 500G</th>
-              <th>HPP KEMASAN 900G</th>
-              <th>HPP 1 KG</th>
-              <th style={{ textAlign: 'center' }}>AKSI</th>
+            <tr style={{ background: '#f8fafc' }}>
+              <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', whiteSpace: 'nowrap' }}>TANGGAL &amp; WAKTU</th>
+              <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', whiteSpace: 'nowrap' }}>NAMA PRODUK OLAHAN</th>
+              <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', whiteSpace: 'nowrap' }}>HPP KEMASAN 250G</th>
+              <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', whiteSpace: 'nowrap' }}>HPP KEMASAN 500G</th>
+              <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', whiteSpace: 'nowrap' }}>HPP KEMASAN 900G</th>
+              <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', whiteSpace: 'nowrap' }}>HPP 1 KG</th>
+              <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', textAlign: 'center', whiteSpace: 'nowrap' }}>AKSI</th>
             </tr>
           </thead>
           <tbody>
             {displayedSavedHppList.length === 0 ? (
               <tr>
-                <td colSpan={7} style={{ textAlign: 'center', padding: '2.5rem' }} className="text-muted">
-                  <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#b45309', marginBottom: '0.35rem' }}>
+                <td colSpan={7} style={{ textAlign: 'center', padding: '2rem' }} className="text-muted">
+                  <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#b45309', marginBottom: '0.25rem' }}>
                     Belum ada data HPP yang disimpan untuk tanggal {filterTanggal || 'ini'}.
                   </div>
-                  <div style={{ fontSize: '0.82rem', color: '#64748b' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
                     Silakan ketik <strong>Hasil Produksi (KG)</strong> di atas dan klik tombol <strong>"Simpan Data HPP"</strong> untuk menyimpan laporan HPP secara permanen.
                   </div>
                 </td>
@@ -810,43 +816,55 @@ export default function HppKalkulatorTab({
             ) : (
               displayedSavedHppList.map((l, idx) => {
                 return (
-                  <tr key={l.id || l._id || idx}>
-                    <td style={{ fontSize: '0.82rem', fontWeight: 700, color: '#64748b' }}>{l.tanggal}</td>
-                    <td style={{ fontWeight: 800, color: '#64748b' }}>{l.produkNama}</td>
-                    <td style={{ fontWeight: 700, color: '#64748b' }}>Rp {formatNumber(l.hpp250g)}</td>
-                    <td style={{ fontWeight: 700, color: '#64748b' }}>Rp {formatNumber(l.hpp500g)}</td>
-                    <td style={{ fontWeight: 800, color: '#64748b' }}>Rp {formatNumber(l.hpp900g)}</td>
-                    <td style={{ fontWeight: 900, color: '#64748b' }}>Rp {formatNumber(l.hppPerKgWaste || l.hppPerKgNetto)}</td>
+                  <tr key={l.id || l._id || idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '0.32rem 0.55rem', fontSize: '0.7rem', fontWeight: 600, color: '#64748b', whiteSpace: 'nowrap' }}>{l.tanggal}</td>
+                    <td style={{ padding: '0.32rem 0.55rem', fontSize: '0.74rem', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap' }}>{l.produkNama}</td>
+                    <td style={{ padding: '0.32rem 0.55rem', fontSize: '0.72rem', fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>Rp {formatNumber(l.hpp250g)}</td>
+                    <td style={{ padding: '0.32rem 0.55rem', fontSize: '0.72rem', fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>Rp {formatNumber(l.hpp500g)}</td>
+                    <td style={{ padding: '0.32rem 0.55rem', fontSize: '0.72rem', fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>Rp {formatNumber(l.hpp900g)}</td>
+                    <td style={{ padding: '0.32rem 0.55rem', fontSize: '0.74rem', fontWeight: 900, color: '#0284c7', whiteSpace: 'nowrap' }}>Rp {formatNumber(l.hppPerKgWaste || l.hppPerKgNetto)}</td>
 
-                    <td style={{ textAlign: 'center' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
+                    <td style={{ padding: '0.32rem 0.55rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}>
                         <button
                           type="button"
-                          className="btn btn-sm btn-outline"
                           style={{
-                            padding: '0.3rem 0.65rem',
-                            fontSize: '0.78rem',
-                            fontWeight: 800,
+                            background: '#f0f9ff',
                             color: '#0284c7',
-                            borderColor: '#0284c7',
-                            borderRadius: '6px',
+                            border: '1px solid #bae6fd',
+                            borderRadius: '5px',
+                            width: '24px',
+                            height: '24px',
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: '0.3rem'
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease'
                           }}
                           onClick={() => setSelectedDetailHpp(l)}
                           title="Lihat Detail HPP Produksi"
                         >
-                          <Eye size={14} />
+                          <Eye size={12} />
                         </button>
                         <button
                           type="button"
-                          className="btn btn-outline btn-sm text-rose"
-                          style={{ padding: '0.3rem 0.5rem', border: '1px solid #f43f5e', borderRadius: '6px' }}
+                          style={{
+                            background: '#fef2f2',
+                            color: '#ef4444',
+                            border: '1px solid #fecaca',
+                            borderRadius: '5px',
+                            width: '24px',
+                            height: '24px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease'
+                          }}
                           onClick={() => handleDeleteHpp(l.id || l._id, l.produkNama, l.tanggal)}
                           title="Hapus Data HPP Tersimpan Ini"
                         >
-                          <Trash2 size={14} />
+                          <Trash2 size={12} />
                         </button>
                       </div>
                     </td>

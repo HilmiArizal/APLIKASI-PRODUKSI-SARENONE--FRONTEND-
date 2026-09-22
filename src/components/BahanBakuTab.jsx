@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
-import { Search, Plus, Edit3, Trash2, FileText, Tag, Upload, Calendar, Info } from 'lucide-react';
-import { formatNumber, STOCK_AWAL_JULI, HARGA_AWAL_JULI, getSkuSortIndex, getThreeMonthCutoffDate, getThreeMonthCutoffLabel, getBahanSatuan } from '../data/initialData';
+import React, { useState, useMemo } from 'react';
+import { Search, Plus, Edit3, Trash2, FileText, Tag, Upload, Calendar, Info, Filter } from 'lucide-react';
+import { formatNumber, STOCK_AWAL_JULI, HARGA_AWAL_JULI, getSkuSortIndex, getThreeMonthCutoffDate, getThreeMonthCutoffLabel, getBahanSatuan, getBahanKategori, getProdukKemasanMap, getDefaultPackagingForProduct } from '../data/initialData';
 import { exportToExcel } from '../utils/exportUtils';
 import ModalPreviewPdf from './ModalPreviewPdf';
 import { ModalImportBahanExcel, ModalImportStokAwalExcel } from './Modals';
+import { ModernDatePicker } from './ModernDatePicker';
 
 export default function BahanBakuTab({
   bahanBaku = [],
@@ -11,6 +12,7 @@ export default function BahanBakuTab({
   riwayatProduksi = [],
   utangList = [],
   auditLog = [],
+  hasilProduksi = [],
   activeRoleView,
   onOpenTambahBahan,
   onOpenEditBahan,
@@ -25,15 +27,109 @@ export default function BahanBakuTab({
 }) {
   const todayStr = new Date().toISOString().substring(0, 10);
   const cutoffDateStr = getThreeMonthCutoffDate();
+
   const [search, setSearch] = useState('');
   const [kategoriFilter, setKategoriFilter] = useState('');
   const [filterTanggal, setFilterTanggal] = useState(todayStr);
   const [isPreviewPdfOpen, setIsPreviewPdfOpen] = useState(false);
   const [isImportExcelOpen, setIsImportExcelOpen] = useState(false);
-  const [isImportStokAwalOpen, setIsImportStokAwalOpen] = useState(false);
 
   const isSuperAdmin = (activeRoleView === 'ADMIN');
   const canAddOrRestock = (activeRoleView === 'ADMIN' || activeRoleView === 'BAHAN_BAKU');
+
+  // Dynamic packaging logs synthesized from hasilProduksi
+  const synthesizedHasilLogs = useMemo(() => {
+    const logs = [];
+    const kemasanMap = getProdukKemasanMap();
+
+    (hasilProduksi || []).forEach((y, idx) => {
+      const dateStr = y.tanggal || todayStr;
+      const timeStr = y.timestamp || `${dateStr} 08:30`;
+      const qty = parseFloat(y.jumlahPcs) || 0;
+      const prodName = y.produkNama || 'Sosis Cocktail Merah 500g';
+
+      const prodKey = y.produkId || y.kode || y.alias || y.produkNama;
+      const rule = kemasanMap[prodKey] || kemasanMap[y.alias] || kemasanMap[y.kode] || getDefaultPackagingForProduct(y);
+
+      const vacumName = rule.vacumbagNama || 'Vacumbag 20*25';
+      const barcodeName = rule.stickerBarcodeNama || 'Sticker Barcode';
+      const produkStickerName = rule.stickerProdukNama || 'Sticker Produk';
+
+      logs.push({
+        id: `AUTO-VAC-${y.id || idx}`,
+        user: 'Tim Produksi',
+        role: 'PRODUKSI',
+        aksi: 'Pemakaian Kemasan',
+        detail: `Pemakaian ${qty} pcs ${vacumName} - Otomatis via Hasil Produksi (${prodName})`,
+        timestamp: timeStr
+      });
+      logs.push({
+        id: `AUTO-BAR-${y.id || idx}`,
+        user: 'Tim Produksi',
+        role: 'PRODUKSI',
+        aksi: 'Pemakaian Kemasan',
+        detail: `Pemakaian ${qty} pcs ${barcodeName} - Otomatis via Hasil Produksi (${prodName})`,
+        timestamp: timeStr
+      });
+      logs.push({
+        id: `AUTO-PRD-${y.id || idx}`,
+        user: 'Tim Produksi',
+        role: 'PRODUKSI',
+        aksi: 'Pemakaian Kemasan',
+        detail: `Pemakaian ${qty} pcs ${produkStickerName} - Otomatis via Hasil Produksi (${prodName})`,
+        timestamp: timeStr
+      });
+    });
+    return logs;
+  }, [hasilProduksi, todayStr]);
+
+  // Combine raw auditLog and synthesized logs for packaging
+  const allKemasanLogs = useMemo(() => {
+    const rawLogs = (auditLog || []).filter(log => {
+      const aksi = (log.aksi || '').toLowerCase();
+      const detail = (log.detail || '').toLowerCase();
+      return aksi.includes('kemasan') || detail.includes('pemakaian');
+    });
+
+    const combined = [...rawLogs];
+    synthesizedHasilLogs.forEach(sLog => {
+      const exists = combined.some(r => r.detail === sLog.detail && r.timestamp === sLog.timestamp);
+      if (!exists) {
+        combined.push(sLog);
+      }
+    });
+
+    return combined;
+  }, [auditLog, synthesizedHasilLogs]);
+
+  // Robust log-to-material matcher
+  const isLogMatchingMaterial = (logDetail, b) => {
+    if (!logDetail || !b) return false;
+    const detailLower = String(logDetail).toLowerCase();
+    const bName = String(b.nama || '').trim().toLowerCase();
+    const bSku = String(b.sku || b.kode || '').trim().toLowerCase();
+
+    if (detailLower.includes(bName)) return true;
+    if (bSku && detailLower.includes(bSku)) return true;
+
+    // Dimension normalization (e.g. 20*25 vs 20x25 vs 25*30 vs 23*30)
+    const normName = bName.replace(/[\*\s]/g, 'x');
+    const normDetail = detailLower.replace(/[\*\s]/g, 'x');
+    if (normDetail.includes(normName)) return true;
+
+    // Cross-dimension aliases for 900g / 1000g vacumbag if registered as 25x30 / 23x30
+    if (bName.includes('vacum')) {
+      if ((bName.includes('23') || bName.includes('25')) && (bName.includes('30'))) {
+        if ((detailLower.includes('23') || detailLower.includes('25')) && detailLower.includes('30')) return true;
+      }
+    }
+
+    // Specific packaging category checks
+    if (bName.includes('barcode') && detailLower.includes('barcode')) return true;
+    if ((bName.includes('produk') || bName.includes('stiker produk') || bName.includes('sticker produk')) && detailLower.includes('sticker produk')) return true;
+
+    return false;
+  };
 
   // Robust Material Match Helper
   const isBahanMatch = (item, b) => {
@@ -115,6 +211,14 @@ export default function BahanBakuTab({
       if (dStr && dStr <= targetDate) dateSet.add(dStr);
     });
 
+    (allKemasanLogs || []).forEach(log => {
+      const rawDate = log.timestamp || log.tanggal || log.createdAt || '';
+      const dStr = String(rawDate).substring(0, 10);
+      if (dStr && dStr <= targetDate && isLogMatchingMaterial(log.detail, b)) {
+        dateSet.add(dStr);
+      }
+    });
+
     // Sort all dates chronologically
     const sortedDates = Array.from(dateSet).sort();
 
@@ -164,23 +268,61 @@ export default function BahanBakuTab({
 
     // 1. Supplier PO Goods Receipts
     (utangList || []).forEach(p => {
-      if (!isBahanMatch(p, b)) return;
+      const bSku = String(b.sku || b.kode || '').trim().toUpperCase();
+      const directMatch = isBahanMatch(p, b) || isLogMatchingMaterial(p.nama || p.detail || p.bahanNama, b);
+      let itemQtyOnDate = 0;
 
-      if (Array.isArray(p.riwayatPenerimaan) && p.riwayatPenerimaan.length > 0) {
-        p.riwayatPenerimaan.forEach(r => {
-          const rawDate = r.tanggal || p.tanggalPenerimaan || p.tanggalBeli || p.tanggal || r.createdAt || p.createdAt || '';
-          const rDate = String(rawDate).substring(0, 10);
-          if (rDate === targetDateStr) {
-            total += Number(r.jumlah || r.diterima || 0);
+      if (Array.isArray(p.items) && p.items.length > 0) {
+        p.items.forEach(it => {
+          if (isBahanMatch(it, b) || isLogMatchingMaterial(it.nama || it.detail || it.bahanNama, b)) {
+            const rawDate = it.tanggal || it.tanggalPenerimaan || p.tanggalPenerimaan || p.tanggalBeli || p.tanggal || p.createdAt || '';
+            const rDate = String(rawDate).substring(0, 10);
+            if (rDate === targetDateStr) {
+              itemQtyOnDate += Number(it.jumlahDiterima || it.diterima || it.qty || it.jumlah || 0);
+            }
           }
         });
-      } else {
-        const qty = Number(p.jumlahDiterima || p.jumlah || 0);
-        if (qty > 0) {
-          const rawDate = p.tanggalPenerimaan || p.tanggalBeli || p.tanggal || p.createdAt || '';
-          const pDate = String(rawDate).substring(0, 10);
-          if (pDate === targetDateStr) {
-            total += qty;
+      }
+
+      if (itemQtyOnDate > 0) {
+        total += itemQtyOnDate;
+      } else if (directMatch) {
+        if (Array.isArray(p.riwayatPenerimaan) && p.riwayatPenerimaan.length > 0) {
+          p.riwayatPenerimaan.forEach(r => {
+            const rawDate = r.tanggal || p.tanggalPenerimaan || p.tanggalBeli || p.tanggal || r.createdAt || p.createdAt || '';
+            const rDate = String(rawDate).substring(0, 10);
+            if (rDate === targetDateStr) {
+              total += Number(r.jumlah || r.diterima || 0);
+            }
+          });
+        } else {
+          const qty = Number(p.jumlahDiterima || p.jumlah || 0);
+          if (qty > 0) {
+            const rawDate = p.tanggalPenerimaan || p.tanggalBeli || p.tanggal || p.createdAt || '';
+            const pDate = String(rawDate).substring(0, 10);
+            if (pDate === targetDateStr) {
+              total += qty;
+            }
+          }
+        }
+      }
+    });
+
+    // 2. Audit Log Receipts (Stok Masuk / Restock In)
+    (auditLog || []).forEach(log => {
+      const aksi = String(log.aksi || '').toLowerCase();
+      const detail = String(log.detail || '').toLowerCase();
+      const isRollback = aksi.includes('rollback') || aksi.includes('batal') || detail.includes('rollback') || detail.includes('membatalkan');
+      if (isRollback) return;
+      if (aksi.includes('stok masuk') || aksi.includes('restock') || aksi.includes('penerimaan') || detail.includes('stok masuk') || detail.includes('restock')) {
+        const rawDate = log.timestamp || log.tanggal || log.createdAt || '';
+        const logDate = String(rawDate).substring(0, 10);
+        if (logDate === targetDateStr && (isBahanMatch(log, b) || isLogMatchingMaterial(log.detail || log.nama, b))) {
+          const match = String(log.detail || '').match(/(\+|\b)([0-9.]+)\s*(kg|pcs|pack|liter|l|g|pouch|roll|lembar)/i);
+          if (match && match[2]) {
+            total += parseFloat(match[2]) || 0;
+          } else if (log.jumlah || log.qty) {
+            total += parseFloat(log.jumlah || log.qty) || 0;
           }
         }
       }
@@ -300,13 +442,39 @@ export default function BahanBakuTab({
       });
     }
 
+    // 3. Packaging Material Consumptions (Vacumbag & Stickers from allKemasanLogs)
+    const katLower = (b.kategori || '').toLowerCase();
+    const isPackaging = katLower.includes('kemasan') || bName.includes('casing') || bName.includes('plastik') || bName.includes('pouch') || bName.includes('box') || bName.includes('label') || bName.includes('sticker') || bName.includes('stiker') || bName.includes('barcode') || bName.includes('vacum');
+
+    if (isPackaging) {
+      allKemasanLogs.forEach(log => {
+        const rawDate = log.timestamp || log.tanggal || log.createdAt || '';
+        const logDate = String(rawDate).substring(0, 10);
+        if (logDate === targetDateStr && isLogMatchingMaterial(log.detail, b)) {
+          const match = String(log.detail || '').match(/Pemakaian\s+([0-9.]+)/i);
+          if (match && match[1]) {
+            total += parseFloat(match[1]) || 0;
+          }
+        }
+      });
+    }
+
     return Math.round(total * 1000) / 1000;
   };
 
+  const computedKategoriList = useMemo(() => {
+    const set = new Set();
+    bahanBaku.forEach(b => {
+      set.add(getBahanKategori(b));
+    });
+    return Array.from(set).sort();
+  }, [bahanBaku]);
+
   const filteredBahan = bahanBaku
     .filter(b => {
+      const bKat = getBahanKategori(b);
       const matchQuery = b.nama.toLowerCase().includes(search.toLowerCase()) || b.sku.toLowerCase().includes(search.toLowerCase());
-      const matchKat = !kategoriFilter || b.kategori === kategoriFilter;
+      const matchKat = !kategoriFilter || bKat === kategoriFilter;
       return matchQuery && matchKat;
     })
     .sort((a, b) => getSkuSortIndex(a.sku) - getSkuSortIndex(b.sku));
@@ -422,7 +590,7 @@ export default function BahanBakuTab({
   return (
     <div className="tab-pane active" style={{ maxWidth: '100%', overflowX: 'hidden', color: '#1e293b' }}>
       {/* ===== 3 MONTHS RETENTION NOTICE BANNER ===== */}
-      <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '10px', padding: '0.65rem 1rem', marginBottom: '1.1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+      {/* <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '10px', padding: '0.65rem 1rem', marginBottom: '1.1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', fontSize: '0.82rem', color: '#334155', fontWeight: 600 }}>
           <Info size={18} style={{ color: '#0284c7', flexShrink: 0 }} />
           <span>
@@ -432,160 +600,127 @@ export default function BahanBakuTab({
         <span className="badge badge-emerald" style={{ fontSize: '0.72rem', padding: '0.2rem 0.55rem' }}>
           🛡️ RETENSI 3 BULAN AKTIF
         </span>
+      </div>      {/* ===== 1. TOP TOOLBAR: Modern Single Date Picker (Daily Per Tanggal) di KIRI ===== */}
+      <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
+        <ModernDatePicker
+          value={filterTanggal}
+          onChange={(val) => {
+            if (val && val < cutoffDateStr) {
+              if (showAlert) showAlert(`Akses stok dibatasi maksimal 3 Bulan Terakhir (${getThreeMonthCutoffLabel()}).`, 'warning', 'Batas Retensi 3 Bulan');
+              setFilterTanggal(cutoffDateStr);
+            } else {
+              setFilterTanggal(val);
+            }
+          }}
+          min={cutoffDateStr}
+          max={todayStr}
+          label="Stock"
+        />
+
+        {/* {filterTanggal !== todayStr && (
+          <button
+            type="button"
+            className="btn btn-sm btn-outline"
+            onClick={() => setFilterTanggal(todayStr)}
+            style={{ fontSize: '0.74rem', height: '32px', padding: '0 0.65rem' }}
+          >
+            Hari Ini
+          </button>
+        )} */}
       </div>
 
-      {/* ===== HEADER BAR & FILTER TANGGAL ===== */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#f8fafc', padding: '0.4rem 0.85rem', borderRadius: '10px', border: '1px solid #cbd5e1' }}>
-            <Calendar size={16} style={{ color: '#2563eb' }} />
-            <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#475569' }}>Filter Tanggal Position:</span>
+      {/* ===== 2. SECOND TOOLBAR: Search, Category, Combined Import, PDF, Tambah ===== */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.6rem', marginBottom: '0.85rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+          {/* Modern Search Box */}
+          <div className="search-box" style={{ maxWidth: '240px', height: '32px', padding: '0 0.65rem', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+            <Search size={14} style={{ color: '#94a3b8' }} />
             <input
-              type="date"
-              min={cutoffDateStr}
-              max={todayStr}
-              value={filterTanggal}
-              onChange={(e) => {
-                const val = e.target.value;
-                if (val && val < cutoffDateStr) {
-                  if (showAlert) showAlert(`Akses stok dibatasi maksimal 3 Bulan Terakhir (${getThreeMonthCutoffLabel()}).`, 'warning', 'Batas Retensi 3 Bulan');
-                  setFilterTanggal(cutoffDateStr);
-                } else {
-                  setFilterTanggal(val);
-                }
-              }}
-              style={{ border: 'none', background: 'transparent', fontSize: '0.85rem', fontWeight: 800, color: '#0f172a', outline: 'none', cursor: 'pointer' }}
+              type="text"
+              placeholder="Cari SKU atau Nama Bahan..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{ fontSize: '0.76rem' }}
             />
           </div>
 
-          {filterTanggal !== todayStr && (
-            <button
-              className="btn btn-sm btn-outline"
-              onClick={() => setFilterTanggal(todayStr)}
-              style={{ fontSize: '0.78rem' }}
+          {/* Modern Category Selector with Icon */}
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <Tag size={13} style={{ position: 'absolute', left: '0.65rem', color: '#64748b', pointerEvents: 'none' }} />
+            <select
+              value={kategoriFilter}
+              onChange={(e) => setKategoriFilter(e.target.value)}
+              className="select-input"
+              style={{ height: '32px', paddingLeft: '1.85rem', paddingRight: '0.65rem', fontSize: '0.78rem', fontWeight: 600, borderRadius: '8px', border: '1px solid #cbd5e1', maxWidth: '180px' }}
             >
-              Hari Ini
-            </button>
-          )}
-
-          {filterTanggal && (
-            <button
-              className="btn btn-sm btn-outline"
-              onClick={() => setFilterTanggal('')}
-              style={{ fontSize: '0.78rem' }}
-            >
-              Semua Tanggal
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* ===== DATE POSITION SUMMARY BANNER ===== */}
-      {filterTanggal && (
-        <div style={{
-          background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-          color: '#ffffff',
-          padding: '0.85rem 1.25rem',
-          borderRadius: '12px',
-          marginTop: '1rem',
-          marginBottom: '1rem',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          borderLeft: '4px solid #38bdf8',
-          boxShadow: '0 4px 15px rgba(0, 0, 0, 0.12)',
-          flexWrap: 'wrap',
-          gap: '0.75rem'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-            <Calendar size={20} style={{ color: '#38bdf8' }} />
-            <div>
-              <span style={{ fontSize: '0.95rem', fontWeight: 800, letterSpacing: '0.3px' }}>
-                POSISI &amp; PERGERAKAN STOK TANGGAL: <span style={{ color: '#38bdf8' }}>{filterTanggal}</span>
-              </span>
-            </div>
-          </div>
-          <div style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 600 }}>
-            Rumus: <span style={{ color: '#e2e8f0' }}>Stok Awal</span> + <span style={{ color: '#34d399' }}>Penerimaan (+)</span> - <span style={{ color: '#fb7185' }}>Pemakaian (-)</span> = <span style={{ color: '#38bdf8', fontWeight: 800 }}>Stok Akhir</span>
+              <option value="">Semua Kategori</option>
+              {computedKategoriList.map(k => (
+                <option key={k} value={k}>{k}</option>
+              ))}
+            </select>
           </div>
         </div>
-      )}
 
-      <div className="toolbar">
-        <div className="search-box" style={{ maxWidth: '320px' }}>
-          <Search size={16} className="search-icon" />
-          <input
-            type="text"
-            className="form-control search-input"
-            placeholder="Cari SKU atau Nama Bahan..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-
-        <select
-          value={kategoriFilter}
-          onChange={(e) => setKategoriFilter(e.target.value)}
-          className="select-input"
-          style={{ maxWidth: '190px' }}
-        >
-          <option value="">Semua Kategori</option>
-          {kategoriList.map(k => (
-            <option key={k.id} value={k.nama}>{k.nama}</option>
-          ))}
-        </select>
-
-        <div className="toolbar-actions">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
           {canAddOrRestock && (
-            <>
-              <button className="btn btn-outline btn-emerald" onClick={() => setIsImportExcelOpen(true)} title="Import Master Bahan Baku Masal dari File Excel">
-                <Upload size={16} style={{ color: 'var(--emerald)' }} /> Import Master Excel
-              </button>
-
-              <button
-                className="btn btn-outline"
-                onClick={() => setIsImportStokAwalOpen(true)}
-                title="Import Stok Awal Bulan Manual (Khusus Super Admin Bahan Baku)"
-                style={{ borderColor: '#10b981', color: '#047857', fontWeight: 700, background: '#ecfdf5' }}
-              >
-                <Calendar size={16} style={{ color: '#10b981' }} /> Import Stok Awal
-              </button>
-            </>
+            <button
+              type="button"
+              className="btn btn-outline btn-emerald"
+              style={{ height: '32px', padding: '0 0.75rem', fontSize: '0.78rem', fontWeight: 700, borderRadius: '8px', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+              onClick={() => setIsImportExcelOpen(true)}
+              title="Import Data Excel (Master Bahan & Stok Awal)"
+            >
+              <Upload size={14} style={{ color: 'var(--emerald)' }} /> Import Excel (Master &amp; Stok)
+            </button>
           )}
 
-          <button className="btn btn-outline" onClick={handleExportPDF} title="Preview & Cetak Laporan PDF">
-            <FileText size={16} style={{ color: 'var(--amber)' }} /> Cetak PDF
+          <button
+            type="button"
+            className="btn btn-outline"
+            style={{ height: '32px', padding: '0 0.75rem', fontSize: '0.78rem', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+            onClick={handleExportPDF}
+            title="Preview & Cetak Laporan PDF"
+          >
+            <FileText size={14} style={{ color: 'var(--amber)' }} /> Cetak PDF
           </button>
 
           {isSuperAdmin && (
-            <button className="btn btn-primary" onClick={onOpenTambahBahan}>
-              <Plus size={16} /> Tambah Bahan
+            <button
+              type="button"
+              className="btn btn-primary"
+              style={{ height: '32px', padding: '0 0.85rem', fontSize: '0.78rem', fontWeight: 700, borderRadius: '8px', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+              onClick={onOpenTambahBahan}
+            >
+              <Plus size={14} /> Tambah Bahan
             </button>
           )}
         </div>
       </div>
 
-      <div className="table-container mt-3" style={{ overflowX: 'auto' }}>
+      <div className="table-container" style={{ overflowX: 'auto', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)' }}>
         <table className="custom-table" style={{ width: '100%', whiteSpace: 'nowrap' }}>
           <thead>
-            <tr>
-              <th style={{ padding: '0.5rem 0.6rem', fontSize: '0.78rem' }}>SKU</th>
-              <th style={{ padding: '0.5rem 0.6rem', fontSize: '0.78rem' }}>NAMA BAHAN</th>
-              <th style={{ padding: '0.5rem 0.6rem', fontSize: '0.78rem' }}>KATEGORI</th>
-              <th style={{ padding: '0.5rem 0.6rem', fontSize: '0.78rem' }}>HARGA SATUAN</th>
-              {filterTanggal && <th style={{ padding: '0.5rem 0.6rem', fontSize: '0.78rem', color: '#475569', background: '#f8fafc' }}>STOK AWAL</th>}
-              {filterTanggal && <th style={{ padding: '0.5rem 0.6rem', fontSize: '0.78rem', color: '#059669', background: '#ecfdf5' }}>PENERIMAAN (+)</th>}
-              {filterTanggal && <th style={{ padding: '0.5rem 0.6rem', fontSize: '0.78rem', color: '#e11d48', background: '#fff1f2' }}>PEMAKAIAN (-)</th>}
-              <th style={{ padding: '0.5rem 0.6rem', fontSize: '0.78rem' }}>{filterTanggal ? 'STOK AKHIR' : 'STOK SAAT INI'}</th>
-              <th style={{ padding: '0.5rem 0.6rem', fontSize: '0.78rem' }}>BATAS MIN</th>
-              <th style={{ padding: '0.5rem 0.6rem', fontSize: '0.78rem' }}>STATUS</th>
-              {isSuperAdmin && <th style={{ padding: '0.5rem 0.6rem', fontSize: '0.78rem', textAlign: 'right' }}>AKSI</th>}
+            <tr style={{ background: '#f8fafc' }}>
+              <th style={{ padding: '0.45rem 0.5rem', fontSize: '0.72rem', letterSpacing: '0.03em', color: '#0f172a', fontWeight: 800 }}>SKU</th>
+              <th style={{ padding: '0.45rem 0.5rem', fontSize: '0.72rem', letterSpacing: '0.03em', color: '#0f172a', fontWeight: 800 }}>NAMA BAHAN</th>
+              <th style={{ padding: '0.45rem 0.5rem', fontSize: '0.72rem', letterSpacing: '0.03em', color: '#0f172a', fontWeight: 800 }}>KATEGORI</th>
+              <th style={{ padding: '0.45rem 0.5rem', fontSize: '0.72rem', letterSpacing: '0.03em', color: '#0f172a', fontWeight: 800 }}>HARGA SATUAN</th>
+              {filterTanggal && <th style={{ padding: '0.45rem 0.5rem', fontSize: '0.72rem', letterSpacing: '0.03em', color: '#0f172a', fontWeight: 800 }}>STOK AWAL</th>}
+              {filterTanggal && <th style={{ padding: '0.45rem 0.5rem', fontSize: '0.72rem', letterSpacing: '0.03em', color: '#0f172a', fontWeight: 800 }}>PENERIMAAN (+)</th>}
+              {filterTanggal && <th style={{ padding: '0.45rem 0.5rem', fontSize: '0.72rem', letterSpacing: '0.03em', color: '#0f172a', fontWeight: 800 }}>PEMAKAIAN (-)</th>}
+              <th style={{ padding: '0.45rem 0.5rem', fontSize: '0.72rem', letterSpacing: '0.03em', color: '#0f172a', fontWeight: 800 }}>{filterTanggal ? 'STOK AKHIR' : 'STOK SAAT INI'}</th>
+              <th style={{ padding: '0.45rem 0.5rem', fontSize: '0.72rem', letterSpacing: '0.03em', color: '#0f172a', fontWeight: 800 }}>STATUS</th>
+              {isSuperAdmin && (
+                <th style={{ padding: '0.45rem 0.65rem', fontSize: '0.72rem', letterSpacing: '0.03em', color: '#0f172a', fontWeight: 800, textAlign: 'right', position: 'sticky', right: 0, background: '#f8fafc', zIndex: 3, boxShadow: '-2px 0 5px rgba(0,0,0,0.04)' }}>
+                  AKSI
+                </th>
+              )}
             </tr>
           </thead>
           <tbody>
             {filteredBahan.length === 0 ? (
               <tr>
-                <td colSpan={filterTanggal ? (isSuperAdmin ? 11 : 10) : (isSuperAdmin ? 8 : 7)} style={{ textAlign: 'center', padding: '2rem' }} className="text-muted">
+                <td colSpan={filterTanggal ? (isSuperAdmin ? 10 : 9) : (isSuperAdmin ? 7 : 6)} style={{ textAlign: 'center', padding: '2rem' }} className="text-muted">
                   Tidak ada data bahan baku dapur yang sesuai.
                 </td>
               </tr>
@@ -600,46 +735,45 @@ export default function BahanBakuTab({
                 const bSatuan = getBahanSatuan(b);
 
                 return (
-                  <tr key={b.id || b._id} style={{ borderBottom: '1px solid #e2e8f0', background: isLow ? '#fef2f2' : undefined }}>
-                    <td style={{ padding: '0.45rem 0.6rem', fontWeight: 800, color: '#f59e0b', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>{b.sku || '-'}</td>
-                    <td style={{ padding: '0.45rem 0.6rem', fontWeight: 700, color: '#0f172a', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>{b.nama}</td>
-                    <td style={{ padding: '0.45rem 0.6rem', whiteSpace: 'nowrap' }}>
-                      <span className="badge badge-info" style={{ fontSize: '0.7rem', padding: '0.2rem 0.45rem', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                        <Tag size={10} /> {b.kategori}
+                  <tr key={b.id || b._id} style={{ borderBottom: '1px solid #e2e8f0', fontSize: '0.74rem' }}>
+                    <td style={{ padding: '0.35rem 0.5rem', fontWeight: 800, color: '#0f172a', fontSize: '0.74rem', whiteSpace: 'nowrap' }}>{b.sku || '-'}</td>
+                    <td style={{ padding: '0.35rem 0.5rem', fontWeight: 700, color: '#0f172a', fontSize: '0.74rem', whiteSpace: 'nowrap' }}>{b.nama}</td>
+                    <td style={{ padding: '0.35rem 0.5rem', whiteSpace: 'nowrap' }}>
+                      <span className="badge badge-info" style={{ fontSize: '0.68rem', padding: '0.15rem 0.45rem', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: '#0f172a', background: '#f1f5f9', border: '1px solid #cbd5e1' }}>
+                        <Tag size={9} style={{ color: '#475569' }} /> {getBahanKategori(b)}
                       </span>
                     </td>
-                    <td style={{ padding: '0.45rem 0.6rem', fontWeight: 800, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
-                      Rp {formatNumber(hargaVal)} <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 500 }}>/{bSatuan}</span>
+                    <td style={{ padding: '0.35rem 0.5rem', fontWeight: 800, color: '#0f172a', fontSize: '0.74rem', whiteSpace: 'nowrap' }}>
+                      Rp {formatNumber(hargaVal)} <span style={{ fontSize: '0.68rem', color: '#475569', fontWeight: 500 }}>/{bSatuan}</span>
                     </td>
                     
                     {filterTanggal && (
-                      <td style={{ padding: '0.45rem 0.6rem', fontWeight: 800, color: '#475569', background: '#f8fafc', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
-                        {formatNumber(stokAwalVal)} <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>{bSatuan}</span>
+                      <td style={{ padding: '0.35rem 0.5rem', fontWeight: 700, color: '#0f172a', fontSize: '0.74rem', whiteSpace: 'nowrap' }}>
+                        {formatNumber(stokAwalVal)} <span style={{ fontSize: '0.68rem', color: '#475569', fontWeight: 600 }}>{bSatuan}</span>
                       </td>
                     )}
 
                     {filterTanggal && (
-                      <td style={{ padding: '0.45rem 0.6rem', fontWeight: 800, color: rxVal > 0 ? '#059669' : '#94a3b8', background: rxVal > 0 ? '#ecfdf5' : undefined, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
+                      <td style={{ padding: '0.35rem 0.5rem', fontWeight: 700, color: rxVal > 0 ? '#059669' : '#0f172a', fontSize: '0.74rem', whiteSpace: 'nowrap' }}>
                         {rxVal > 0 ? `+${formatNumber(rxVal)} ${bSatuan}` : '-'}
                       </td>
                     )}
 
                     {filterTanggal && (
-                      <td style={{ padding: '0.45rem 0.6rem', fontWeight: 800, color: cxVal > 0 ? '#e11d48' : '#94a3b8', background: cxVal > 0 ? '#fff1f2' : undefined, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
+                      <td style={{ padding: '0.35rem 0.5rem', fontWeight: 700, color: cxVal > 0 ? '#e11d48' : '#0f172a', fontSize: '0.74rem', whiteSpace: 'nowrap' }}>
                         {cxVal > 0 ? `-${formatNumber(cxVal)} ${bSatuan}` : '-'}
                       </td>
                     )}
 
-                    <td style={{ padding: '0.45rem 0.6rem', fontWeight: 800, color: '#2563eb', fontSize: '0.82rem', whiteSpace: 'nowrap' }}>
-                      {formatNumber(stokVal)} <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>{bSatuan}</span>
+                    <td style={{ padding: '0.35rem 0.5rem', fontWeight: 800, color: '#0f172a', fontSize: '0.76rem', whiteSpace: 'nowrap' }}>
+                      {formatNumber(stokVal)} <span style={{ fontSize: '0.68rem', color: '#475569', fontWeight: 600 }}>{bSatuan}</span>
                     </td>
-                    <td style={{ padding: '0.45rem 0.6rem', color: '#64748b', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>{formatNumber(b.minStok)} {bSatuan}</td>
-                    <td style={{ padding: '0.45rem 0.6rem', whiteSpace: 'nowrap' }}>
+                    <td style={{ padding: '0.35rem 0.5rem', whiteSpace: 'nowrap' }}>
                       <span
                         style={{
-                          fontSize: '0.72rem',
+                          fontSize: '0.68rem',
                           fontWeight: 800,
-                          padding: '0.25rem 0.55rem',
+                          padding: '0.15rem 0.45rem',
                           borderRadius: '6px',
                           whiteSpace: 'nowrap',
                           display: 'inline-block',
@@ -652,7 +786,7 @@ export default function BahanBakuTab({
                       </span>
                     </td>
                     {isSuperAdmin && (
-                      <td style={{ padding: '0.45rem 0.6rem', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                      <td style={{ padding: '0.3rem 0.65rem', textAlign: 'right', whiteSpace: 'nowrap', position: 'sticky', right: 0, background: isLow ? '#fef2f2' : '#ffffff', zIndex: 2, boxShadow: '-2px 0 5px rgba(0,0,0,0.04)' }}>
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.3rem' }}>
                           <button className="btn btn-sm btn-icon btn-outline" style={{ width: '26px', height: '26px', padding: 0 }} onClick={() => onOpenEditBahan(b)} title="Edit Material">
                             <Edit3 size={12} />
@@ -676,14 +810,6 @@ export default function BahanBakuTab({
           isOpen={isImportExcelOpen}
           onClose={() => setIsImportExcelOpen(false)}
           onImport={onImportExcelBahan}
-          showAlert={showAlert}
-        />
-      )}
-
-      {isImportStokAwalOpen && (
-        <ModalImportStokAwalExcel
-          isOpen={isImportStokAwalOpen}
-          onClose={() => setIsImportStokAwalOpen(false)}
           onImportStokAwal={onImportStokAwalExcel}
           bahanBaku={bahanBaku}
           showAlert={showAlert}

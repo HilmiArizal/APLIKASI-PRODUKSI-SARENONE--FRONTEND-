@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   LayoutDashboard, Boxes, Package, BookOpen, ChefHat, History, UserCheck,
   LogOut, X, Layers, Tag, Users, FlaskConical, CreditCard, PackageCheck,
-  Building2, ShoppingCart, Megaphone, TrendingUp, ChevronDown, ChevronRight, ClipboardCheck
+  Building2, ShoppingCart, Megaphone, TrendingUp, ChevronDown, ChevronRight, ClipboardCheck, RotateCcw
 } from 'lucide-react';
 import logoImg from '../assets/logo.png';
 
@@ -12,6 +12,7 @@ export default function Sidebar({ activeUser, activeRoleView, activeTab, onSwitc
     if (role === 'ADMIN') return 'Super Admin Bahan Baku';
     if (role === 'ADMIN_PRODUK') return 'Super Admin Produk';
     if (role === 'BAHAN_BAKU') return 'Tim Produksi';
+    if (role === 'PRODUKSI') return 'Tim Produksi';
     if (role === 'PEMBELIAN') return 'Tim Pembelian';
     if (role === 'TIM_PENJUALAN') return 'Tim Penjualan';
     if (role === 'TIM_MARKETING') return 'Tim Marketing';
@@ -28,10 +29,12 @@ export default function Sidebar({ activeUser, activeRoleView, activeTab, onSwitc
 
   const [openMenuPembelian, setOpenMenuPembelian] = useState(false);
   const [openMenuProduksi, setOpenMenuProduksi] = useState(false);
+  const [openMenuPenjualan, setOpenMenuPenjualan] = useState(true);
+  const [openMenuMarketing, setOpenMenuMarketing] = useState(true);
 
   // Domain Bahan Baku Permissions
   const showPembelianGroup = !isProdukDomain && activeRoleView !== 'SALES' && ['ADMIN', 'PEMBELIAN'].includes(activeRoleView);
-  const showProduksiGroup = !isProdukDomain && activeRoleView !== 'SALES' && ['ADMIN', 'BAHAN_BAKU'].includes(activeRoleView);
+  const showProduksiGroup = !isProdukDomain && activeRoleView !== 'SALES' && ['ADMIN', 'BAHAN_BAKU', 'PRODUKSI'].includes(activeRoleView);
   const showSupplier = !isProdukDomain && activeRoleView !== 'SALES' && ['ADMIN', 'PEMBELIAN'].includes(activeRoleView);
   const showAudit = !isProdukDomain && activeRoleView === 'ADMIN';
 
@@ -48,7 +51,7 @@ export default function Sidebar({ activeUser, activeRoleView, activeTab, onSwitc
       {isMobileOpen && <div className="sidebar-mobile-backdrop" onClick={onCloseMobile} />}
 
       <aside className={`sidebar ${isMobileOpen ? 'mobile-open' : ''}`}>
-        <div className="sidebar-brand">
+        <div className="sidebar-brand" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '0.5rem 0' }}>
           <img src={logoImg} alt="HEAVEN SENTOSA" className="sidebar-logo" />
           <button className="mobile-close-btn" onClick={onCloseMobile}><X size={20} /></button>
         </div>
@@ -98,8 +101,8 @@ export default function Sidebar({ activeUser, activeRoleView, activeTab, onSwitc
                         <CreditCard size={16} /><span>Utang Supplier</span>
                       </a>
                       <a href="#bahan-baku" className={mi('bahan-baku')} onClick={e => { e.preventDefault(); nav('bahan-baku'); }}>
-                        <Boxes size={16} /><span>Stock Bahan Baku</span>
-                        {lowStockCount > 0 && <span className="badge badge-amber">{lowStockCount}</span>}
+                        <Boxes size={16} /><span style={{ whiteSpace: 'nowrap' }}>Stock Bahan Baku</span>
+                        {lowStockCount > 0 && <span className="badge badge-amber" style={{ marginLeft: 'auto', flexShrink: 0 }}>{lowStockCount}</span>}
                       </a>
                       <a href="#audit-stok" className={mi('audit-stok')} onClick={e => { e.preventDefault(); nav('audit-stok'); }}>
                         <ClipboardCheck size={16} /><span>Stok Fisik &amp; Opname</span>
@@ -183,53 +186,99 @@ export default function Sidebar({ activeUser, activeRoleView, activeTab, onSwitc
           {/* ===== DOMAIN PRODUK ===== */}
           {isProdukDomain && (
             <>
+              {/* 1. Dashboard Produk */}
               {['ADMIN_PRODUK', 'TIM_PENJUALAN', 'TIM_MARKETING'].includes(activeRoleView) && (
                 <a href="#dashboard-produk" className={mi('dashboard-produk')} onClick={e => { e.preventDefault(); nav('dashboard-produk'); }}>
                   <LayoutDashboard size={18} /><span>Dashboard Produk</span>
                 </a>
               )}
 
+              {/* 2. Penjualan Produk (Collapsible v) */}
               {showKatalogProduk && (
-                <>
-                  <a href="#katalog-produk" className={mi('katalog-produk')} onClick={e => { e.preventDefault(); nav('katalog-produk'); }}>
-                    <Package size={18} /><span>Katalog Produk</span>
-                  </a>
-                  <a href="#stok-produk" className={mi('stok-produk')} onClick={e => { e.preventDefault(); nav('stok-produk'); }}>
-                    <Boxes size={18} /><span>Stok Produk</span>
-                  </a>
-                  <a href="#kategori-produk-sales" className={mi('kategori-produk-sales')} onClick={e => { e.preventDefault(); nav('kategori-produk-sales'); }}>
-                    <Tag size={18} /><span>Kelola Brand</span>
-                  </a>
-                </>
+                <div className="menu-group">
+                  <button
+                    type="button"
+                    className={`menu-group-header ${['katalog-produk', 'penjualan', 'pembelian-produk', 'piutang-pelanggan', 'retur-produk', 'stok-produk'].includes(activeTab) ? 'active' : ''}`}
+                    onClick={() => setOpenMenuPenjualan(!openMenuPenjualan)}
+                  >
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <TrendingUp size={18} /> Penjualan Produk
+                    </span>
+                    {openMenuPenjualan ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                  </button>
+
+                  {openMenuPenjualan && (
+                    <div className="menu-sub-items">
+                      <a href="#katalog-produk" className={mi('katalog-produk')} onClick={e => { e.preventDefault(); nav('katalog-produk'); }}>
+                        <Package size={16} /><span>Katalog Produk</span>
+                      </a>
+                      <a href="#penjualan" className={mi('penjualan')} onClick={e => { e.preventDefault(); nav('penjualan'); }}>
+                        <TrendingUp size={16} /><span>Penjualan</span>
+                      </a>
+                      <a href="#pembelian-produk" className={mi('pembelian-produk')} onClick={e => { e.preventDefault(); nav('pembelian-produk'); }}>
+                        <ShoppingCart size={16} /><span>Pembelian</span>
+                      </a>
+                      <a href="#piutang-pelanggan" className={mi('piutang-pelanggan')} onClick={e => { e.preventDefault(); nav('piutang-pelanggan'); }}>
+                        <CreditCard size={16} /><span>Piutang</span>
+                      </a>
+                      <a href="#retur-produk" className={mi('retur-produk')} onClick={e => { e.preventDefault(); nav('retur-produk'); }}>
+                        <RotateCcw size={16} /><span>Retur Produk</span>
+                      </a>
+                      <a href="#stok-produk" className={mi('stok-produk')} onClick={e => { e.preventDefault(); nav('stok-produk'); }}>
+                        <Boxes size={16} /><span>Stock Produk</span>
+                      </a>
+                    </div>
+                  )}
+                </div>
               )}
 
-              {showPenjualan && (
-                <>
-                  <a href="#penjualan" className={mi('penjualan')} onClick={e => { e.preventDefault(); nav('penjualan'); }}>
-                    <TrendingUp size={18} /><span>Data Penjualan</span>
-                  </a>
-                  <a href="#pelanggan" className={mi('pelanggan')} onClick={e => { e.preventDefault(); nav('pelanggan'); }}>
-                    <Users size={18} /><span>Kelola Pelanggan</span>
-                  </a>
-                  <a href="#piutang-pelanggan" className={mi('piutang-pelanggan')} onClick={e => { e.preventDefault(); nav('piutang-pelanggan'); }}>
-                    <CreditCard size={18} /><span>Piutang Pelanggan</span>
-                  </a>
-                  <a href="#pembayaran-masuk" className={mi('pembayaran-masuk')} onClick={e => { e.preventDefault(); nav('pembayaran-masuk'); }}>
-                    <PackageCheck size={18} /><span>Pembayaran Masuk</span>
-                  </a>
-                </>
-              )}
-
+              {/* 3. Marketing (Collapsible v) */}
               {showMarketing && (
-                <a href="#marketing" className={mi('marketing')} onClick={e => { e.preventDefault(); nav('marketing'); }}>
-                  <Megaphone size={18} /><span>Konten Marketing</span>
+                <div className="menu-group">
+                  <button
+                    type="button"
+                    className={`menu-group-header ${['absensi-spg', 'marketing'].includes(activeTab) ? 'active' : ''}`}
+                    onClick={() => setOpenMenuMarketing(!openMenuMarketing)}
+                  >
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <Megaphone size={18} /> Marketing
+                    </span>
+                    {openMenuMarketing ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                  </button>
+
+                  {openMenuMarketing && (
+                    <div className="menu-sub-items">
+                      <a href="#absensi-spg" className={mi('absensi-spg')} onClick={e => { e.preventDefault(); nav('absensi-spg'); }}>
+                        <UserCheck size={16} /><span>Absensi Sales</span>
+                      </a>
+                      <a href="#marketing" className={mi('marketing')} onClick={e => { e.preventDefault(); nav('marketing'); }}>
+                        <Megaphone size={16} /><span>Konten Marketing</span>
+                      </a>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* 4. Kelola Brand */}
+              {showKatalogProduk && (
+                <a href="#kategori-produk-sales" className={mi('kategori-produk-sales')} onClick={e => { e.preventDefault(); nav('kategori-produk-sales'); }}>
+                  <Tag size={18} /><span>Kelola Brand</span>
                 </a>
               )}
 
+              {/* 5. Kelola Pelanggan */}
+              {showPenjualan && (
+                <a href="#pelanggan" className={mi('pelanggan')} onClick={e => { e.preventDefault(); nav('pelanggan'); }}>
+                  <Users size={18} /><span>Kelola Pelanggan</span>
+                </a>
+              )}
+
+              {/* 6. Verifikasi User & 7. Audit Log */}
               {activeRoleView === 'ADMIN_PRODUK' && (
                 <>
                   <a href="#user-approval-produk" className={mi('user-approval-produk')} onClick={e => { e.preventDefault(); nav('user-approval-produk'); }}>
                     <UserCheck size={18} /><span>Verifikasi User</span>
+                    {pendingUserCount > 0 && <span className="badge badge-amber" style={{ marginLeft: 'auto' }}>{pendingUserCount}</span>}
                   </a>
                   <a href="#audit-log-produk" className={mi('audit-log-produk')} onClick={e => { e.preventDefault(); nav('audit-log-produk'); }}>
                     <History size={18} /><span>Audit Log</span>
@@ -237,12 +286,6 @@ export default function Sidebar({ activeUser, activeRoleView, activeTab, onSwitc
                 </>
               )}
             </>
-          )}
-
-          {activeRoleView === 'SALES' && (
-            <a href="#absensi-spg" className={mi('absensi-spg')} onClick={e => { e.preventDefault(); nav('absensi-spg'); }}>
-              <UserCheck size={18} /><span>Absensi Sales</span>
-            </a>
           )}
         </nav>
       </aside>

@@ -31,6 +31,7 @@ export default function Topbar({
     'stok-produk': { title: 'Stok & Persediaan Produk Jual', sub: 'Pantau stok ready, mutasi persediaan, dan penyesuaian stok produk siap jual.' },
     'kategori-produk-sales': { title: 'Kelola Brand Produk', sub: 'Master data brand & merk resmi Saren One (SAREN ONE, EAT GOW, BEULEUM).' },
     'penjualan': { title: 'Data Penjualan Produk', sub: 'Catat transaksi penjualan, pantau invoice, dan kelola histori pelanggan.' },
+    'retur-produk': { title: 'Retur Produk Penjualan', sub: 'Pencatatan barang retur dari pelanggan, klaim produk rusak/expired, & penyesuaian stok.' },
     'pelanggan': { title: 'Kelola Pelanggan / Customer', sub: 'Master data pelanggan, kontak WhatsApp, alamat pengiriman, dan tipe kemitraan.' },
     'piutang-pelanggan': { title: 'Piutang & Tagihan Pelanggan', sub: 'Pantau sisa piutang tempo, histori tagihan per customer, & catat pelunasan pembayaran.' },
     'pembayaran-masuk': { title: 'Pembayaran Masuk Customer', sub: 'Catat setoran tunai, transfer bank, & pelunasan piutang tempo dari pelanggan.' },
@@ -77,9 +78,15 @@ export default function Topbar({
 
   return (
     <header className="topbar">
-      <div className="topbar-left">
-        <button className="mobile-menu-toggle" onClick={onOpenMobileSidebar} aria-label="Open Menu">
-          <Menu size={22} />
+      <div className="topbar-left" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <button
+          type="button"
+          className="mobile-menu-toggle-btn"
+          onClick={onOpenMobileSidebar}
+          title="Buka Navigasi Utama"
+          aria-label="Buka Navigasi"
+        >
+          <Menu size={22} style={{ color: '#0f172a' }} />
         </button>
         <div className="topbar-title">
           <h2>{current.title}</h2>

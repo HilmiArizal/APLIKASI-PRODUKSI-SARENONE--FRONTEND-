@@ -222,7 +222,7 @@ export default function Login({ onLogin, onRegister, showAlert }) {
               <button
                 type="button"
                 onClick={() => setShowPass(!showPass)}
-                style={{ position: 'absolute', right: '12px', top: '34px', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                style={{ position: 'absolute', right: '12px', bottom: '10px', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
               >
                 {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
@@ -241,7 +241,7 @@ export default function Login({ onLogin, onRegister, showAlert }) {
             </div>
 
             <button type="submit" className="btn btn-primary btn-block btn-lg" disabled={isLoading}>
-              {isLoading ? 'Sedang Memproses...' : 'Masuk Aplikasi SAREN ONE'}
+              {isLoading ? 'Sedang Memproses...' : 'Masuk Sistem'}
             </button>
           </form>
         ) : (
@@ -303,7 +303,7 @@ export default function Login({ onLogin, onRegister, showAlert }) {
                 <button
                   type="button"
                   onClick={() => setShowRegPass(!showRegPass)}
-                  style={{ position: 'absolute', right: '10px', top: '32px', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                  style={{ position: 'absolute', right: '10px', bottom: '9px', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
                 >
                   {showRegPass ? <EyeOff size={14} /> : <Eye size={14} />}
                 </button>
@@ -323,7 +323,7 @@ export default function Login({ onLogin, onRegister, showAlert }) {
                 <button
                   type="button"
                   onClick={() => setShowRegConfirmPass(!showRegConfirmPass)}
-                  style={{ position: 'absolute', right: '10px', top: '32px', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                  style={{ position: 'absolute', right: '10px', bottom: '9px', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
                 >
                   {showRegConfirmPass ? <EyeOff size={14} /> : <Eye size={14} />}
                 </button>

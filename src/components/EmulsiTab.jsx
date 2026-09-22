@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { FlaskConical, Play, Layers, Droplet, CheckCircle, ArrowDownLeft, ShieldAlert, History, Clock, Calendar, RotateCcw, X } from 'lucide-react';
 import { formatNumber, STOCK_AWAL_JULI } from '../data/initialData';
+import { ModernDatePicker, ModernMonthPicker } from './ModernDatePicker';
 import { ModalPengolahanEmulsi } from './Modals';
 
 export default function EmulsiTab({
@@ -229,148 +230,114 @@ export default function EmulsiTab({
   const [filterTanggalPosition, setFilterTanggalPosition] = useState(todayStr);
 
   return (
-    <div className="tab-pane active">
-      {/* Date Position Banner Filter Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem', background: 'var(--bg-card)', padding: '1rem 1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <Calendar size={20} style={{ color: 'var(--emerald)' }} />
-          <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-main)' }}>
-            Filter Tanggal Position:
-          </span>
-          <input
-            type="date"
-            className="form-control"
-            style={{ width: '160px', padding: '0.35rem 0.65rem', fontSize: '0.85rem' }}
+    <div className="tab-pane active" style={{ maxWidth: '100%', overflowX: 'hidden', color: '#1e293b' }}>
+      {/* Top Toolbar: Modern Date Picker & Process Button */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <ModernDatePicker
             value={filterTanggalPosition}
-            onChange={(e) => setFilterTanggalPosition(e.target.value)}
+            onChange={(val) => setFilterTanggalPosition(val)}
           />
         </div>
 
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button
-            className={`btn btn-sm ${filterTanggalPosition === todayStr ? 'btn-emerald' : 'btn-outline'}`}
-            onClick={() => setFilterTanggalPosition(todayStr)}
-            style={{ fontSize: '0.78rem' }}
-          >
-            Hari Ini
-          </button>
-          <button
-            className={`btn btn-sm ${!filterTanggalPosition ? 'btn-emerald' : 'btn-outline'}`}
-            onClick={() => setFilterTanggalPosition('')}
-            style={{ fontSize: '0.78rem' }}
-          >
-            Semua Tanggal
-          </button>
-        </div>
-      </div>
-
-      {filterTanggalPosition && (
-        <div style={{ background: 'linear-gradient(90deg, #0f172a 0%, #1e293b 100%)', color: '#ffffff', padding: '0.75rem 1.25rem', borderRadius: 'var(--radius-md)', marginBottom: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '0.88rem', fontWeight: 700 }}>
-            <Calendar size={18} style={{ color: '#38bdf8' }} />
-            POSISI STOK EMULSI TANGGAL: <span style={{ color: '#38bdf8', letterSpacing: '0.5px' }}>{filterTanggalPosition}</span>
-          </div>
-          <span style={{ fontSize: '0.76rem', color: '#94a3b8' }}>
-            Rumus: Stok Awal + Hasil Emulsi (+) - Pemakaian BOM (-) = Stok Posisi
-          </span>
-        </div>
-      )}
-
-      <div className="toolbar" style={{ marginBottom: '1.5rem', justifyContent: 'space-between' }}>
-        <div>
-        </div>
-
         {isCanProcess && (
-          <button className="btn btn-emerald" onClick={() => setIsModalOpen(true)}>
-            <Play size={16} /> Proses Emulsi Baru
+          <button
+            type="button"
+            className="btn btn-emerald"
+            onClick={() => setIsModalOpen(true)}
+            style={{ height: '32px', fontSize: '0.78rem', fontWeight: 800, padding: '0 0.75rem', borderRadius: '6px', boxShadow: '0 3px 10px rgba(16, 185, 129, 0.3)', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+          >
+            <Play size={14} /> + Proses Emulsi Baru
           </button>
         )}
       </div>
 
       {/* Overview Stock Cards - 2 Columns Grid Side by Side */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '1.25rem', marginBottom: '1.5rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '0.75rem', marginBottom: '0.75rem' }}>
         {/* ISP Emulsion Card */}
-        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1.5rem', position: 'relative' }}>
+        <div className="summary-stat-card" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', border: '1px solid rgba(16, 185, 129, 0.25)', borderTop: '3.5px solid var(--emerald)', borderRadius: '10px', padding: '0.75rem 0.95rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
-              <span className="badge badge-emerald">EMULSI ISP</span>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginTop: '0.5rem' }}>Stok Emulsi ISP (Isolated Soy Protein)</h3>
-              <p className="text-muted" style={{ fontSize: '0.78rem' }}>1 Batch = 2kg Marksoy + 4kg Air Es + 4 Pouch Minyak 2L ⇒ Yield 20 kg</p>
+              <span style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', border: '1px solid rgba(16, 185, 129, 0.3)', fontSize: '0.68rem', fontWeight: 800, padding: '0.12rem 0.45rem', borderRadius: '5px' }}>
+                EMULSI ISP
+              </span>
+              <h3 style={{ fontSize: '0.92rem', fontWeight: 800, color: '#ffffff', margin: '0.35rem 0 0 0' }}>Stok Emulsi ISP (Isolated Soy Protein)</h3>
             </div>
-            <div style={{ background: 'rgba(16, 185, 129, 0.15)', padding: '0.75rem', borderRadius: '50%', color: 'var(--emerald)' }}>
-              <Layers size={24} />
+            <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: 'rgba(16, 185, 129, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Layers size={18} style={{ color: 'var(--emerald)' }} />
             </div>
           </div>
 
-          <div style={{ marginTop: '1.25rem', display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
-            <span style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--emerald)' }}>
+          <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'baseline', gap: '0.35rem' }}>
+            <span style={{ fontSize: '1.35rem', fontWeight: 900, color: '#ffffff', letterSpacing: '-0.02em' }}>
               {emulsiIspItem ? formatNumber(getBahanStokOnDate(emulsiIspItem, filterTanggalPosition)) : '0'}
             </span>
-            <span style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-muted)' }}>kg</span>
+            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#34d399' }}>kg</span>
           </div>
 
-          <div style={{ marginTop: '1rem', borderTop: '1px dashed var(--border-color)', paddingTop: '0.75rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+          <div style={{ marginTop: '0.45rem', borderTop: '1px dashed rgba(255, 255, 255, 0.1)', paddingTop: '0.4rem', fontSize: '0.68rem', color: '#94a3b8' }}>
             ✓ Siap digunakan sebagai campuran adonan sosis.
           </div>
         </div>
 
         {/* TVP Emulsion Card */}
-        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1.5rem', position: 'relative' }}>
+        <div className="summary-stat-card" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', border: '1px solid rgba(56, 189, 248, 0.25)', borderTop: '3.5px solid var(--cyan)', borderRadius: '10px', padding: '0.75rem 0.95rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
-              <span className="badge badge-cyan">EMULSI TVP</span>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginTop: '0.5rem' }}>Stok Emulsi TVP (Textured Vegetable Protein)</h3>
-              <p className="text-muted" style={{ fontSize: '0.78rem' }}>1 Batch = 1kg TVP + 3kg Air (Biasa) ⇒ Yield 4.0 kg (Tanpa Air Es &amp; Minyak)</p>
+              <span style={{ background: 'rgba(6, 182, 212, 0.15)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.3)', fontSize: '0.68rem', fontWeight: 800, padding: '0.12rem 0.45rem', borderRadius: '5px' }}>
+                HYDRASI TVP
+              </span>
+              <h3 style={{ fontSize: '0.92rem', fontWeight: 800, color: '#ffffff', margin: '0.35rem 0 0 0' }}>Stok Hydrasi TVP (Textured Vegetable Protein)</h3>
             </div>
-            <div style={{ background: 'rgba(6, 182, 212, 0.15)', padding: '0.75rem', borderRadius: '50%', color: 'var(--cyan)' }}>
-              <Droplet size={24} />
+            <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: 'rgba(6, 182, 212, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Droplet size={18} style={{ color: 'var(--cyan)' }} />
             </div>
           </div>
 
-          <div style={{ marginTop: '1.25rem', display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
-            <span style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--cyan)' }}>
+          <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'baseline', gap: '0.35rem' }}>
+            <span style={{ fontSize: '1.35rem', fontWeight: 900, color: '#ffffff', letterSpacing: '-0.02em' }}>
               {emulsiTvpItem ? formatNumber(getBahanStokOnDate(emulsiTvpItem, filterTanggalPosition)) : '0'}
             </span>
-            <span style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-muted)' }}>kg</span>
+            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#38bdf8' }}>kg</span>
           </div>
 
-          <div style={{ marginTop: '1rem', borderTop: '1px dashed var(--border-color)', paddingTop: '0.75rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-            ✓ Hidrasi tekstur protein nabati pengganti serat daging.
+          <div style={{ marginTop: '0.45rem', borderTop: '1px dashed rgba(255, 255, 255, 0.1)', paddingTop: '0.4rem', fontSize: '0.68rem', color: '#94a3b8' }}>
+            ✓ Siap digunakan sebagai teksturisator daging sosis.
           </div>
         </div>
       </div>
 
       {/* Raw Material Inventory Status for Emulsion */}
-      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1.25rem', marginBottom: '1.5rem' }}>
-        <h4 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <CheckCircle size={18} style={{ color: 'var(--emerald)' }} /> Ketersediaan Stok Bahan Baku Mentah Emulsi
+      <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '10px', padding: '0.75rem', marginBottom: '0.75rem', boxShadow: '0 3px 10px rgba(0,0,0,0.03)' }}>
+        <h4 style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+          <CheckCircle size={16} style={{ color: '#10b981' }} /> Ketersediaan Stok Bahan Baku Mentah Emulsi
         </h4>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-          <div style={{ border: '1px solid var(--border-color)', padding: '0.85rem', borderRadius: 'var(--radius-sm)' }}>
-            <span className="text-muted" style={{ fontSize: '0.75rem' }}>Marksoy (ISP)</span>
-            <div style={{ fontSize: '1.1rem', fontWeight: 700, marginTop: '0.2rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.5rem' }}>
+          <div style={{ border: '1px solid #e2e8f0', padding: '0.45rem 0.65rem', borderRadius: '6px', background: '#f8fafc' }}>
+            <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>Marksoy (ISP)</span>
+            <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', marginTop: '0.1rem' }}>
               {ispPowderItem ? `${formatNumber(getBahanStokOnDate(ispPowderItem, filterTanggalPosition))} ${ispPowderItem.satuan}` : 'Belum Terdaftar'}
             </div>
           </div>
 
-          <div style={{ border: '1px solid var(--border-color)', padding: '0.85rem', borderRadius: 'var(--radius-sm)' }}>
-            <span className="text-muted" style={{ fontSize: '0.75rem' }}>TVP Granules (Primary)</span>
-            <div style={{ fontSize: '1.1rem', fontWeight: 700, marginTop: '0.2rem' }}>
+          <div style={{ border: '1px solid #e2e8f0', padding: '0.45rem 0.65rem', borderRadius: '6px', background: '#f8fafc' }}>
+            <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>TVP Granules (Primary)</span>
+            <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', marginTop: '0.1rem' }}>
               {tvpGranulesItem ? `${formatNumber(getBahanStokOnDate(tvpGranulesItem, filterTanggalPosition))} ${tvpGranulesItem.satuan}` : 'Belum Terdaftar'}
             </div>
           </div>
 
-          <div style={{ border: '1px solid var(--border-color)', padding: '0.85rem', borderRadius: 'var(--radius-sm)' }}>
-            <span className="text-muted" style={{ fontSize: '0.75rem' }}>Air Es / Es Batu</span>
-            <div style={{ fontSize: '1.1rem', fontWeight: 700, marginTop: '0.2rem' }}>
+          <div style={{ border: '1px solid #e2e8f0', padding: '0.45rem 0.65rem', borderRadius: '6px', background: '#f8fafc' }}>
+            <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>Air Es / Es Batu</span>
+            <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', marginTop: '0.1rem' }}>
               {waterItem ? `${formatNumber(getBahanStokOnDate(waterItem, filterTanggalPosition))} ${waterItem.satuan}` : 'Belum Terdaftar'}
             </div>
           </div>
 
-          <div style={{ border: '1px solid var(--border-color)', padding: '0.85rem', borderRadius: 'var(--radius-sm)' }}>
-            <span className="text-muted" style={{ fontSize: '0.75rem' }}>Minyak / Fat</span>
-            <div style={{ fontSize: '1.1rem', fontWeight: 700, marginTop: '0.2rem' }}>
+          <div style={{ border: '1px solid #e2e8f0', padding: '0.45rem 0.65rem', borderRadius: '6px', background: '#f8fafc' }}>
+            <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>Minyak / Fat</span>
+            <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', marginTop: '0.1rem' }}>
               {oilItem ? `${formatNumber(getBahanStokOnDate(oilItem, filterTanggalPosition))} ${oilItem.satuan}` : 'Belum Terdaftar'}
             </div>
           </div>
@@ -378,21 +345,42 @@ export default function EmulsiTab({
       </div>
 
       {/* Riwayat Pengolahan Emulsi Per Tanggal */}
-      <div className="table-container">
-        <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
-          <div>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <History size={18} style={{ color: 'var(--emerald)' }} /> Riwayat &amp; Log Pengolahan Emulsi (Periode Bulan Berjalan)
-            </h3>
-            <span className="text-muted" style={{ fontSize: '0.78rem' }}>
-              Menampilkan {filteredHistory.length} transaksi pengolahan batch emulsi.
-            </span>
+      <div className="table-container" style={{ background: '#ffffff', borderRadius: '10px', border: '1px solid #cbd5e1', boxShadow: '0 3px 10px rgba(0,0,0,0.03)' }}>
+        <div style={{ padding: '0.65rem 0.85rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+          {/* Left Side: Title & Month Picker */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexWrap: 'wrap' }}>
+            <div>
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <History size={16} style={{ color: '#10b981' }} /> Riwayat &amp; Log Pengolahan Emulsi
+              </h3>
+              <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                Menampilkan {filteredHistory.length} transaksi pengolahan batch.
+              </span>
+            </div>
+
+            <ModernMonthPicker
+              value={selectedDateFilter}
+              onChange={(val) => setSelectedDateFilter(val === 'semua' ? '' : val)}
+              allowAll={true}
+            />
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+          {/* Right Side: Category Filter Dropdown (Far Right) */}
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
             <select
               className="select-input"
-              style={{ width: '140px', padding: '0.35rem 0.65rem', fontSize: '0.85rem' }}
+              style={{
+                height: '32px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                border: '1px solid #cbd5e1',
+                borderRadius: '6px',
+                padding: '0 0.6rem',
+                background: '#ffffff',
+                color: '#0f172a',
+                outline: 'none',
+                minWidth: '140px'
+              }}
               value={jenisFilter}
               onChange={(e) => setJenisFilter(e.target.value)}
             >
@@ -400,51 +388,24 @@ export default function EmulsiTab({
               <option value="isp">Emulsi ISP</option>
               <option value="tvp">Emulsi TVP</option>
             </select>
-
-            <input
-              type="month"
-              className="form-control"
-              style={{ width: '165px', padding: '0.35rem 0.65rem', fontSize: '0.85rem' }}
-              value={selectedDateFilter.length > 7 ? selectedDateFilter.slice(0, 7) : selectedDateFilter}
-              onChange={(e) => setSelectedDateFilter(e.target.value)}
-              title="Pilih Periode Bulan Berjalan"
-            />
-            <button
-              className={`btn btn-sm ${selectedDateFilter === currentMonthStr ? 'btn-emerald' : 'btn-outline'}`}
-              onClick={() => setSelectedDateFilter(currentMonthStr)}
-            >
-              Bulan Ini
-            </button>
-            <button
-              className={`btn btn-sm ${selectedDateFilter === todayStr ? 'btn-emerald' : 'btn-outline'}`}
-              onClick={() => setSelectedDateFilter(todayStr)}
-            >
-              Hari Ini
-            </button>
-            <button
-              className={`btn btn-sm ${!selectedDateFilter ? 'btn-emerald' : 'btn-outline'}`}
-              onClick={() => setSelectedDateFilter('')}
-            >
-              Semua Periode
-            </button>
           </div>
         </div>
 
-        <table className="custom-table">
+        <table className="custom-table" style={{ width: '100%', fontSize: '0.72rem', borderCollapse: 'separate', borderSpacing: 0 }}>
           <thead>
-            <tr>
-              <th>WAKTU / TANGGAL</th>
-              <th>JENIS EMULSI</th>
-              <th>RINCIAN PENGOLAHAN BATCH &amp; PEMOTONGAN BAHAN</th>
-              <th>OPERATOR</th>
-              <th>STATUS</th>
-              {isSuperAdminUser && <th style={{ textAlign: 'right' }}>AKSI (SUPER ADMIN)</th>}
+            <tr style={{ background: '#f8fafc' }}>
+              <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', whiteSpace: 'nowrap' }}>WAKTU / TANGGAL</th>
+              <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', whiteSpace: 'nowrap' }}>JENIS EMULSI</th>
+              <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', whiteSpace: 'nowrap' }}>RINCIAN PENGOLAHAN BATCH &amp; PEMOTONGAN BAHAN</th>
+              <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', whiteSpace: 'nowrap' }}>OPERATOR</th>
+              <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', whiteSpace: 'nowrap' }}>STATUS</th>
+              {isSuperAdminUser && <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', textAlign: 'right', whiteSpace: 'nowrap' }}>AKSI (SUPER ADMIN)</th>}
             </tr>
           </thead>
           <tbody>
             {filteredHistory.length === 0 ? (
               <tr>
-                <td colSpan={isSuperAdminUser ? "6" : "5"} style={{ textAlign: 'center', padding: '2rem' }} className="text-muted">
+                <td colSpan={isSuperAdminUser ? "6" : "5"} style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>
                   {selectedDateFilter ? `Tidak ada riwayat pengolahan emulsi pada periode ${selectedDateFilter}.` : 'Belum ada riwayat pengolahan emulsi.'}
                 </td>
               </tr>
@@ -454,36 +415,59 @@ export default function EmulsiTab({
                 const isISP = (log.detail || '').toLowerCase().includes('isp');
 
                 return (
-                  <tr key={log.id}>
-                    <td style={{ fontWeight: 700, color: 'var(--emerald)' }}>
-                      <Clock size={13} style={{ marginRight: '0.35rem' }} />
+                  <tr key={log.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '0.32rem 0.55rem', fontWeight: 700, color: '#059669', fontSize: '0.72rem', whiteSpace: 'nowrap' }}>
+                      <Clock size={12} style={{ marginRight: '0.25rem', verticalAlign: 'middle' }} />
                       {log.timestamp}
                     </td>
-                    <td>
-                      <span className={`badge ${isISP ? 'badge-emerald' : 'badge-cyan'}`}>
+                    <td style={{ padding: '0.32rem 0.55rem', whiteSpace: 'nowrap' }}>
+                      <span style={{
+                        background: isISP ? '#dcfce7' : '#e0f2fe',
+                        color: isISP ? '#059669' : '#0369a1',
+                        border: isISP ? '1px solid #a7f3d0' : '1px solid #bae6fd',
+                        fontSize: '0.68rem',
+                        fontWeight: 800,
+                        padding: '0.12rem 0.45rem',
+                        borderRadius: '5px'
+                      }}>
                         {isISP ? 'EMULSI ISP' : 'EMULSI TVP'}
                       </span>
                     </td>
-                    <td style={{ fontWeight: 600 }}>{log.detail}</td>
-                    <td>
-                      <strong>{log.user}</strong> <span className="text-muted">({log.role})</span>
+                    <td style={{ padding: '0.32rem 0.55rem', fontWeight: 800, color: '#0f172a', fontSize: '0.74rem', whiteSpace: 'nowrap' }}>{log.detail}</td>
+                    <td style={{ padding: '0.32rem 0.55rem', fontSize: '0.72rem', whiteSpace: 'nowrap' }}>
+                      <strong style={{ color: '#0f172a' }}>{log.user}</strong> <span style={{ color: '#64748b' }}>({log.role})</span>
                     </td>
-                    <td>
+                    <td style={{ padding: '0.32rem 0.55rem', whiteSpace: 'nowrap' }}>
                       {isToday ? (
-                        <span className="badge badge-emerald" style={{ fontWeight: 700 }}>✓ HARI INI</span>
+                        <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#059669', background: '#ecfdf5', border: '1px solid #a7f3d0', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>✓ HARI INI</span>
                       ) : (
-                        <span className="badge badge-outline">Lampau</span>
+                        <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748b', background: '#f1f5f9', border: '1px solid #e2e8f0', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>Lampau</span>
                       )}
                     </td>
                     {isSuperAdminUser && (
-                      <td style={{ textAlign: 'right' }}>
+                      <td style={{ padding: '0.32rem 0.55rem', textAlign: 'right', whiteSpace: 'nowrap' }}>
                         <button
-                          className="btn btn-sm btn-outline btn-danger"
+                          type="button"
+                          className="btn btn-sm btn-outline-danger"
                           onClick={() => setSelectedRollbackLog(log)}
                           title="Batalkan Batch Ini & Kembalikan Stok (Khusus Super Admin)"
-                          style={{ fontSize: '0.75rem', padding: '0.3rem 0.65rem' }}
+                          style={{
+                            background: '#fef2f2',
+                            color: '#ef4444',
+                            border: '1px solid #fecaca',
+                            borderRadius: '5px',
+                            fontWeight: 700,
+                            fontSize: '0.68rem',
+                            padding: '0.15rem 0.45rem',
+                            height: '24px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.25rem',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease'
+                          }}
                         >
-                          <RotateCcw size={13} style={{ marginRight: '0.25rem' }} /> Batalkan
+                          <RotateCcw size={12} /> Batalkan
                         </button>
                       </td>
                     )}

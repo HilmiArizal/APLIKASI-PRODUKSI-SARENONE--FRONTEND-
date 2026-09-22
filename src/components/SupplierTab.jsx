@@ -102,46 +102,25 @@ export default function SupplierTab({
   }
 
   return (
-    <div className="tab-pane active" style={{ paddingTop: '0.5rem' }}>
-      {/* Header Banner */}
-      {/* <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1.25rem 1.5rem', marginBottom: '1.25rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-          <div>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
-              <Building2 size={22} style={{ color: 'var(--amber)' }} /> Master Data Supplier &amp; Vendor
-            </h2>
-            <p className="text-muted" style={{ fontSize: '0.82rem', marginTop: '0.25rem', marginBottom: 0 }}>
-              Kelola kode supplier dan daftar perusahaan pemasok bahan baku, kemasan, dan bumbu (Akses Khusus Super Admin).
-            </p>
-          </div>
-
-          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-            <div style={{ background: 'var(--bg-darker)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '0.4rem 0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Store size={16} style={{ color: 'var(--amber)' }} />
-              <span style={{ fontSize: '0.82rem', fontWeight: 700 }}>{suppliersList.length} Vendor Terdaftar</span>
-            </div>
-          </div>
-        </div>
-      </div> */}
-
+    <div className="tab-pane active" style={{ maxWidth: '100%', overflowX: 'hidden', color: '#1e293b' }}>
       {/* Input / Edit Form Card */}
-      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderLeft: editingId ? '4px solid var(--cyan)' : '4px solid var(--emerald)', borderRadius: 'var(--radius-md)', padding: '1.25rem', marginBottom: '1.5rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color: editingId ? 'var(--cyan)' : 'var(--emerald)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            {editingId ? <Edit3 size={18} /> : <Plus size={18} />}
+      <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderLeft: editingId ? '4px solid #0284c7' : '4px solid #10b981', borderRadius: '10px', padding: '0.65rem 0.85rem', marginBottom: '0.75rem', boxShadow: '0 3px 10px rgba(0,0,0,0.03)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.55rem' }}>
+          <h3 style={{ fontSize: '0.92rem', fontWeight: 800, margin: 0, color: editingId ? '#0284c7' : '#059669', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            {editingId ? <Edit3 size={16} /> : <Plus size={16} />}
             {editingId ? `Edit Supplier [${kode}]: "${nama}"` : 'Form Tambah Supplier Baru'}
           </h3>
           {editingId && (
-            <button className="btn btn-outline btn-sm" onClick={resetForm}>
-              <X size={14} /> Batal Edit
+            <button type="button" className="btn btn-outline btn-sm" onClick={resetForm} style={{ height: '24px', fontSize: '0.68rem', fontWeight: 700, padding: '0 0.45rem', borderRadius: '5px' }}>
+              <X size={12} /> Batal Edit
             </button>
           )}
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.5rem' }}>
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Kode Supplier / Vendor *</label>
+              <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#475569', marginBottom: '0.15rem', display: 'block' }}>Kode Supplier / Vendor *</label>
               <input
                 type="text"
                 className="form-control"
@@ -149,12 +128,12 @@ export default function SupplierTab({
                 value={kode}
                 onChange={e => setKode(e.target.value)}
                 required
-                style={{ fontWeight: 800, color: 'var(--cyan)', letterSpacing: '0.5px' }}
+                style={{ height: '32px', fontSize: '0.78rem', fontWeight: 800, color: '#0369a1', background: '#f0f9ff', border: '1px solid #bae6fd', padding: '0 0.6rem' }}
               />
             </div>
 
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Nama Perusahaan / Supplier *</label>
+              <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#475569', marginBottom: '0.15rem', display: 'block' }}>Nama Perusahaan / Supplier *</label>
               <input
                 type="text"
                 className="form-control"
@@ -162,54 +141,58 @@ export default function SupplierTab({
                 value={nama}
                 onChange={e => setNama(e.target.value)}
                 required
+                style={{ height: '32px', fontSize: '0.78rem', padding: '0 0.6rem' }}
               />
             </div>
 
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>No HP Sales / Kontak</label>
+              <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#475569', marginBottom: '0.15rem', display: 'block' }}>No HP Sales / Kontak</label>
               <input
                 type="text"
                 className="form-control"
                 placeholder="0812-xxxx-xxxx"
                 value={kontak}
                 onChange={e => setKontak(e.target.value)}
+                style={{ height: '32px', fontSize: '0.78rem', padding: '0 0.6rem' }}
               />
             </div>
 
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Alamat Kota / Wilayah</label>
+              <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#475569', marginBottom: '0.15rem', display: 'block' }}>Alamat Kota / Wilayah</label>
               <input
                 type="text"
                 className="form-control"
                 placeholder="Jakarta / Bandung"
                 value={alamat}
                 onChange={e => setAlamat(e.target.value)}
+                style={{ height: '32px', fontSize: '0.78rem', padding: '0 0.6rem' }}
               />
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '1rem', alignItems: 'flex-end', marginTop: '0.85rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '0.5rem', alignItems: 'flex-end', marginTop: '0.5rem' }}>
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Catatan / Keterangan</label>
+              <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#475569', marginBottom: '0.15rem', display: 'block' }}>Catatan / Keterangan</label>
               <input
                 type="text"
                 className="form-control"
                 placeholder="Misal: Pemasok tepung ISP &amp; Marksoy"
                 value={catatan}
                 onChange={e => setCatatan(e.target.value)}
+                style={{ height: '32px', fontSize: '0.78rem', padding: '0 0.6rem' }}
               />
             </div>
 
-            <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', gap: '0.4rem' }}>
               {editingId && (
-                <button type="button" className="btn btn-secondary" onClick={resetForm}>
+                <button type="button" className="btn btn-secondary" onClick={resetForm} style={{ height: '32px', fontSize: '0.78rem', fontWeight: 800, padding: '0 0.75rem' }}>
                   Batal
                 </button>
               )}
               <button
                 type="submit"
                 className={`btn ${editingId ? 'btn-cyan' : 'btn-emerald'}`}
-                style={{ padding: '0.55rem 1.5rem', fontWeight: 700 }}
+                style={{ height: '32px', fontSize: '0.78rem', fontWeight: 800, padding: '0 0.85rem', borderRadius: '6px', boxShadow: editingId ? '0 3px 10px rgba(14, 165, 233, 0.3)' : '0 3px 10px rgba(16, 185, 129, 0.3)', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
                 disabled={isSubmitting}
               >
                 {isSubmitting ? 'Memproses...' : (editingId ? 'Simpan Edit' : '+ Simpan Supplier Baru')}
@@ -220,73 +203,114 @@ export default function SupplierTab({
       </div>
 
       {/* Supplier List Table Card */}
-      <div className="table-container">
-        <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+      <div className="table-container" style={{ background: '#ffffff', borderRadius: '10px', border: '1px solid #cbd5e1', boxShadow: '0 3px 10px rgba(0,0,0,0.03)' }}>
+        <div style={{ padding: '0.65rem 0.85rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
           <div>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0 }}>Daftar Supplier Terdaftar ({filteredList.length})</h3>
-            <span className="text-muted" style={{ fontSize: '0.78rem' }}>Master data supplier beserta Kode unik dalam dropdown pencatatan pembelian.</span>
+            <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>Daftar Supplier Terdaftar ({filteredList.length})</h3>
+            <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Master data supplier beserta Kode unik dalam dropdown pencatatan pembelian.</span>
           </div>
 
-          <div className="search-box" style={{ maxWidth: '280px' }}>
-            <Search size={16} />
+          <div className="search-box" style={{ height: '32px', maxWidth: '280px' }}>
+            <Search size={14} />
             <input
               type="text"
               placeholder="Cari Kode, Supplier, Kota..."
               value={search}
               onChange={e => setSearch(e.target.value)}
+              style={{ fontSize: '0.78rem' }}
             />
           </div>
         </div>
 
-        <table className="custom-table">
+        <table className="custom-table" style={{ width: '100%', fontSize: '0.72rem', borderCollapse: 'separate', borderSpacing: 0 }}>
           <thead>
-            <tr>
-              <th>KODE</th>
-              <th>NAMA SUPPLIER / VENDOR</th>
-              <th>KONTAK SALES</th>
-              <th>ALAMAT KOTA</th>
-              <th>CATATAN PRODUK</th>
-              <th style={{ textAlign: 'center' }}>AKSI</th>
+            <tr style={{ background: '#f8fafc' }}>
+              <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', whiteSpace: 'nowrap' }}>KODE</th>
+              <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', whiteSpace: 'nowrap' }}>NAMA SUPPLIER / VENDOR</th>
+              <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', whiteSpace: 'nowrap' }}>KONTAK SALES</th>
+              <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', whiteSpace: 'nowrap' }}>ALAMAT KOTA</th>
+              <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', whiteSpace: 'nowrap' }}>CATATAN PRODUK</th>
+              <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', textAlign: 'center', whiteSpace: 'nowrap' }}>AKSI</th>
             </tr>
           </thead>
           <tbody>
             {filteredList.length === 0 ? (
               <tr>
-                <td colSpan={6} style={{ textAlign: 'center', padding: '2.5rem' }} className="text-muted">
+                <td colSpan={6} style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>
                   Belum ada data supplier. Silakan masukkan supplier pertama Anda via form di atas (Dimulai dari Kode S1).
                 </td>
               </tr>
             ) : (
               filteredList.map(s => (
-                <tr key={s.id || s._id || s.nama}>
-                  <td>
-                    <span className="badge badge-cyan" style={{ fontWeight: 800 }}>{s.kode || 'SUP'}</span>
+                <tr key={s.id || s._id || s.nama} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  <td style={{ padding: '0.32rem 0.55rem', whiteSpace: 'nowrap' }}>
+                    <span style={{ background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd', fontSize: '0.68rem', fontWeight: 800, padding: '0.12rem 0.45rem', borderRadius: '5px', display: 'inline-block' }}>
+                      {s.kode || 'SUP'}
+                    </span>
                   </td>
-                  <td>
-                    <div style={{ fontWeight: 800, color: '#1f2d3d', fontSize: '0.95rem' }}>{s.nama}</div>
+                  <td style={{ padding: '0.32rem 0.55rem', fontWeight: 800, color: '#0f172a', fontSize: '0.74rem', whiteSpace: 'nowrap' }}>
+                    {s.nama}
                   </td>
-                  <td>
-                    <div style={{ fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                      <Phone size={14} style={{ color: 'var(--emerald)' }} />
+                  <td style={{ padding: '0.32rem 0.55rem', fontSize: '0.72rem', color: '#0f172a', whiteSpace: 'nowrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                      <Phone size={12} style={{ color: '#10b981' }} />
                       {s.kontak || '-'}
                     </div>
                   </td>
-                  <td>
-                    <div style={{ fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                      <MapPin size={14} style={{ color: 'var(--amber)' }} />
+                  <td style={{ padding: '0.32rem 0.55rem', fontSize: '0.72rem', color: '#0f172a', whiteSpace: 'nowrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                      <MapPin size={12} style={{ color: '#f59e0b' }} />
                       {s.alamat || '-'}
                     </div>
                   </td>
-                  <td>
-                    <div style={{ fontSize: '0.78rem' }} className="text-muted">{s.catatan || '-'}</div>
+                  <td style={{ padding: '0.32rem 0.55rem', fontSize: '0.72rem', color: '#64748b', whiteSpace: 'nowrap' }}>
+                    {s.catatan || '-'}
                   </td>
-                  <td style={{ textAlign: 'center' }}>
-                    <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'center' }}>
-                      <button className="btn btn-sm btn-outline" title="Edit Supplier" onClick={() => handleEditClick(s)}>
-                        <Edit3 size={14} /> Edit
+                  <td style={{ padding: '0.32rem 0.55rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                    <div style={{ display: 'flex', gap: '0.3rem', justifyContent: 'center' }}>
+                      <button
+                        type="button"
+                        style={{
+                          background: '#f0f9ff',
+                          color: '#0284c7',
+                          border: '1px solid #bae6fd',
+                          borderRadius: '5px',
+                          fontWeight: 700,
+                          fontSize: '0.68rem',
+                          padding: '0 0.45rem',
+                          height: '24px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.25rem',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                        title="Edit Supplier"
+                        onClick={() => handleEditClick(s)}
+                      >
+                        <Edit3 size={12} /> Edit
                       </button>
-                      <button className="btn btn-sm btn-outline btn-danger" title="Hapus Supplier" onClick={() => handleDelete(s)}>
-                        <Trash2 size={14} /> Hapus
+                      <button
+                        type="button"
+                        style={{
+                          background: '#fef2f2',
+                          color: '#ef4444',
+                          border: '1px solid #fecaca',
+                          borderRadius: '5px',
+                          fontWeight: 700,
+                          fontSize: '0.68rem',
+                          padding: '0 0.45rem',
+                          height: '24px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.25rem',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                        title="Hapus Supplier"
+                        onClick={() => handleDelete(s)}
+                      >
+                        <Trash2 size={12} /> Hapus
                       </button>
                     </div>
                   </td>

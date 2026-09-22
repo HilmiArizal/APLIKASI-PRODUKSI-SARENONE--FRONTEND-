@@ -1,11 +1,15 @@
-import React, { useState, useRef } from 'react';
-import { Package, MinusCircle, CheckCircle, Search, Calendar, History, Clock, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
-import { formatNumber, STOCK_AWAL_JULI, getBahanSatuan } from '../data/initialData';
+import React, { useState, useRef, useMemo } from 'react';
+import { Package, Layers, MinusCircle, CheckCircle, Search, Calendar, History, Clock, ChevronLeft, ChevronRight, Sparkles, FileSpreadsheet, FileText, ArrowDownRight, ArrowUpRight } from 'lucide-react';
+import { formatNumber, STOCK_AWAL_JULI, getBahanSatuan, getProdukKemasanMap, getDefaultPackagingForProduct } from '../data/initialData';
+import { exportToExcel, exportToPDF } from '../utils/exportUtils';
+import { ModernDatePicker } from './ModernDatePicker';
 import { ModalPemakaianKemasan } from './Modals';
 
 export default function PemakaianKemasanTab({
   bahanBaku = [],
   auditLog = [],
+  hasilProduksi = [],
+  utangList = [],
   activeRoleView,
   onUseKemasan,
   showAlert
@@ -14,20 +18,13 @@ export default function PemakaianKemasanTab({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedBahanForModal, setSelectedBahanForModal] = useState(null);
 
-  const carouselRef = useRef(null);
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const currentMonthStr = todayStr.substring(0, 7); // e.g. "2026-08"
 
-  // Today Date string in YYYY-MM-DD
-  const todayStr = new Date().toISOString().split('T')[0];
   const [selectedDateFilter, setSelectedDateFilter] = useState(todayStr);
 
-  const scrollCarousel = (direction) => {
-    if (carouselRef.current) {
-      const scrollAmount = direction === 'left' ? -300 : 300;
-      carouselRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
-    }
-  };
-
-  // Filter packaging materials (or all materials)
+  // Filter packaging materials
   const kemasanMaterials = bahanBaku.filter(b => {
     const kat = (b.kategori || '').toLowerCase();
     const name = (b.nama || '').toLowerCase();
@@ -49,382 +46,580 @@ export default function PemakaianKemasanTab({
     return (a.sku || '').localeCompare(b.sku || '', undefined, { numeric: true, sensitivity: 'base' });
   });
 
-  // Filter packaging usage logs from auditLog
-  const allKemasanLogs = auditLog.filter(log => {
-    const aksi = (log.aksi || '').toLowerCase();
-    const detail = (log.detail || '').toLowerCase();
-    return aksi.includes('kemasan') || detail.includes('pemakaian');
-  });
+  // Synthesize dynamic packaging logs from hasilProduksi so records never appear empty
+  const synthesizedHasilLogs = useMemo(() => {
+    const logs = [];
+    const kemasanMap = getProdukKemasanMap();
 
-  // Filter logs for today
-  const todayLogs = allKemasanLogs.filter(log => (log.timestamp || '').startsWith(todayStr));
+    (hasilProduksi || []).forEach((y, idx) => {
+      const dateStr = y.tanggal || todayStr;
+      const timeStr = y.timestamp || `${dateStr} 08:30`;
+      const qty = parseFloat(y.jumlahPcs) || 0;
+      const prodName = y.produkNama || 'Sosis Cocktail Merah 500g';
 
-  // Filter logs for selected date filter (or all if filter is empty)
-  const filteredHistoryLogs = allKemasanLogs.filter(log => {
-    if (!selectedDateFilter) return true;
-    return (log.timestamp || '').startsWith(selectedDateFilter);
-  });
+      const prodKey = y.produkId || y.kode || y.alias || y.produkNama;
+      const rule = kemasanMap[prodKey] || kemasanMap[y.alias] || kemasanMap[y.kode] || getDefaultPackagingForProduct(y);
+
+      const vacumName = rule.vacumbagNama || 'Vacumbag 20*25';
+      const barcodeName = rule.stickerBarcodeNama || 'Sticker Barcode';
+      const produkStickerName = rule.stickerProdukNama || 'Sticker Produk';
+
+      logs.push({
+        id: `AUTO-VAC-${y.id || idx}`,
+        user: 'Tim Produksi',
+        role: 'PRODUKSI',
+        aksi: 'Pemakaian Kemasan',
+        detail: `Pemakaian ${qty} pcs ${vacumName} - Otomatis via Hasil Produksi (${prodName})`,
+        timestamp: timeStr
+      });
+      logs.push({
+        id: `AUTO-BAR-${y.id || idx}`,
+        user: 'Tim Produksi',
+        role: 'PRODUKSI',
+        aksi: 'Pemakaian Kemasan',
+        detail: `Pemakaian ${qty} pcs ${barcodeName} - Otomatis via Hasil Produksi (${prodName})`,
+        timestamp: timeStr
+      });
+      logs.push({
+        id: `AUTO-PRD-${y.id || idx}`,
+        user: 'Tim Produksi',
+        role: 'PRODUKSI',
+        aksi: 'Pemakaian Kemasan',
+        detail: `Pemakaian ${qty} pcs ${produkStickerName} - Otomatis via Hasil Produksi (${prodName})`,
+        timestamp: timeStr
+      });
+    });
+    return logs;
+  }, [hasilProduksi, todayStr]);
+
+  // Combine raw auditLog and synthesized logs seamlessly
+  const allKemasanLogs = useMemo(() => {
+    const rawLogs = auditLog.filter(log => {
+      const aksi = (log.aksi || '').toLowerCase();
+      const detail = (log.detail || '').toLowerCase();
+      return aksi.includes('kemasan') || detail.includes('pemakaian');
+    });
+
+    const combined = [...rawLogs];
+    synthesizedHasilLogs.forEach(sLog => {
+      const exists = combined.some(r => r.detail === sLog.detail && r.timestamp === sLog.timestamp);
+      if (!exists) {
+        combined.push(sLog);
+      }
+    });
+
+    return combined.sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || ''));
+  }, [auditLog, synthesizedHasilLogs]);
 
   const canUse = (activeRoleView === 'ADMIN' || activeRoleView === 'BAHAN_BAKU');
 
-  // Calculate total used quantity for a specific material on the target date
-  const getItemDateUsage = (bahanItem, targetDate) => {
-    if (!targetDate || !bahanItem) return 0;
-    const targetName = (bahanItem.nama || '').trim().toLowerCase();
-    const targetSku = (bahanItem.sku || '').trim().toLowerCase();
+  // Robust log-to-material matcher
+  const isLogMatchingMaterial = (logDetail, b) => {
+    if (!logDetail || !b) return false;
+    const detailLower = String(logDetail).toLowerCase();
+    const bName = String(b.nama || '').trim().toLowerCase();
+    const bSku = String(b.sku || b.kode || '').trim().toLowerCase();
 
-    const dateLogs = allKemasanLogs.filter(log => {
-      const timeMatch = (log.timestamp || '').startsWith(targetDate);
-      if (!timeMatch) return false;
+    if (detailLower.includes(bName)) return true;
+    if (bSku && detailLower.includes(bSku)) return true;
 
-      const detail = (log.detail || '').toLowerCase();
-      // Extract main action phrase before "keterangan:" or before "." to ignore item name mentioned in Keterangan
-      const mainPhrase = detail.split('keterangan:')[0] || detail;
+    // Dimension normalization (e.g. 20*25 vs 20x25 vs 25*30 vs 23*30)
+    const normName = bName.replace(/[\*\s]/g, 'x');
+    const normDetail = detailLower.replace(/[\*\s]/g, 'x');
+    if (normDetail.includes(normName)) return true;
 
-      return mainPhrase.includes(targetName) || (targetSku && mainPhrase.includes(targetSku));
-    });
-
-    let totalUsed = 0;
-    dateLogs.forEach(log => {
-      const match = (log.detail || '').match(/Pemakaian\s+([0-9.]+)/i);
-      if (match && match[1]) {
-        totalUsed += parseFloat(match[1]) || 0;
+    // Cross-dimension aliases for 900g / 1000g vacumbag if registered as 25x30 / 23x30
+    if (bName.includes('vacum')) {
+      if ((bName.includes('23') || bName.includes('25')) && (bName.includes('30'))) {
+        if ((detailLower.includes('23') || detailLower.includes('25')) && detailLower.includes('30')) return true;
       }
-    });
-    return totalUsed;
+    }
+
+    // Specific packaging category checks
+    if (bName.includes('barcode') && detailLower.includes('barcode')) return true;
+    if ((bName.includes('produk') || bName.includes('stiker produk') || bName.includes('sticker produk')) && detailLower.includes('sticker produk')) return true;
+
+    return false;
   };
 
-  // Calculate real-time continuous stock for packaging material b (Starting Stock - Usage)
-  const getPackagingRealStock = (b) => {
-    if (!b) return 0;
+  // Get Day-by-Day Continuous Stock Timeline for Material b up to targetDateStr
+  // Ensures Stok Awal(T) STRICTLY equals Stok Akhir(T-1) continuously across all dates
+  const getPackagingDailyTimeline = (b, targetDateStr) => {
+    if (!b) return { stokAwal: 0, penerimaan: 0, pemakaian: 0, stokAkhir: 0 };
+    const targetDate = targetDateStr && targetDateStr.length === 10 ? targetDateStr : todayStr;
     const bSku = String(b.sku || b.kode || '').trim().toUpperCase();
 
-    // 1. Initial / Starting Stock
+    // Base Starting Stock (July 31st Ending / Beginning of Month)
     let currentStock = 0;
-    const localStokAwal = localStorage.getItem('STOK_AWAL_' + bSku);
-    if (b.stokAwal !== undefined && b.stokAwal !== null && !isNaN(Number(b.stokAwal))) {
+    const targetPeriode = targetDate ? targetDate.substring(0, 7) : currentMonthStr;
+    const periodStokLocal = localStorage.getItem(`STOK_AWAL_${targetPeriode}_${bSku}`);
+    const generalStokLocal = localStorage.getItem('STOK_AWAL_' + bSku);
+
+    if (b.stokAwalMap && b.stokAwalMap[targetPeriode] !== undefined && b.stokAwalMap[targetPeriode] !== null && !isNaN(Number(b.stokAwalMap[targetPeriode]))) {
+      currentStock = Number(b.stokAwalMap[targetPeriode]);
+    } else if (periodStokLocal !== null && !isNaN(Number(periodStokLocal))) {
+      currentStock = Number(periodStokLocal);
+    } else if (b.stokAwal !== undefined && b.stokAwal !== null && !isNaN(Number(b.stokAwal)) && Number(b.stokAwal) > 0) {
       currentStock = Number(b.stokAwal);
-    } else if (localStokAwal !== null && !isNaN(Number(localStokAwal))) {
-      currentStock = Number(localStokAwal);
+    } else if (generalStokLocal !== null && !isNaN(Number(generalStokLocal))) {
+      currentStock = Number(generalStokLocal);
     } else if (STOCK_AWAL_JULI[bSku] !== undefined) {
       currentStock = Number(STOCK_AWAL_JULI[bSku]);
     } else {
       currentStock = Number(b.stok) || 0;
     }
 
-    // 2. Subtract total usage from auditLog
-    const bName = (b.nama || '').trim().toLowerCase();
-    let totalUsed = 0;
-    (auditLog || []).forEach(log => {
-      const aksi = (log.aksi || '').toLowerCase();
-      const detail = (log.detail || '').toLowerCase();
-      if (aksi.includes('kemasan') || detail.includes('pemakaian')) {
-        const mainPhrase = detail.split('keterangan:')[0] || detail;
-        if (mainPhrase.includes(bName) || (bSku && mainPhrase.toLowerCase().includes(bSku.toLowerCase()))) {
-          const match = detail.match(/Pemakaian\s+([0-9.]+)/i);
-          if (match && match[1]) {
-            totalUsed += parseFloat(match[1]) || 0;
-          }
+    if (!targetDate) {
+      return { stokAwal: currentStock, penerimaan: 0, pemakaian: 0, stokAkhir: currentStock };
+    }
+
+    // Collect all transaction dates for material b
+    const dateSet = new Set();
+    dateSet.add(targetDate);
+    dateSet.add('2026-08-01');
+
+    // 1. PO / Suppliers Restock Dates
+    (utangList || []).forEach(po => {
+      const isMatch = (bSku && String(po.sku || po.kode || '').toUpperCase() === bSku) ||
+        (Array.isArray(po.items) && po.items.some(it => isLogMatchingMaterial(it.nama || it.detail || it.bahanNama, b))) ||
+        isLogMatchingMaterial(po.nama || po.detail || po.bahanNama, b);
+
+      if (isMatch) {
+        if (Array.isArray(po.riwayatPenerimaan) && po.riwayatPenerimaan.length > 0) {
+          po.riwayatPenerimaan.forEach(r => {
+            const rawDate = r.tanggal || po.tanggalPenerimaan || po.tanggalBeli || po.tanggal || r.createdAt || po.createdAt || '';
+            const dStr = String(rawDate).substring(0, 10);
+            if (dStr && dStr <= targetDate) dateSet.add(dStr);
+          });
+        } else {
+          const rawDate = po.tanggalPenerimaan || po.tanggalBeli || po.tanggal || po.createdAt || '';
+          const dStr = String(rawDate).substring(0, 10);
+          if (dStr && dStr <= targetDate) dateSet.add(dStr);
         }
       }
     });
 
-    return Math.max(0, Math.round((currentStock - totalUsed) * 1000) / 1000);
+    // 2. Audit Log Receipt Dates (Stok Masuk / Restock In)
+    (auditLog || []).forEach(log => {
+      const aksi = String(log.aksi || '').toLowerCase();
+      const detail = String(log.detail || '').toLowerCase();
+      if (aksi.includes('stok masuk') || aksi.includes('restock') || aksi.includes('penerimaan') || detail.includes('stok masuk') || detail.includes('restock')) {
+        if (isLogMatchingMaterial(log.detail || log.nama, b)) {
+          const rawDate = log.timestamp || log.tanggal || log.createdAt || '';
+          const dStr = String(rawDate).substring(0, 10);
+          if (dStr && dStr <= targetDate) dateSet.add(dStr);
+        }
+      }
+    });
+
+    // 3. Yield / Packaging usage dates
+    (allKemasanLogs || []).forEach(log => {
+      const lDate = (log.timestamp || '').substring(0, 10);
+      if (lDate && lDate <= targetDate) {
+        if (isLogMatchingMaterial(log.detail, b)) {
+          dateSet.add(lDate);
+        }
+      }
+    });
+
+    const sortedDates = Array.from(dateSet).sort();
+
+    let runningStokAwal = currentStock;
+    let runningPenerimaan = 0;
+    let runningPemakaian = 0;
+    let runningStokAkhir = currentStock;
+
+    for (const d of sortedDates) {
+      runningStokAwal = runningStokAkhir;
+      let dayPenerimaan = 0;
+      let dayPemakaian = 0;
+
+      // Restock In (Penerimaan) on date d from utangList (PO Goods Receipts)
+      (utangList || []).forEach(po => {
+        const directMatch = (bSku && String(po.sku || po.kode || '').toUpperCase() === bSku) || isLogMatchingMaterial(po.nama || po.detail || po.bahanNama, b);
+        let itemQtyOnDate = 0;
+
+        if (Array.isArray(po.items) && po.items.length > 0) {
+          po.items.forEach(it => {
+            if (isLogMatchingMaterial(it.nama || it.detail || it.bahanNama, b)) {
+              const rawDate = it.tanggal || it.tanggalPenerimaan || po.tanggalPenerimaan || po.tanggalBeli || po.tanggal || po.createdAt || '';
+              const rDate = String(rawDate).substring(0, 10);
+              if (rDate === d) {
+                itemQtyOnDate += Number(it.jumlahDiterima || it.diterima || it.qty || it.jumlah || 0);
+              }
+            }
+          });
+        }
+
+        if (itemQtyOnDate > 0) {
+          dayPenerimaan += itemQtyOnDate;
+        } else if (directMatch) {
+          if (Array.isArray(po.riwayatPenerimaan) && po.riwayatPenerimaan.length > 0) {
+            po.riwayatPenerimaan.forEach(r => {
+              const rawDate = r.tanggal || po.tanggalPenerimaan || po.tanggalBeli || po.tanggal || r.createdAt || po.createdAt || '';
+              const rDate = String(rawDate).substring(0, 10);
+              if (rDate === d) {
+                dayPenerimaan += Number(r.jumlah || r.diterima || 0);
+              }
+            });
+          } else {
+            const qty = Number(po.jumlahDiterima || po.jumlah || 0);
+            if (qty > 0) {
+              const rawDate = po.tanggalPenerimaan || po.tanggalBeli || po.tanggal || po.createdAt || '';
+              const pDate = String(rawDate).substring(0, 10);
+              if (pDate === d) {
+                dayPenerimaan += qty;
+              }
+            }
+          }
+        }
+      });
+
+      // Restock In (Penerimaan) on date d from auditLog (Stok Masuk / Restock In)
+      (auditLog || []).forEach(log => {
+        const aksi = String(log.aksi || '').toLowerCase();
+        const detail = String(log.detail || '').toLowerCase();
+        const isRollback = aksi.includes('rollback') || aksi.includes('batal') || detail.includes('rollback') || detail.includes('membatalkan');
+        if (isRollback) return;
+        if (aksi.includes('stok masuk') || aksi.includes('restock') || aksi.includes('penerimaan') || detail.includes('stok masuk') || detail.includes('restock')) {
+          const rawDate = log.timestamp || log.tanggal || log.createdAt || '';
+          const logDate = String(rawDate).substring(0, 10);
+          if (logDate === d && isLogMatchingMaterial(log.detail || log.nama, b)) {
+            const match = String(log.detail || '').match(/(\+|\b)([0-9.]+)\s*(kg|pcs|pack|liter|l|g|pouch|roll|lembar)/i);
+            if (match && match[2]) {
+              dayPenerimaan += parseFloat(match[2]) || 0;
+            } else if (log.jumlah || log.qty) {
+              dayPenerimaan += parseFloat(log.jumlah || log.qty) || 0;
+            }
+          }
+        }
+      });
+
+      // Usage (Pemakaian) on date d
+      (allKemasanLogs || []).forEach(log => {
+        const lDate = (log.timestamp || '').substring(0, 10);
+        if (lDate === d && isLogMatchingMaterial(log.detail, b)) {
+          const match = String(log.detail || '').match(/Pemakaian\s+([0-9.]+)/i);
+          if (match && match[1]) {
+            dayPemakaian += parseFloat(match[1]) || 0;
+          }
+        }
+      });
+
+      runningPenerimaan = dayPenerimaan;
+      runningPemakaian = dayPemakaian;
+      runningStokAkhir = Math.max(0, Math.round((runningStokAwal + dayPenerimaan - dayPemakaian) * 1000) / 1000);
+
+      if (d === targetDate) {
+        return {
+          stokAwal: runningStokAwal,
+          penerimaan: dayPenerimaan,
+          pemakaian: dayPemakaian,
+          stokAkhir: runningStokAkhir
+        };
+      }
+    }
+
+    return {
+      stokAwal: runningStokAwal,
+      penerimaan: runningPenerimaan,
+      pemakaian: runningPemakaian,
+      stokAkhir: runningStokAkhir
+    };
   };
 
-  // Calculate total Vacumbag used on target date (or today)
-  const targetDateForVacum = selectedDateFilter || todayStr;
-  const vacumbagItems = bahanBaku.filter(b => (b.nama || '').toLowerCase().includes('vacum'));
-  const totalVacumbagUsedToday = vacumbagItems.reduce((acc, b) => acc + getItemDateUsage(b, targetDateForVacum), 0);
+  // KPI Summary object for header cards
+  const kpiSummary = useMemo(() => {
+    const totalUsedDate = displayMaterials.reduce((acc, b) => {
+      const { pemakaian } = getPackagingDailyTimeline(b, selectedDateFilter);
+      return acc + pemakaian;
+    }, 0);
+
+    const totalStokSisa = displayMaterials.reduce((acc, b) => {
+      const { stokAkhir } = getPackagingDailyTimeline(b, selectedDateFilter);
+      return acc + stokAkhir;
+    }, 0);
+
+    return { totalUsedDate, totalStokSisa };
+  }, [displayMaterials, selectedDateFilter, allKemasanLogs, utangList]);
+
+  // Export handlers
+  const handleExportExcel = () => {
+    const exportData = displayMaterials.map((b, idx) => {
+      const timeline = getPackagingDailyTimeline(b, selectedDateFilter);
+      const bSatuan = getBahanSatuan(b);
+      const isThin = timeline.stokAkhir <= b.minStok && timeline.stokAkhir > 0;
+      const isEmpty = timeline.stokAkhir === 0;
+
+      return {
+        No: idx + 1,
+        SKU: b.sku,
+        'Nama Kemasan': b.nama,
+        Kategori: b.kategori || 'Bahan Kemasan',
+        'Stok Awal': `${formatNumber(timeline.stokAwal)} ${bSatuan}`,
+        'Penerimaan': `${formatNumber(timeline.penerimaan)} ${bSatuan}`,
+        'Pemakaian': `${formatNumber(timeline.pemakaian)} ${bSatuan}`,
+        'Stok Akhir': `${formatNumber(timeline.stokAkhir)} ${bSatuan}`,
+        Status: isEmpty ? 'Habis' : isThin ? 'Menipis' : 'Aman'
+      };
+    });
+
+    exportToExcel(exportData, `Stok_Kemasan_${selectedDateFilter || 'Semua_Periode'}`);
+  };
+
+  const handleExportPDF = () => {
+    const exportData = displayMaterials.map((b, idx) => {
+      const timeline = getPackagingDailyTimeline(b, selectedDateFilter);
+      const bSatuan = getBahanSatuan(b);
+      const isThin = timeline.stokAkhir <= b.minStok && timeline.stokAkhir > 0;
+      const isEmpty = timeline.stokAkhir === 0;
+
+      return {
+        No: idx + 1,
+        SKU: b.sku,
+        'Nama Kemasan': b.nama,
+        'Stok Awal': `${formatNumber(timeline.stokAwal)} ${bSatuan}`,
+        'Masuk': `${formatNumber(timeline.penerimaan)} ${bSatuan}`,
+        'Keluar': `${formatNumber(timeline.pemakaian)} ${bSatuan}`,
+        'Stok Akhir': `${formatNumber(timeline.stokAkhir)} ${bSatuan}`,
+        Status: isEmpty ? 'Habis' : isThin ? 'Menipis' : 'Aman'
+      };
+    });
+
+    exportToPDF(
+      `Laporan Stok & Pemakaian Kemasan (${selectedDateFilter || 'Semua Periode'})`,
+      ['No', 'SKU', 'Nama Kemasan', 'Stok Awal', 'Masuk', 'Keluar', 'Stok Akhir', 'Status'],
+      exportData.map(d => Object.values(d)),
+      `laporan_stok_kemasan_${selectedDateFilter || 'semua'}.pdf`
+    );
+  };
 
   return (
     <div className="tab-pane active">
-   
-
-      {/* Auto Calculator Widget Card for Sticker Barcode & Sticker Produk based on Daily Vacumbag Usage */}
-      {/* <div style={{ background: 'linear-gradient(135deg, rgba(249, 115, 22, 0.14), rgba(251, 191, 36, 0.09))', border: '1px solid rgba(249, 115, 22, 0.35)', borderRadius: 'var(--radius-md)', padding: '1.25rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div style={{ background: 'var(--primary)', color: '#fff', padding: '0.85rem', borderRadius: 'var(--radius-sm)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Sparkles size={24} />
+      {/* ===== HEADER BANNER CARD ===== */}
+      <div style={{
+        background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 45%, #09132b 100%)',
+        borderRadius: '12px',
+        padding: '0.85rem 1.15rem',
+        marginBottom: '0.75rem',
+        color: '#ffffff',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '0.75rem',
+        boxShadow: '0 6px 20px rgba(2, 132, 199, 0.25)',
+        border: '1px solid rgba(56, 189, 248, 0.4)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flex: 1, minWidth: '280px' }}>
+          <div style={{ background: 'rgba(255, 255, 255, 0.15)', backdropFilter: 'blur(8px)', padding: '0.45rem', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Package size={20} style={{ color: '#38bdf8' }} />
           </div>
           <div>
-            <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#fff', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              ⚡ Auto-Kalkulator Sticker ({selectedDateFilter === todayStr ? 'Hari Ini' : (selectedDateFilter || 'Semua Tanggal')})
-            </h4>
-            <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-              Total Pemakaian Vacumbag: <strong style={{ color: 'var(--primary)', fontSize: '1rem' }}>{formatNumber(totalVacumbagUsedToday)} pcs</strong>. Membutuhkan presisi <strong style={{ color: '#fff' }}>{formatNumber(totalVacumbagUsedToday)} pcs Sticker Barcode</strong> &amp; <strong style={{ color: '#fff' }}>{formatNumber(totalVacumbagUsedToday)} pcs Sticker Produk</strong>.
+            <span style={{ fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#7dd3fc' }}>
+              MUTASI STOK BAHAN KEMASAN
+            </span>
+            <h2 style={{ fontSize: '1.05rem', fontWeight: 900, margin: '0.1rem 0 0 0', color: '#ffffff' }}>
+              Pemakaian berdasarkan hasil produksi
+            </h2>
+            <p style={{ fontSize: '0.76rem', margin: 0, color: '#e0f2fe' }}>
+              Stok Awal(T) otomatis menyambung dari Stok Akhir(T-1) secara kontinu &amp; real-time.
             </p>
           </div>
         </div>
-      </div> */}
-
-      {/* Header & Controls for Carousel */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-        <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--amber)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-          📦 Kartu Ringkasan Kemasan ({displayMaterials.length} Item)
-        </span>
-        <div style={{ display: 'flex', gap: '0.35rem' }}>
-          <button
-            className="btn btn-outline btn-sm"
-            onClick={() => scrollCarousel('left')}
-            title="Geser Kiri Carousel"
-            style={{ padding: '0.35rem 0.6rem', borderRadius: 'var(--radius-sm)' }}
-          >
-            <ChevronLeft size={16} />
-          </button>
-          <button
-            className="btn btn-outline btn-sm"
-            onClick={() => scrollCarousel('right')}
-            title="Geser Kanan Carousel"
-            style={{ padding: '0.35rem 0.6rem', borderRadius: 'var(--radius-sm)' }}
-          >
-            <ChevronRight size={16} />
-          </button>
-        </div>
-      </div>
-
-      {/* Overview Cards Carousel (1 Row Horizontal Scrollable) */}
-      <div
-        ref={carouselRef}
-        style={{
-          display: 'grid',
-          gridAutoFlow: 'column',
-          gridAutoColumns: 'minmax(250px, 1fr)',
-          gap: '1rem',
-          overflowX: 'auto',
-          scrollBehavior: 'smooth',
-          paddingBottom: '0.5rem',
-          marginBottom: '1.75rem',
-          WebkitOverflowScrolling: 'touch'
-        }}
-      >
-        {displayMaterials.map(b => {
-          const realStok = getPackagingRealStock(b);
-          const bSatuan = getBahanSatuan(b);
-          const isStokThin = realStok <= b.minStok && realStok > 0;
-          const isStokEmpty = realStok === 0;
-
-          // Compute usage metrics for selected date (For Sticker Barcode & Sticker Produk, match total Vacumbag used today)
-          const nameLower = (b.nama || '').toLowerCase();
-          const isSticker = nameLower.includes('sticker') || nameLower.includes('stiker') || nameLower.includes('barcode');
-          const dateUsedQty = isSticker ? totalVacumbagUsedToday : getItemDateUsage(b, selectedDateFilter);
-
-          return (
-            <div
-              key={b.id || b._id || b.sku}
-              style={{
-                background: 'var(--bg-card)',
-                border: '1px solid var(--border-color)',
-                borderRadius: 'var(--radius-md)',
-                padding: '1.15rem',
-                position: 'relative',
-                display: 'flex',
-                flexDirection: 'column',
-                justify: 'space-between',
-                minWidth: '240px'
-              }}
-            >
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <span className="badge badge-amber">Bahan Kemasan</span>
-                </div>
-                <h3 style={{ fontSize: '1rem', fontWeight: 800, marginTop: '0.5rem', color: '#fff', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }} title={b.nama}>
-                  {b.nama}
-                </h3>
-                <span className="text-muted" style={{ fontSize: '0.72rem' }}>SKU: {b.sku}</span>
-              </div>
-
-              <div style={{ marginTop: '1rem' }}>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem' }}>
-                  <span style={{ fontSize: '1.8rem', fontWeight: 800, color: isStokEmpty ? 'var(--rose)' : isStokThin ? 'var(--amber)' : 'var(--emerald)' }}>
-                    {formatNumber(realStok)}
-                  </span>
-                  <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{bSatuan} (Sisa)</span>
-                </div>
-
-                <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.3rem', color: dateUsedQty > 0 ? 'var(--rose)' : 'var(--text-muted)' }}>
-                  🔻 Terpakai ({selectedDateFilter === todayStr ? 'Hari Ini' : (selectedDateFilter || 'Semua')}): <strong>{formatNumber(dateUsedQty)} {bSatuan}</strong>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-         <div className="toolbar" style={{ marginBottom: '1.5rem', justifyContent: 'space-between' }}>
-        {/* <div>
-          <h2 style={{ fontSize: '1.3rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Package size={22} style={{ color: 'var(--amber)' }} /> Pemakaian Bahan Kemasan
-          </h2>
-          <p className="text-muted" style={{ fontSize: '0.82rem', marginTop: '0.2rem' }}>
-            Kelola &amp; catat pemakaian Casing Sosis, Plastik Vacuum, Standing Pouch, Sticker Barcode &amp; Sticker Produk, dan Box Karton.
-          </p>
-        </div> */}
 
         {canUse && (
-          <button className="btn btn-amber" onClick={() => { setSelectedBahanForModal(null); setIsModalOpen(true); }}>
-            <MinusCircle size={16} /> Catat Pemakaian Kemasan
+          <button
+            type="button"
+            className="btn btn-emerald"
+            onClick={() => { setSelectedBahanForModal(null); setIsModalOpen(true); }}
+            style={{ fontWeight: 800, height: '32px', fontSize: '0.78rem', padding: '0 0.75rem', borderRadius: '6px', boxShadow: '0 3px 10px rgba(16, 185, 129, 0.35)', marginLeft: 'auto', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+          >
+            <MinusCircle size={14} /> + Catat Pemakaian Manual
           </button>
         )}
       </div>
 
-      {/* Main Table: Bahan Kemasan Inventory & Today Usage */}
-      <div className="table-container">
-        <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
-          <div>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 700 }}>Inventaris Persediaan Bahan Kemasan</h3>
-            <span className="text-muted" style={{ fontSize: '0.78rem' }}>Menampilkan stok sisa kemasan sosis &amp; plastik vacuum.</span>
+      {/* ===== KPI SUMMARY CARDS ===== */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem', marginBottom: '0.75rem' }}>
+        <div className="summary-stat-card" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', border: '1px solid rgba(245, 158, 11, 0.25)', borderTop: '3.5px solid var(--amber)', borderRadius: '10px', padding: '0.75rem 0.95rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+              PEMAKAIAN KEMASAN ({selectedDateFilter === todayStr ? 'HARI INI' : selectedDateFilter})
+            </span>
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(245, 158, 11, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Package size={16} style={{ color: 'var(--amber)' }} />
+            </div>
           </div>
-
-          <div className="search-box" style={{ maxWidth: '300px' }}>
-            <Search size={16} />
-            <input
-              type="text"
-              placeholder="Cari SKU atau Nama Kemasan..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-            />
+          <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#ffffff', marginTop: '0.35rem', letterSpacing: '-0.02em' }}>
+            {formatNumber(kpiSummary.totalUsedDate)} <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#f59e0b' }}>pcs</span>
           </div>
+          <span style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: '0.2rem', display: 'block' }}>
+            Total Pemakaian Hari Terpilih
+          </span>
         </div>
 
-        <table className="custom-table">
+        <div className="summary-stat-card" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', border: '1px solid rgba(56, 189, 248, 0.25)', borderTop: '3.5px solid var(--cyan)', borderRadius: '10px', padding: '0.75rem 0.95rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+              TOTAL STOK GUDANG KEMASAN
+            </span>
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(6, 182, 212, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Layers size={16} style={{ color: 'var(--cyan)' }} />
+            </div>
+          </div>
+          <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#ffffff', marginTop: '0.35rem', letterSpacing: '-0.02em' }}>
+            {formatNumber(kpiSummary.totalStokSisa)} <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#38bdf8' }}>pcs</span>
+          </div>
+          <span style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: '0.2rem', display: 'block' }}>
+            Total Sisa Siap Pakai di Gudang
+          </span>
+        </div>
+
+        <div className="summary-stat-card" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', border: '1px solid rgba(16, 185, 129, 0.25)', borderTop: '3.5px solid var(--emerald)', borderRadius: '10px', padding: '0.75rem 0.95rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+              JUMLAH VARIAN KEMASAN
+            </span>
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(16, 185, 129, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <CheckCircle size={16} style={{ color: 'var(--emerald)' }} />
+            </div>
+          </div>
+          <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#ffffff', marginTop: '0.35rem', letterSpacing: '-0.02em' }}>
+            {displayMaterials.length} <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#34d399' }}>Item</span>
+          </div>
+          <span style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: '0.2rem', display: 'block' }}>
+            Vacumbag &amp; Sticker Terdaftar
+          </span>
+        </div>
+      </div>
+
+      {/* ===== TOOLBAR & CONTROL BAR ===== */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <div className="search-box" style={{ height: '32px' }}>
+            <Search size={14} />
+            <input
+              type="text"
+              placeholder="Cari SKU atau nama kemasan..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{ fontSize: '0.78rem' }}
+            />
+          </div>
+
+          <ModernDatePicker
+            value={selectedDateFilter}
+            onChange={(val) => setSelectedDateFilter(val)}
+          />
+        </div>
+      </div>
+
+      {/* ===== TABEL UTAMA PEMAKAIAN KEMASAN PER-TANGGAL ===== */}
+      <div className="table-container" style={{ background: '#ffffff', borderRadius: '12px', border: '1px solid #cbd5e1', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', overflowX: 'auto' }}>
+        <table className="custom-table" style={{ width: '100%', fontSize: '0.72rem', borderCollapse: 'separate', borderSpacing: 0 }}>
           <thead>
-            <tr>
-              <th>SKU</th>
-              <th>NAMA BAHAN KEMASAN</th>
-              <th>KATEGORI</th>
-              <th>STOK SAAT INI</th>
-              <th>MIN. STOK</th>
-              <th>STATUS</th>
-              {canUse && <th style={{ textAlign: 'center' }}>AKSI</th>}
+            <tr style={{ background: '#f8fafc' }}>
+              <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', textAlign: 'center', width: '35px', whiteSpace: 'nowrap' }}>NO</th>
+              <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', whiteSpace: 'nowrap' }}>SKU / KODE</th>
+              <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', whiteSpace: 'nowrap' }}>NAMA BAHAN KEMASAN</th>
+              <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', whiteSpace: 'nowrap' }}>KATEGORI</th>
+              <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', textAlign: 'right', whiteSpace: 'nowrap' }}>STOK AWAL</th>
+              <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', textAlign: 'right', whiteSpace: 'nowrap' }}>PENERIMAAN</th>
+              <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', textAlign: 'right', whiteSpace: 'nowrap' }}>PEMAKAIAN</th>
+              <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', textAlign: 'right', whiteSpace: 'nowrap' }}>STOK AKHIR</th>
+              <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', textAlign: 'center', whiteSpace: 'nowrap' }}>STATUS</th>
+              {canUse && <th style={{ padding: '0.4rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#475569', textAlign: 'center', whiteSpace: 'nowrap' }}>AKSI</th>}
             </tr>
           </thead>
           <tbody>
             {displayMaterials.length === 0 ? (
               <tr>
-                <td colSpan={canUse ? 7 : 6} style={{ textAlign: 'center', padding: '2rem' }} className="text-muted">
-                  Tidak ada bahan kemasan yang ditemukan.
+                <td colSpan={canUse ? 10 : 9} style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>
+                  Tidak ada bahan kemasan yang sesuai.
                 </td>
               </tr>
             ) : (
-              displayMaterials.map(b => {
-                const realStok = getPackagingRealStock(b);
+              displayMaterials.map((b, idx) => {
+                const timeline = getPackagingDailyTimeline(b, selectedDateFilter);
                 const bSatuan = getBahanSatuan(b);
-                const isThin = realStok <= b.minStok && realStok > 0;
-                const isEmpty = realStok === 0;
+                const isThin = timeline.stokAkhir <= b.minStok && timeline.stokAkhir > 0;
+                const isEmpty = timeline.stokAkhir === 0;
 
                 return (
-                  <tr key={b.id || b._id || b.sku}>
-                    <td style={{ fontWeight: 700, color: 'var(--amber)' }}>{b.sku}</td>
-                    <td style={{ fontWeight: 600 }}>{b.nama}</td>
-                    <td><span className="badge badge-amber">{b.kategori || 'Bahan Kemasan'}</span></td>
-                    <td style={{ fontWeight: 700, fontSize: '1rem', color: isEmpty ? 'var(--rose)' : isThin ? 'var(--amber)' : 'var(--emerald)' }}>
-                      {formatNumber(realStok)} {bSatuan}
+                  <tr key={b.id || b._id || b.sku || idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '0.32rem 0.55rem', textAlign: 'center', color: '#64748b', fontSize: '0.7rem', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                      {idx + 1}
                     </td>
-                    <td>{formatNumber(b.minStok)} {bSatuan}</td>
-                    <td>
+                    <td style={{ padding: '0.32rem 0.55rem', fontWeight: 800, color: '#d97706', fontSize: '0.72rem', whiteSpace: 'nowrap' }}>
+                      {b.sku}
+                    </td>
+                    <td style={{ padding: '0.32rem 0.55rem', fontWeight: 800, color: '#0f172a', fontSize: '0.74rem', whiteSpace: 'nowrap' }}>
+                      {b.nama}
+                    </td>
+                    <td style={{ padding: '0.32rem 0.55rem', whiteSpace: 'nowrap' }}>
+                      <span style={{ background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd', fontSize: '0.68rem', fontWeight: 800, padding: '0.12rem 0.45rem', borderRadius: '5px', display: 'inline-block' }}>
+                        {b.kategori || 'Bahan Kemasan'}
+                      </span>
+                    </td>
+
+                    {/* 1. Stok Awal (T) */}
+                    <td style={{ padding: '0.32rem 0.55rem', textAlign: 'right', fontWeight: 700, color: '#475569', fontSize: '0.72rem', whiteSpace: 'nowrap' }}>
+                      {formatNumber(timeline.stokAwal)} <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>{bSatuan}</span>
+                    </td>
+
+                    {/* 2. Penerimaan (T) */}
+                    <td style={{ padding: '0.32rem 0.55rem', textAlign: 'right', fontWeight: 800, color: timeline.penerimaan > 0 ? '#0284c7' : '#94a3b8', fontSize: '0.72rem', whiteSpace: 'nowrap' }}>
+                      {timeline.penerimaan > 0 ? `+${formatNumber(timeline.penerimaan)}` : '0'} <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>{bSatuan}</span>
+                    </td>
+
+                    {/* 3. Pemakaian (T) */}
+                    <td style={{ padding: '0.32rem 0.55rem', textAlign: 'right', fontWeight: 900, color: timeline.pemakaian > 0 ? '#d97706' : '#94a3b8', fontSize: '0.72rem', whiteSpace: 'nowrap' }}>
+                      {timeline.pemakaian > 0 ? `-${formatNumber(timeline.pemakaian)}` : '0'} <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>{bSatuan}</span>
+                    </td>
+
+                    {/* 4. Stok Akhir (T) = Stok Awal + Penerimaan - Pemakaian */}
+                    <td style={{ padding: '0.32rem 0.55rem', textAlign: 'right', fontWeight: 900, color: isEmpty ? '#ef4444' : isThin ? '#d97706' : '#10b981', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
+                      {formatNumber(timeline.stokAkhir)} <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>{bSatuan}</span>
+                    </td>
+
+                    <td style={{ padding: '0.32rem 0.55rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
                       {isEmpty ? (
-                        <span className="badge badge-danger">Habis (Restock!)</span>
+                        <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#ef4444', background: '#fef2f2', border: '1px solid #fecaca', padding: '0.1rem 0.4rem', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>🚨 HABIS</span>
                       ) : isThin ? (
-                        <span className="badge badge-amber">Stok Menipis</span>
+                        <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#d97706', background: '#fffbeb', border: '1px solid #fde68a', padding: '0.1rem 0.4rem', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>⚠️ MENIPIS</span>
                       ) : (
-                        <span className="badge badge-emerald">Aman</span>
+                        <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#059669', background: '#ecfdf5', border: '1px solid #a7f3d0', padding: '0.1rem 0.4rem', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>✓ AMAN</span>
                       )}
                     </td>
                     {canUse && (
-                      <td style={{ textAlign: 'center' }}>
+                      <td style={{ padding: '0.32rem 0.55rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
                         <button
-                          className="btn btn-outline btn-sm"
+                          type="button"
                           onClick={() => {
                             setSelectedBahanForModal(b);
                             setIsModalOpen(true);
                           }}
-                          style={{ fontSize: '0.75rem' }}
+                          style={{
+                            background: '#fef3c7',
+                            color: '#92400e',
+                            border: '1px solid #fde68a',
+                            borderRadius: '5px',
+                            fontWeight: 700,
+                            fontSize: '0.68rem',
+                            padding: '0.15rem 0.45rem',
+                            height: '24px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.25rem',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease'
+                          }}
                         >
-                          <MinusCircle size={14} /> Pemakaian
+                          <MinusCircle size={12} /> Input Manual
                         </button>
                       </td>
                     )}
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Usage History Log Table with Date Filter */}
-      <div className="table-container" style={{ marginTop: '2rem' }}>
-        <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
-          <div>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <History size={18} style={{ color: 'var(--amber)' }} /> Riwayat &amp; Log Pemakaian Kemasan Per-Tanggal
-            </h3>
-            <span className="text-muted" style={{ fontSize: '0.78rem' }}>
-              Menampilkan {filteredHistoryLogs.length} transaksi pemakaian bahan kemasan.
-            </span>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-            <input
-              type="date"
-              className="form-control"
-              style={{ width: '160px', padding: '0.35rem 0.65rem', fontSize: '0.85rem' }}
-              value={selectedDateFilter}
-              onChange={(e) => setSelectedDateFilter(e.target.value)}
-            />
-            <button
-              className={`btn btn-sm ${selectedDateFilter === todayStr ? 'btn-amber' : 'btn-outline'}`}
-              onClick={() => setSelectedDateFilter(todayStr)}
-            >
-              Hari Ini
-            </button>
-            <button
-              className={`btn btn-sm ${!selectedDateFilter ? 'btn-amber' : 'btn-outline'}`}
-              onClick={() => setSelectedDateFilter('')}
-            >
-              Semua Tanggal
-            </button>
-          </div>
-        </div>
-
-        <table className="custom-table">
-          <thead>
-            <tr>
-              <th>WAKTU / TANGGAL</th>
-              <th>TRANSAKSI PEMAKAIAN KEMASAN</th>
-              <th>OPERATOR</th>
-              <th>STATUS</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredHistoryLogs.length === 0 ? (
-              <tr>
-                <td colSpan="4" style={{ textAlign: 'center', padding: '2rem' }} className="text-muted">
-                  {selectedDateFilter ? `Tidak ada riwayat pemakaian kemasan pada tanggal ${selectedDateFilter}.` : 'Belum ada riwayat pemakaian kemasan.'}
-                </td>
-              </tr>
-            ) : (
-              filteredHistoryLogs.map(log => {
-                const isToday = (log.timestamp || '').startsWith(todayStr);
-
-                return (
-                  <tr key={log.id}>
-                    <td style={{ fontWeight: 700, color: 'var(--amber)' }}>
-                      <Clock size={13} style={{ marginRight: '0.35rem' }} />
-                      {log.timestamp}
-                    </td>
-                    <td style={{ fontWeight: 600 }}>{log.detail}</td>
-                    <td>
-                      <strong>{log.user}</strong> <span className="text-muted">({log.role})</span>
-                    </td>
-                    <td>
-                      {isToday ? (
-                        <span className="badge badge-emerald" style={{ fontWeight: 700 }}>✓ HARI INI</span>
-                      ) : (
-                        <span className="badge badge-outline">Lampau</span>
-                      )}
-                    </td>
                   </tr>
                 );
               })
@@ -440,7 +635,7 @@ export default function PemakaianKemasanTab({
         onUseKemasan={onUseKemasan}
         bahanList={bahanBaku}
         selectedBahan={selectedBahanForModal}
-        totalVacumbagSuggestQty={totalVacumbagUsedToday}
+        totalVacumbagSuggestQty={0}
         showAlert={showAlert}
       />
     </div>

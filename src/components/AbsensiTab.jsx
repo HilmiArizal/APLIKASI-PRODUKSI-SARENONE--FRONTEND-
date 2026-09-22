@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { ClipboardCheck, Clock, MapPin, User, Camera, CheckCircle, XCircle, AlertCircle, RefreshCw, Download, Search, Filter, X, ChevronDown, ChevronUp, Trash2, FileText } from 'lucide-react';
 import { deleteAbsensiApi, clearAllAbsensiApi } from '../services/api';
+import { ModernMonthPicker, ModernFilterSelect } from './ModernDatePicker';
 
 export default function AbsensiTab({ activeUser, absensiList, onRefresh }) {
-  const [filterTanggal, setFilterTanggal] = useState(''); // Empty string = show ALL dates by default
+  const [filterBulan, setFilterBulan] = useState('ALL'); // Default 'ALL' = Tampilkan Semua Periode (seluruh 41+ data database)
   const [filterName, setFilterName] = useState('');
   const [filterType, setFilterType] = useState('');
   const [selectedItem, setSelectedItem] = useState(null);
@@ -12,30 +13,30 @@ export default function AbsensiTab({ activeUser, absensiList, onRefresh }) {
   const [geoNames, setGeoNames] = useState({});
 
   React.useEffect(() => {
-    (absensiList || []).forEach(item => {
-      if (!item.lokasiNama && item.latitude && item.longitude && !geoNames[item.id]) {
-        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${item.latitude}&lon=${item.longitude}&zoom=16`, {
-          headers: { 'User-Agent': 'SarenOneApp/1.0' }
-        })
-          .then(r => r.json())
-          .then(data => {
-            if (data?.address) {
-              const a = data.address;
-              const parts = [
-                a.amenity || a.building || a.shop || a.road || a.pedestrian,
-                a.suburb || a.village || a.quarter || a.neighbourhood || a.city_district,
-                a.city || a.regency || a.town || a.county
-              ].filter(Boolean);
-              const locStr = parts.join(', ') || data.display_name?.split(',').slice(0, 3).join(',');
-              if (locStr) {
-                setGeoNames(prev => ({ ...prev, [item.id]: locStr }));
-              }
+    // Only reverse geocode items missing lokasiNama, max 3 items concurrently to prevent Network Throttling / Slowdown
+    const unmapped = (absensiList || []).filter(item => !item.lokasiNama && item.latitude && item.longitude && !geoNames[item.id]).slice(0, 3);
+    unmapped.forEach(item => {
+      fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${item.latitude}&lon=${item.longitude}&zoom=16`, {
+        headers: { 'User-Agent': 'SarenOneApp/1.0' }
+      })
+        .then(r => r.json())
+        .then(data => {
+          if (data?.address) {
+            const a = data.address;
+            const parts = [
+              a.amenity || a.building || a.shop || a.road || a.pedestrian,
+              a.suburb || a.village || a.quarter || a.neighbourhood || a.city_district,
+              a.city || a.regency || a.town || a.county
+            ].filter(Boolean);
+            const locStr = parts.join(', ') || data.display_name?.split(',').slice(0, 3).join(',');
+            if (locStr) {
+              setGeoNames(prev => ({ ...prev, [item.id]: locStr }));
             }
-          })
-          .catch(() => {});
-      }
+          }
+        })
+        .catch(() => {});
     });
-  }, [absensiList]);
+  }, [absensiList, geoNames]);
 
   const getLocName = (item) => {
     if (!item) return '';
@@ -52,12 +53,19 @@ export default function AbsensiTab({ activeUser, absensiList, onRefresh }) {
   // Filter data
   const filtered = useMemo(() => {
     return (absensiList || []).filter(d => {
-      const matchTanggal = !filterTanggal || d.tanggal === filterTanggal;
-      const matchName = !filterName || d.name?.toLowerCase().includes(filterName.toLowerCase());
-      const matchType = !filterType || d.type === filterType;
-      return matchTanggal && matchName && matchType;
+      if (!d) return false;
+      const tgl = d.tanggal || (d.createdAt ? String(d.createdAt).substring(0, 10) : '');
+      const matchBulan = !filterBulan || filterBulan === 'semua' || filterBulan === 'ALL' || (tgl && tgl.startsWith(filterBulan));
+      
+      const nama = d.name || d.nama || d.user || '';
+      const matchName = !filterName || nama.toLowerCase().includes(filterName.toLowerCase());
+      
+      const tipe = d.type || d.tipe || '';
+      const matchType = !filterType || tipe === filterType;
+      
+      return matchBulan && matchName && matchType;
     });
-  }, [absensiList, filterTanggal, filterName, filterType]);
+  }, [absensiList, filterBulan, filterName, filterType]);
 
   // Rekap: group by name (for today)
   const rekap = useMemo(() => {
@@ -71,13 +79,22 @@ export default function AbsensiTab({ activeUser, absensiList, onRefresh }) {
     return Object.values(grouped);
   }, [filtered]);
 
-  // Stats for today
-  const todayStr = new Date().toISOString().substring(0, 10);
-  const todayData = useMemo(() => (absensiList || []).filter(d => d.tanggal === todayStr), [absensiList, todayStr]);
-  const todayNames = [...new Set(todayData.map(d => d.name))];
-  const sudahCheckIn = todayNames.filter(n => todayData.some(d => d.name === n && d.type === 'Check-In')).length;
-  const sudahCheckOut = todayNames.filter(n => todayData.some(d => d.name === n && d.type === 'Check-Out')).length;
-  const belumCheckOut = sudahCheckIn - sudahCheckOut;
+  // Stats based on filtered data (or entire list)
+  const statData = useMemo(() => {
+    const dataToUse = filtered;
+    const names = [...new Set(dataToUse.map(d => d.name || d.nama || d.user).filter(Boolean))];
+    const ciCount = names.filter(n => dataToUse.some(d => (d.name || d.nama || d.user) === n && (d.type || d.tipe) === 'Check-In')).length;
+    const coCount = names.filter(n => dataToUse.some(d => (d.name || d.nama || d.user) === n && (d.type || d.tipe) === 'Check-Out')).length;
+    const pendingCount = Math.max(0, ciCount - coCount);
+    return {
+      sudahCheckIn: ciCount || dataToUse.filter(d => (d.type || d.tipe) === 'Check-In').length,
+      sudahCheckOut: coCount || dataToUse.filter(d => (d.type || d.tipe) === 'Check-Out').length,
+      belumCheckOut: pendingCount,
+      totalPersonil: names.length || dataToUse.length
+    };
+  }, [filtered]);
+
+  const { sudahCheckIn, sudahCheckOut, belumCheckOut, totalPersonil } = statData;
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -99,6 +116,21 @@ export default function AbsensiTab({ activeUser, absensiList, onRefresh }) {
     }
   };
 
+  const handleClearAll = async () => {
+    if (!window.confirm('⚠️ WARNINIG: Apakah Anda yakin ingin MENGHAPUS SELURUH DATA ABSENSI dari Database MongoDB? Tindakan ini tidak dapat dibatalkan!')) return;
+    try {
+      const res = await clearAllAbsensiApi();
+      if (res?.success) {
+        alert('Seluruh data absensi di database MongoDB telah berhasil dikosongkan! 🗑️');
+        if (onRefresh) await onRefresh();
+      } else {
+        alert(res?.message || 'Gagal mengosongkan absensi database.');
+      }
+    } catch (e) {
+      alert('Gagal mengosongkan database: ' + e.message);
+    }
+  };
+
   const handleExportCSV = () => {
     if (!filtered.length) return alert('Tidak ada data untuk diexport.');
     const header = 'Nama,Tipe,Waktu,Tanggal,Lokasi,Keterangan,FotoUrl';
@@ -117,220 +149,278 @@ export default function AbsensiTab({ activeUser, absensiList, onRefresh }) {
   };
 
   return (
-    <div className="tab-content">
+    <div className="tab-container" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+      {/* STATS CARDS RAMPING CLEAN WHITE */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem', marginBottom: '1rem' }}>
+        <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderTop: '3.5px solid #10b981', borderRadius: '10px', padding: '0.65rem 0.85rem', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.02em' }}>SUDAH CHECK IN</span>
+            <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <CheckCircle size={15} style={{ color: '#10b981' }} />
+            </div>
+          </div>
+          <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#047857', marginTop: '0.2rem', lineHeight: 1.1 }}>
+            {sudahCheckIn} <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 800 }}>Personil</span>
+          </div>
+        </div>
 
+        <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderTop: '3.5px solid #ef4444', borderRadius: '10px', padding: '0.65rem 0.85rem', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.02em' }}>SUDAH CHECK OUT</span>
+            <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: '#fff1f2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <XCircle size={15} style={{ color: '#ef4444' }} />
+            </div>
+          </div>
+          <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#be123c', marginTop: '0.2rem', lineHeight: 1.1 }}>
+            {sudahCheckOut} <span style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: 800 }}>Personil</span>
+          </div>
+        </div>
 
-      {/* STAT CARDS — HARI INI */}
-      <div className="stats-grid" style={{ marginBottom: '1.5rem' }}>
-        <div className="stat-card">
-          <div className="stat-icon" style={{ background: 'rgba(16,185,129,0.15)' }}>
-            <CheckCircle size={20} style={{ color: '#10b981' }} />
+        <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderTop: '3.5px solid #d97706', borderRadius: '10px', padding: '0.65rem 0.85rem', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.02em' }}>BELUM CHECK OUT</span>
+            <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <AlertCircle size={15} style={{ color: '#d97706' }} />
+            </div>
           </div>
-          <div>
-            <div className="stat-value">{sudahCheckIn}</div>
-            <div className="stat-label">Sudah Check In</div>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon" style={{ background: 'rgba(239,68,68,0.15)' }}>
-            <XCircle size={20} style={{ color: '#ef4444' }} />
-          </div>
-          <div>
-            <div className="stat-value">{sudahCheckOut}</div>
-            <div className="stat-label">Sudah Check Out</div>
+          <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#92400e', marginTop: '0.2rem', lineHeight: 1.1 }}>
+            {belumCheckOut > 0 ? belumCheckOut : 0} <span style={{ fontSize: '0.75rem', color: '#d97706', fontWeight: 800 }}>Personil</span>
           </div>
         </div>
-        <div className="stat-card">
-          <div className="stat-icon" style={{ background: 'rgba(234,179,8,0.15)' }}>
-            <AlertCircle size={20} style={{ color: '#eab308' }} />
+
+        <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderTop: '3.5px solid #0284c7', borderRadius: '10px', padding: '0.65rem 0.85rem', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.02em' }}>TOTAL SPG / SALES</span>
+            <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: '#e0f2fe', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <User size={15} style={{ color: '#0284c7' }} />
+            </div>
           </div>
-          <div>
-            <div className="stat-value">{belumCheckOut > 0 ? belumCheckOut : 0}</div>
-            <div className="stat-label">Belum Check Out</div>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon" style={{ background: 'rgba(99,102,241,0.15)' }}>
-            <User size={20} style={{ color: '#6366f1' }} />
-          </div>
-          <div>
-            <div className="stat-value">{todayNames.length}</div>
-            <div className="stat-label">Total SPG/Sales Hari Ini</div>
+          <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0369a1', marginTop: '0.2rem', lineHeight: 1.1 }}>
+            {totalPersonil} <span style={{ fontSize: '0.75rem', color: '#0284c7', fontWeight: 800 }}>Orang</span>
           </div>
         </div>
       </div>
 
-            {/* HEADER */}
-      <div className="section-header" style={{ marginBottom: '1.5rem' }}>
-        {/* <div>
-          <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <ClipboardCheck size={20} style={{ color: 'var(--primary)' }} />
-            Absensi SPG / Sales
-          </h3>
-          <p className="text-muted" style={{ fontSize: '0.85rem', marginTop: '0.25rem' }}>
-            Pantau data check in & check out tim lapangan secara real-time dari app mobile PresensiKu.
-          </p>
-        </div> */}
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <button className="btn btn-outline" onClick={handleRefresh} disabled={isRefreshing}>
-            <RefreshCw size={15} style={{ animation: isRefreshing ? 'spin 1s linear infinite' : 'none' }} />
+      {/* VIEW TOGGLE & ACTIONS CARD */}
+      <div style={{
+        background: '#ffffff',
+        padding: '0.65rem 0.85rem',
+        borderRadius: '10px',
+        border: '1px solid #cbd5e1',
+        boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+        marginBottom: '0.75rem',
+        display: 'flex',
+        justify: 'space-between',
+        alignItems: 'center',
+        gap: '0.75rem',
+        flexWrap: 'wrap'
+      }}>
+        <div style={{ display: 'flex', gap: '0.4rem' }}>
+          <button
+            className={`btn ${viewMode === 'list' ? 'btn-primary' : 'btn-outline'}`}
+            onClick={() => setViewMode('list')}
+            style={{ fontSize: '0.78rem', fontWeight: 800, height: '32px', padding: '0 0.85rem', borderRadius: '7px' }}
+          >
+            📋 Log Semua Absensi
+          </button>
+          <button
+            className={`btn ${viewMode === 'rekap' ? 'btn-primary' : 'btn-outline'}`}
+            onClick={() => setViewMode('rekap')}
+            style={{ fontSize: '0.78rem', fontWeight: 800, height: '32px', padding: '0 0.85rem', borderRadius: '7px' }}
+          >
+            👥 Rekap Per Orang
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+          <button
+            className="btn btn-outline"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            style={{ height: '32px', fontSize: '0.76rem', fontWeight: 700, padding: '0 0.75rem', borderRadius: '7px' }}
+          >
+            <RefreshCw size={13} style={{ animation: isRefreshing ? 'spin 1s linear infinite' : 'none' }} />
             Refresh
           </button>
-          <button className="btn btn-outline" onClick={handleExportCSV}>
-            <Download size={15} /> Export CSV
+          <button
+            className="btn btn-outline"
+            onClick={handleExportCSV}
+            style={{ height: '32px', fontSize: '0.76rem', fontWeight: 700, padding: '0 0.75rem', borderRadius: '7px' }}
+          >
+            <Download size={13} /> Export CSV
           </button>
+          {canDelete && (
+            <button
+              className="btn btn-outline-danger"
+              onClick={handleClearAll}
+              title="Hapus / Kosongkan Seluruh Data Absensi di Database MongoDB"
+              style={{ height: '32px', fontSize: '0.76rem', fontWeight: 800, padding: '0 0.75rem', borderRadius: '7px', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+            >
+              <Trash2 size={13} /> Kosongkan Semua Data
+            </button>
+          )}
         </div>
       </div>
 
-      {/* VIEW MODE TOGGLE */}
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
-        <button
-          className={`btn ${viewMode === 'list' ? 'btn-primary' : 'btn-outline'}`}
-          onClick={() => setViewMode('list')}
-          style={{ fontSize: '0.82rem' }}
-        >
-          📋 Log Semua Absensi
-        </button>
-        <button
-          className={`btn ${viewMode === 'rekap' ? 'btn-primary' : 'btn-outline'}`}
-          onClick={() => setViewMode('rekap')}
-          style={{ fontSize: '0.82rem' }}
-        >
-          👥 Rekap Per Orang
-        </button>
-      </div>
+      {/* FILTER BAR CARD */}
+      <div style={{
+        background: '#ffffff',
+        padding: '0.65rem 0.85rem',
+        borderRadius: '10px',
+        border: '1px solid #cbd5e1',
+        boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+        marginBottom: '1rem',
+        display: 'flex',
+        gap: '0.5rem',
+        flexWrap: 'wrap',
+        alignItems: 'center'
+      }}>
+        <ModernMonthPicker
+          value={filterBulan}
+          onChange={setFilterBulan}
+          allowAll={true}
+          variant="primary"
+        />
 
-      {/* FILTER BAR */}
-      <div className="filter-bar" style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1.25rem', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '0.4rem 0.75rem' }}>
-          <Filter size={14} style={{ color: 'var(--text-muted)' }} />
-          <input
-            type="date"
-            value={filterTanggal}
-            onChange={e => setFilterTanggal(e.target.value)}
-            style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', fontSize: '0.85rem', outline: 'none' }}
-          />
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '0.4rem 0.75rem', flex: 1, minWidth: '160px' }}>
-          <Search size={14} style={{ color: 'var(--text-muted)' }} />
+        <div className="search-box" style={{ flex: 1, minWidth: '220px', height: '34px' }}>
+          <Search size={14} />
           <input
             type="text"
             placeholder="Cari nama SPG/Sales..."
             value={filterName}
             onChange={e => setFilterName(e.target.value)}
-            style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', fontSize: '0.85rem', outline: 'none', width: '100%' }}
+            style={{ fontSize: '0.78rem' }}
           />
         </div>
-        <select
+
+        {/* <ModernFilterSelect
           value={filterType}
-          onChange={e => setFilterType(e.target.value)}
-          className="select-input"
-          style={{ fontSize: '0.85rem', padding: '0.45rem 0.75rem' }}
-        >
-          <option value="">Semua Tipe</option>
-          <option value="Check-In">Check-In</option>
-          <option value="Check-Out">Check-Out</option>
-        </select>
-        {(filterName || filterType) && (
-          <button className="btn btn-outline" style={{ fontSize: '0.8rem', padding: '0.4rem 0.75rem' }}
-            onClick={() => { setFilterName(''); setFilterType(''); }}>
-            <X size={13} /> Reset
+          onChange={setFilterType}
+          options={['Check-In', 'Check-Out']}
+          placeholder="Semua Tipe"
+          icon={Filter}
+          maxWidth="150px"
+        /> */}
+{/* 
+        {(filterName || filterType || (filterBulan && filterBulan !== 'ALL')) && (
+          <button
+            className="btn btn-outline"
+            style={{ fontSize: '0.74rem', height: '34px', padding: '0 0.65rem', borderRadius: '7px', fontWeight: 700 }}
+            onClick={() => { setFilterName(''); setFilterType(''); setFilterBulan('ALL'); }}
+          >
+            <X size={13} /> Reset Filter
           </button>
-        )}
-        <span className="text-muted" style={{ fontSize: '0.8rem', marginLeft: 'auto' }}>
-          {filtered.length} data
+        )} */}
+
+        <span style={{ fontSize: '0.76rem', color: '#64748b', fontWeight: 700, marginLeft: 'auto' }}>
+          {filtered.length} Data Absensi
         </span>
       </div>
 
       {/* ===== LIST VIEW ===== */}
       {viewMode === 'list' && (
-        <div className="table-container">
-          <table className="data-table">
+        <div className="table-responsive" style={{ borderRadius: '10px', border: '1px solid #e2e8f0', background: '#ffffff' }}>
+          <table className="custom-table" style={{ width: '100%', fontSize: '0.78rem', borderCollapse: 'collapse' }}>
             <thead>
-              <tr>
-                <th>Nama SPG/Sales</th>
-                <th>Tipe</th>
-                <th>Waktu</th>
-                <th>Tanggal</th>
-                <th>Lokasi GPS</th>
-                <th>Keterangan</th>
-                <th>Foto</th>
-                {canDelete && <th>Aksi</th>}
+              <tr style={{ background: '#f8fafc', color: '#475569', borderBottom: '1px solid #e2e8f0' }}>
+                <th style={{ padding: '0.5rem 0.65rem', whiteSpace: 'nowrap' }}>NAMA SPG / SALES</th>
+                <th style={{ padding: '0.5rem 0.65rem', whiteSpace: 'nowrap' }}>TIPE</th>
+                <th style={{ padding: '0.5rem 0.65rem', whiteSpace: 'nowrap' }}>WAKTU</th>
+                <th style={{ padding: '0.5rem 0.65rem', whiteSpace: 'nowrap' }}>TANGGAL</th>
+                <th style={{ padding: '0.5rem 0.65rem', whiteSpace: 'nowrap' }}>LOKASI GPS</th>
+                <th style={{ padding: '0.5rem 0.65rem', whiteSpace: 'nowrap' }}>KETERANGAN</th>
+                <th style={{ padding: '0.5rem 0.65rem', whiteSpace: 'nowrap' }}>FOTO</th>
+                {canDelete && <th style={{ padding: '0.5rem 0.65rem', textAlign: 'right', whiteSpace: 'nowrap' }}>AKSI</th>}
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={canDelete ? 8 : 7} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+                  <td colSpan={canDelete ? 8 : 7} style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8', fontWeight: 600 }}>
                     <ClipboardCheck size={32} style={{ display: 'block', margin: '0 auto 0.5rem', opacity: 0.3 }} />
                     Belum ada data absensi untuk filter ini.
                   </td>
                 </tr>
-              ) : filtered.map(item => (
-                <tr key={item.id} style={{ cursor: 'pointer' }} onClick={() => setSelectedItem(item)}>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary), #7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 700, color: '#fff', flexShrink: 0 }}>
-                        {item.name?.charAt(0)?.toUpperCase()}
+              ) : filtered.map(item => {
+                const displayName = item.name || item.nama || item.user || 'Sales';
+                const displayType = item.type || item.tipe || 'Check-In';
+                const displayTime = item.waktu || item.time || (item.createdAt ? new Date(item.createdAt).toLocaleTimeString('id-ID') : '-');
+                const displayDate = item.tanggal || (item.createdAt ? String(item.createdAt).substring(0, 10) : '-');
+                const displayPhoto = item.photoUrl || item.foto;
+
+                return (
+                  <tr key={item.id || item._id} style={{ borderBottom: '1px solid #f1f5f9', cursor: 'pointer' }} onClick={() => setSelectedItem(item)}>
+                    <td style={{ padding: '0.45rem 0.65rem', whiteSpace: 'nowrap' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'linear-gradient(135deg, #0284c7, #0369a1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 800, color: '#fff', flexShrink: 0 }}>
+                          {displayName.charAt(0)?.toUpperCase()}
+                        </div>
+                        <span style={{ fontWeight: 800, color: '#0f172a' }}>{displayName}</span>
                       </div>
-                      <span style={{ fontWeight: 600 }}>{item.name}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <span style={{
-                      display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
-                      padding: '0.2rem 0.6rem', borderRadius: '20px', fontSize: '0.78rem', fontWeight: 700,
-                      background: item.type === 'Check-In' ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)',
-                      color: item.type === 'Check-In' ? '#10b981' : '#ef4444',
-                      border: `1px solid ${item.type === 'Check-In' ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`
-                    }}>
-                      {item.type === 'Check-In' ? <CheckCircle size={12} /> : <XCircle size={12} />}
-                      {item.type}
-                    </span>
-                  </td>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                      <Clock size={13} /> {item.time}
-                    </div>
-                  </td>
-                  <td style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{item.tanggal}</td>
-                  <td>
-                    {getLocName(item) ? (
-                      <button
-                        className="btn btn-outline"
-                        style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', textTransform: 'capitalize' }}
-                        onClick={e => { e.stopPropagation(); openMaps(item.latitude, item.longitude); }}
-                        title="Klik untuk buka lokasi di Maps"
-                      >
-                        <MapPin size={12} style={{ flexShrink: 0 }} /> {getLocName(item)}
-                      </button>
-                    ) : (
-                      <span className="text-muted" style={{ fontSize: '0.8rem' }}>Tidak ada GPS</span>
-                    )}
-                  </td>
-                  <td>
-                    <span style={{ fontSize: '0.83rem', color: item.keterangan ? 'var(--text-primary)' : 'var(--text-muted)' }}>
-                      {item.keterangan || '-'}
-                    </span>
-                  </td>
-                  <td>
-                    {item.photoUrl ? (
-                      <img src={item.photoUrl} alt="selfie"
-                        style={{ width: 40, height: 40, borderRadius: 8, objectFit: 'cover', border: '1px solid var(--border-color)', cursor: 'pointer' }}
-                        onClick={e => { e.stopPropagation(); setSelectedItem(item); }}
-                      />
-                    ) : (
-                      <span className="text-muted" style={{ fontSize: '0.78rem' }}>-</span>
-                    )}
-                  </td>
-                  {canDelete && (
-                    <td onClick={e => e.stopPropagation()}>
-                      <button className="btn btn-danger" style={{ fontSize: '0.78rem', padding: '0.2rem 0.5rem' }}
-                        onClick={() => handleDelete(item.id)}>Hapus</button>
                     </td>
-                  )}
-                </tr>
-              ))}
+                    <td style={{ padding: '0.45rem 0.65rem', whiteSpace: 'nowrap' }}>
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '0.25rem',
+                        padding: '0.1rem 0.45rem', borderRadius: '5px', fontSize: '0.7rem', fontWeight: 800,
+                        background: displayType === 'Check-In' ? '#ecfdf5' : '#fff1f2',
+                        color: displayType === 'Check-In' ? '#047857' : '#be123c',
+                        border: `1px solid ${displayType === 'Check-In' ? '#a7f3d0' : '#fecdd3'}`
+                      }}>
+                        {displayType === 'Check-In' ? <CheckCircle size={11} /> : <XCircle size={11} />}
+                        {displayType}
+                      </span>
+                    </td>
+                    <td style={{ padding: '0.45rem 0.65rem', whiteSpace: 'nowrap' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: '#475569', fontSize: '0.78rem', fontWeight: 700 }}>
+                        <Clock size={12} style={{ color: '#0284c7' }} /> {displayTime}
+                      </div>
+                    </td>
+                    <td style={{ padding: '0.45rem 0.65rem', fontSize: '0.78rem', color: '#475569', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                      {displayDate}
+                    </td>
+                    <td style={{ padding: '0.45rem 0.65rem', whiteSpace: 'nowrap' }}>
+                      {getLocName(item) ? (
+                        <button
+                          className="btn btn-outline"
+                          style={{ fontSize: '0.72rem', padding: '0.15rem 0.45rem', borderRadius: '5px', fontWeight: 700, textTransform: 'capitalize' }}
+                          onClick={e => { e.stopPropagation(); openMaps(item.latitude, item.longitude); }}
+                          title="Klik untuk buka lokasi di Maps"
+                        >
+                          <MapPin size={11} style={{ flexShrink: 0, color: '#0284c7' }} /> {getLocName(item)}
+                        </button>
+                      ) : (
+                        <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Tidak ada GPS</span>
+                      )}
+                    </td>
+                    <td style={{ padding: '0.45rem 0.65rem', whiteSpace: 'nowrap' }}>
+                      <span style={{ fontSize: '0.78rem', color: item.keterangan ? '#334155' : '#94a3b8', fontWeight: 600 }}>
+                        {item.keterangan || '-'}
+                      </span>
+                    </td>
+                    <td style={{ padding: '0.45rem 0.65rem', whiteSpace: 'nowrap' }}>
+                      {displayPhoto ? (
+                        <img src={displayPhoto} alt="selfie"
+                          style={{ width: 34, height: 34, borderRadius: 6, objectFit: 'cover', border: '1px solid #cbd5e1', cursor: 'pointer' }}
+                          onClick={e => { e.stopPropagation(); setSelectedItem(item); }}
+                        />
+                      ) : (
+                        <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>-</span>
+                      )}
+                    </td>
+                    {canDelete && (
+                      <td style={{ padding: '0.45rem 0.65rem', textAlign: 'right', whiteSpace: 'nowrap' }} onClick={e => e.stopPropagation()}>
+                        <button
+                          className="btn btn-sm btn-outline-danger"
+                          style={{ height: '26px', fontSize: '0.68rem', padding: '0 0.45rem', borderRadius: '5px', fontWeight: 700 }}
+                          onClick={() => handleDelete(item.id || item._id)}
+                        >
+                          Hapus
+                        </button>
+                      </td>
+                    )}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
